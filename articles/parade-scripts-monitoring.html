@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>SLURM script submission from R: submit_slurm(), script_top(), jobs_top() • parade</title>
+<title>SLURM script submission and monitoring from R • parade</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="SLURM script submission from R: submit_slurm(), script_top(), jobs_top()">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="SLURM script submission and monitoring from R">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -34,10 +34,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/parade-core.html">Parade core: declarative flows, types, and execution</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM defaults, profiles, and NA = omit</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults.html">SLURM defaults &amp; profiles (NA = omit)</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM Profiles: Environment-Specific Configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults.html">Using SLURM Defaults in parade</a></li>
     <li><a class="dropdown-item" href="../articles/parade-paths.html">Scratch-first paths &amp; registries: project://, artifacts://, registry://</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission from R: submit_slurm(), script_top(), jobs_top()</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission and monitoring from R</a></li>
     <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: clean side-effects, atomic writes, and manifests</a></li>
     <li><a class="dropdown-item" href="../articles/parade-slurm-distribution.html">Distribution: local and SLURM (barriers, throttling, chunking)</a></li>
   </ul>
@@ -60,7 +60,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>SLURM script submission from R: submit_slurm(), script_top(), jobs_top()</h1>
+      <h1>SLURM script submission and monitoring from R</h1>
             
       
 
@@ -72,27 +72,378 @@
 <blockquote>
 <p>Requires <strong>parade ≥ 0.11.0</strong>.</p>
 </blockquote>
-<p>Submit <strong>any R script</strong> to SLURM and monitor it live—no
-shell required.</p>
+<div class="section level2">
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+</h2>
+<p><strong>parade</strong> provides a comprehensive suite of tools to
+submit any R script to SLURM and monitor it interactively from within
+R—no shell access required. This approach gives you the full power of
+SLURM job scheduling while maintaining the convenience of R-based
+workflow management.</p>
+</div>
+<div class="section level2">
+<h2 id="key-monitoring-capabilities">Key monitoring capabilities<a class="anchor" aria-label="anchor" href="#key-monitoring-capabilities"></a>
+</h2>
+<ul>
+<li>
+<strong>Live resource monitoring</strong>: Real-time CPU usage,
+memory consumption, and job status</li>
+<li>
+<strong>Interactive dashboards</strong>: Single job
+(<code><a href="../reference/script_top.html">script_top()</a></code>) and multi-job (<code><a href="../reference/jobs_top.html">jobs_top()</a></code>)
+monitoring</li>
+<li>
+<strong>Log streaming</strong>: View live output from running jobs
+(<code><a href="../reference/script_tail.html">script_tail()</a></code>)</li>
+<li>
+<strong>Status checking</strong>: Quick job state queries
+(<code><a href="../reference/script_status.html">script_status()</a></code>)</li>
+<li>
+<strong>Job management</strong>: Cancel, wait for, and track
+multiple jobs</li>
+<li>
+<strong>Error handling</strong>: Automatic detection of failed jobs
+and error diagnostics</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="quick-start-example">Quick start example<a class="anchor" aria-label="anchor" href="#quick-start-example"></a>
+</h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Optional site defaults (omit mem entirely)</span></span>
+<span><span class="co"># Optional: Configure site defaults</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition<span class="op">=</span><span class="st">"general"</span>, time<span class="op">=</span><span class="st">"2h"</span>, cpus_per_task<span class="op">=</span><span class="fl">16</span>, mem<span class="op">=</span><span class="cn">NA</span>, persist<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/slurm_template_set.html">slurm_template_set</a></span><span class="op">(</span><span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Submit</span></span>
+<span><span class="co"># Submit a job</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"scripts/train.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--fold"</span>, <span class="st">"1"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Quick checks</span></span>
+<span><span class="co"># Quick status check</span></span>
 <span><span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># View recent log output</span></span>
 <span><span class="fu"><a href="../reference/script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span>, <span class="fl">80</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Live monitors</span></span>
-<span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span>, refresh <span class="op">=</span> <span class="fl">2</span>, nlog <span class="op">=</span> <span class="fl">40</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span>, refresh <span class="op">=</span> <span class="fl">3</span>, nlog <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></code></pre></div>
-  </main>
+<span><span class="co"># Launch interactive monitor</span></span>
+<span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span>, refresh <span class="op">=</span> <span class="fl">2</span>, nlog <span class="op">=</span> <span class="fl">40</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="core-monitoring-functions">Core monitoring functions<a class="anchor" aria-label="anchor" href="#core-monitoring-functions"></a>
+</h2>
+<div class="section level3">
+<h3 id="single-job-monitoring-script_top">Single job monitoring: <code>script_top()</code><a class="anchor" aria-label="anchor" href="#single-job-monitoring-script_top"></a>
+</h3>
+<p>The <code><a href="../reference/script_top.html">script_top()</a></code> function provides a real-time,
+interactive dashboard for monitoring a single SLURM job:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"analysis.R"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span>, refresh <span class="op">=</span> <span class="fl">2</span>, nlog <span class="op">=</span> <span class="fl">30</span>, clear <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Features displayed:</strong> - <strong>Job
+identification</strong>: Name, SLURM job ID, assigned node -
+<strong>Resource usage</strong>: CPU percentage with visual progress
+bar, allocated vs. used CPUs - <strong>Memory statistics</strong>:
+Average and maximum RSS (Resident Set Size), virtual memory usage -
+<strong>Timing information</strong>: Elapsed time, CPU time used, uptime
+since monitoring started - <strong>Live log output</strong>: Most recent
+log lines from the job (configurable number) - <strong>Status
+tracking</strong>: Automatically detects when jobs complete or fail</p>
+<p><strong>Parameters:</strong> - <code>refresh</code>: Update interval
+in seconds (default: 2) - <code>nlog</code>: Number of recent log lines
+to display (default: 30)<br>
+- <code>clear</code>: Whether to clear screen between updates for
+smoother display (default: TRUE)</p>
+</div>
+<div class="section level3">
+<h3 id="multi-job-dashboard-jobs_top">Multi-job dashboard: <code>jobs_top()</code><a class="anchor" aria-label="anchor" href="#multi-job-dashboard-jobs_top"></a>
+</h3>
+<p>Monitor multiple jobs simultaneously with a tabular overview plus
+detailed logs from running jobs:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Submit multiple jobs</span></span>
+<span><span class="va">job1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"preprocess.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--dataset"</span>, <span class="st">"A"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">job2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"preprocess.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--dataset"</span>, <span class="st">"B"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">job3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"model_train.R"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Monitor all jobs together</span></span>
+<span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">job1</span>, <span class="va">job2</span>, <span class="va">job3</span><span class="op">)</span>, refresh <span class="op">=</span> <span class="fl">3</span>, nlog <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Display format:</strong> - <strong>Summary line</strong>:
+Count of jobs in each state (PENDING=1, RUNNING=2, etc.) - <strong>Job
+table</strong>: Compact view with name, job ID, state, CPU%, allocated
+CPUs, max memory, elapsed time, node - <strong>Live log tail</strong>:
+Recent output from the first running job</p>
+<p><strong>Flexible input formats:</strong></p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># List of job objects</span></span>
+<span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">job1</span>, <span class="va">job2</span>, <span class="va">job3</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Data frame with job column</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"job1"</span>, <span class="st">"job2"</span><span class="op">)</span>, job <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">job1</span>, <span class="va">job2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Registry paths as strings</span></span>
+<span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"registry://script-abc123"</span>, <span class="st">"registry://script-def456"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="essential-job-management-functions">Essential job management functions<a class="anchor" aria-label="anchor" href="#essential-job-management-functions"></a>
+</h2>
+<div class="section level3">
+<h3 id="status-checking-script_status">Status checking: <code>script_status()</code><a class="anchor" aria-label="anchor" href="#status-checking-script_status"></a>
+</h3>
+<p>Get current job state without launching a full monitor:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span></span>
+<span><span class="co"># # A tibble: 1 × 5</span></span>
+<span><span class="co">#   pending started running  done error</span></span>
+<span><span class="co">#     &lt;int&gt;   &lt;int&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;</span></span>
+<span><span class="co">#        0       0       1     0     0</span></span>
+<span></span>
+<span><span class="co"># Detailed view includes full batchtools information</span></span>
+<span><span class="va">detailed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span>, detail <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="log-viewing-script_tail">Log viewing: <code>script_tail()</code><a class="anchor" aria-label="anchor" href="#log-viewing-script_tail"></a>
+</h3>
+<p>Display recent log output from a job:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Show last 50 lines</span></span>
+<span><span class="fu"><a href="../reference/script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span>, n <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Quick check of recent output</span></span>
+<span><span class="fu"><a href="../reference/script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span>  <span class="co"># Default: 200 lines</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="resource-metrics-script_metrics">Resource metrics: <code>script_metrics()</code><a class="anchor" aria-label="anchor" href="#resource-metrics-script_metrics"></a>
+</h3>
+<p>Get detailed resource usage statistics:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">metrics</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_metrics.html">script_metrics</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">metrics</span><span class="op">)</span></span>
+<span><span class="co"># $job_id</span></span>
+<span><span class="co"># [1] "12345"</span></span>
+<span><span class="co"># </span></span>
+<span><span class="co"># $state</span></span>
+<span><span class="co"># [1] "RUNNING"</span></span>
+<span><span class="co"># </span></span>
+<span><span class="co"># $cpu_pct</span></span>
+<span><span class="co"># [1] 87.3</span></span>
+<span><span class="co"># </span></span>
+<span><span class="co"># $max_rss</span></span>
+<span><span class="co"># [1] 1024000000  # bytes</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="job-completion-script_done">Job completion: <code>script_done()</code><a class="anchor" aria-label="anchor" href="#job-completion-script_done"></a>
+</h3>
+<p>Check if a job has finished (successfully or with errors):</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/script_done.html">script_done</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Job completed!\n"</span><span class="op">)</span></span>
+<span>  <span class="co"># Process results...</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Job still running...\n"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="advanced-job-management">Advanced job management<a class="anchor" aria-label="anchor" href="#advanced-job-management"></a>
+</h2>
+<div class="section level3">
+<h3 id="waiting-for-completion-script_await">Waiting for completion: <code>script_await()</code><a class="anchor" aria-label="anchor" href="#waiting-for-completion-script_await"></a>
+</h3>
+<p>Block execution until job completes:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Wait indefinitely</span></span>
+<span><span class="fu"><a href="../reference/script_await.html">script_await</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Wait with timeout (5 minutes)</span></span>
+<span><span class="fu"><a href="../reference/script_await.html">script_await</a></span><span class="op">(</span><span class="va">job</span>, timeout <span class="op">=</span> <span class="fl">300</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Custom polling interval</span></span>
+<span><span class="fu"><a href="../reference/script_await.html">script_await</a></span><span class="op">(</span><span class="va">job</span>, timeout <span class="op">=</span> <span class="fl">600</span>, poll <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>  <span class="co"># Check every 30 seconds</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="canceling-jobs-script_cancel">Canceling jobs: <code>script_cancel()</code><a class="anchor" aria-label="anchor" href="#canceling-jobs-script_cancel"></a>
+</h3>
+<p>Stop running jobs:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/script_cancel.html">script_cancel</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="finding-recent-jobs-script_find_latest">Finding recent jobs: <code>script_find_latest()</code><a class="anchor" aria-label="anchor" href="#finding-recent-jobs-script_find_latest"></a>
+</h3>
+<p>Locate recently submitted jobs when you don’t have the job
+object:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Find 5 most recent jobs</span></span>
+<span><span class="va">recent</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_find_latest.html">script_find_latest</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">recent</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load a job from its registry path</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_load.html">script_load</a></span><span class="op">(</span><span class="va">recent</span><span class="op">$</span><span class="va">registry</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="practical-monitoring-scenarios">Practical monitoring scenarios<a class="anchor" aria-label="anchor" href="#practical-monitoring-scenarios"></a>
+</h2>
+<div class="section level3">
+<h3 id="scenario-1-long-running-training-job">Scenario 1: Long-running training job<a class="anchor" aria-label="anchor" href="#scenario-1-long-running-training-job"></a>
+</h3>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Submit training job with generous time limit</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"train_model.R"</span>, </span>
+<span>                    resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"24:00:00"</span>, mem <span class="op">=</span> <span class="st">"32G"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Quick status check</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span><span class="op">$</span><span class="va">running</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Training started successfully\n"</span><span class="op">)</span></span>
+<span>  </span>
+<span>  <span class="co"># Monitor for a few minutes, then leave it running</span></span>
+<span>  <span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span>, refresh <span class="op">=</span> <span class="fl">5</span>, nlog <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Job may be queued or failed\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span>, <span class="fl">100</span><span class="op">)</span>  <span class="co"># Check for error messages</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="scenario-2-batch-processing-pipeline">Scenario 2: Batch processing pipeline<a class="anchor" aria-label="anchor" href="#scenario-2-batch-processing-pipeline"></a>
+</h3>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Submit preprocessing jobs for multiple datasets</span></span>
+<span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dataset_A"</span>, <span class="st">"dataset_B"</span>, <span class="st">"dataset_C"</span><span class="op">)</span></span>
+<span><span class="va">prep_jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">datasets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"preprocess.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--input"</span>, <span class="va">d</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Monitor all preprocessing</span></span>
+<span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="va">prep_jobs</span>, refresh <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Wait for all to complete</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">prep_jobs</span>, <span class="va">script_await</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Submit analysis job that depends on preprocessing</span></span>
+<span><span class="va">analysis_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"analyze_results.R"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">analysis_job</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="scenario-3-troubleshooting-failed-jobs">Scenario 3: Troubleshooting failed jobs<a class="anchor" aria-label="anchor" href="#scenario-3-troubleshooting-failed-jobs"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"problematic_script.R"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Check if job completed</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/script_done.html">script_done</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
+<span>  </span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">status</span><span class="op">$</span><span class="va">error</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Job failed! Checking logs...\n"</span><span class="op">)</span></span>
+<span>    </span>
+<span>    <span class="co"># View full log output for debugging</span></span>
+<span>    <span class="fu"><a href="../reference/script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span>, n <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span>    </span>
+<span>    <span class="co"># Get log file paths for detailed analysis</span></span>
+<span>    <span class="va">logs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_logs.html">script_logs</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Log files:"</span>, <span class="va">logs</span><span class="op">$</span><span class="va">path</span>, <span class="st">"\n"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Job completed successfully\n"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="tips-for-efficient-monitoring">Tips for efficient monitoring<a class="anchor" aria-label="anchor" href="#tips-for-efficient-monitoring"></a>
+</h2>
+<div class="section level3">
+<h3 id="resource-optimization">Resource optimization<a class="anchor" aria-label="anchor" href="#resource-optimization"></a>
+</h3>
+<ul>
+<li>
+<strong>Monitor CPU usage</strong>: Look for jobs using less than
+expected CPU% - may indicate I/O bottlenecks</li>
+<li>
+<strong>Track memory patterns</strong>: MaxRSS shows peak memory
+usage; compare against requested memory</li>
+<li>
+<strong>Watch for memory leaks</strong>: Increasing AveRSS over time
+may indicate memory management issues</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="interactive-monitoring-best-practices">Interactive monitoring best practices<a class="anchor" aria-label="anchor" href="#interactive-monitoring-best-practices"></a>
+</h3>
+<ul>
+<li>
+<strong>Use appropriate refresh rates</strong>: Fast updates (1-2s)
+for active debugging, slower (5-10s) for long jobs</li>
+<li>
+<strong>Adjust log lines</strong>: More lines
+(<code>nlog = 100</code>) for detailed debugging, fewer
+(<code>nlog = 10</code>) for overview</li>
+<li>
+<strong>Background monitoring</strong>: Use
+<code>clear = FALSE</code> when capturing output or running
+non-interactively</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="multi-job-management">Multi-job management<a class="anchor" aria-label="anchor" href="#multi-job-management"></a>
+</h3>
+<ul>
+<li>
+<strong>Group related jobs</strong>: Monitor job families together
+with <code><a href="../reference/jobs_top.html">jobs_top()</a></code>
+</li>
+<li>
+<strong>Stagger job submission</strong>: Avoid overwhelming the
+scheduler with simultaneous submissions</li>
+<li>
+<strong>Use descriptive names</strong>: Job names appear in
+monitoring displays—make them informative</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="error-handling-and-troubleshooting">Error handling and troubleshooting<a class="anchor" aria-label="anchor" href="#error-handling-and-troubleshooting"></a>
+</h2>
+<div class="section level3">
+<h3 id="common-monitoring-issues">Common monitoring issues<a class="anchor" aria-label="anchor" href="#common-monitoring-issues"></a>
+</h3>
+<p><strong>“Cannot fetch metrics” error:</strong> - Ensure SLURM
+commands (<code>squeue</code>, <code>sstat</code>, <code>sacct</code>)
+are available - Check that job ID is valid and job hasn’t been purged
+from SLURM records - Verify SLURM permissions and cluster
+connectivity</p>
+<p><strong>Empty log output:</strong> - Job may not have started writing
+output yet - Check job status—may be pending in queue - Verify output
+redirection in SLURM template</p>
+<p><strong>Memory metrics showing NA:</strong> - Some metrics
+unavailable until job starts running - SLURM accounting may not be
+enabled on cluster - Try <code><a href="../reference/script_metrics.html">script_metrics()</a></code> directly to see
+raw data</p>
+</div>
+<div class="section level3">
+<h3 id="recovery-strategies">Recovery strategies<a class="anchor" aria-label="anchor" href="#recovery-strategies"></a>
+</h3>
+<p><strong>Lost job objects:</strong></p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Find recent jobs</span></span>
+<span><span class="va">recent</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_find_latest.html">script_find_latest</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="st">"train"</span><span class="op">)</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_load.html">script_load</a></span><span class="op">(</span><span class="va">recent</span><span class="op">$</span><span class="va">registry</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Monitor jobs from different R sessions:</strong></p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Jobs persist across R sessions via registry</span></span>
+<span><span class="va">job_path</span> <span class="op">&lt;-</span> <span class="st">"registry://script-abc123"</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_load.html">script_load</a></span><span class="op">(</span><span class="va">job_path</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></code></pre></div>
+<p>This comprehensive monitoring system makes SLURM job management as
+convenient as local R execution while providing the scalability and
+resource management benefits of cluster computing.</p>
+</div>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>SLURM defaults &amp; profiles (NA = omit) • parade</title>
+<title>Using SLURM Defaults in parade • parade</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="SLURM defaults &amp; profiles (NA = omit)">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Using SLURM Defaults in parade">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -34,10 +34,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/parade-core.html">Parade core: declarative flows, types, and execution</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM defaults, profiles, and NA = omit</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults.html">SLURM defaults &amp; profiles (NA = omit)</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM Profiles: Environment-Specific Configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults.html">Using SLURM Defaults in parade</a></li>
     <li><a class="dropdown-item" href="../articles/parade-paths.html">Scratch-first paths &amp; registries: project://, artifacts://, registry://</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission from R: submit_slurm(), script_top(), jobs_top()</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission and monitoring from R</a></li>
     <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: clean side-effects, atomic writes, and manifests</a></li>
     <li><a class="dropdown-item" href="../articles/parade-slurm-distribution.html">Distribution: local and SLURM (barriers, throttling, chunking)</a></li>
   </ul>
@@ -60,7 +60,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>SLURM defaults &amp; profiles (NA = omit)</h1>
+      <h1>Using SLURM Defaults in parade</h1>
             
       
 
@@ -69,10 +69,34 @@
 
     
     
-<p>You can set <strong>site/project defaults</strong> for SLURM
-submission and omit problematic flags by assigning <code>NA</code>
-(e.g., some clusters reject <code>--mem</code>). Defaults live in a JSON
-file and are accessible from R.</p>
+<div class="section level2">
+<h2 id="what-are-defaults-and-why-use-them">What are defaults and why use them?<a class="anchor" aria-label="anchor" href="#what-are-defaults-and-why-use-them"></a>
+</h2>
+<p>The parade package allows you to set <strong>site/project
+defaults</strong> for SLURM job submission, making your R code portable
+across different clusters and reducing repetitive resource
+specifications. Instead of specifying the same SLURM parameters
+(partition, memory, CPU count, etc.) in every job submission, you can
+configure them once and reuse them throughout your project.</p>
+<p>Key benefits of using defaults:</p>
+<ul>
+<li>
+<strong>Portability</strong>: Your R scripts work across different
+clusters without modification</li>
+<li>
+<strong>Consistency</strong>: Ensure all jobs use appropriate
+resource allocations for your environment<br>
+</li>
+<li>
+<strong>Flexibility</strong>: Selectively omit problematic flags
+that some clusters reject (e.g., <code>--mem</code>)</li>
+<li>
+<strong>Maintainability</strong>: Update resource requirements in
+one place rather than throughout your codebase</li>
+</ul>
+<p>Defaults are stored in a JSON configuration file and are accessible
+from R through simple functions.</p>
+</div>
 <div class="section level2">
 <h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
@@ -80,65 +104,183 @@ file and are accessible from R.</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Persist defaults to project .parade/parade.json</span></span>
+<span><span class="co"># Set up defaults for your cluster environment</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
-<span>  partition <span class="op">=</span> <span class="st">"general"</span>,</span>
-<span>  time <span class="op">=</span> <span class="st">"2h"</span>,</span>
-<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,</span>
-<span>  mem <span class="op">=</span> <span class="cn">NA</span>,             <span class="co"># &lt;- omit --mem entirely</span></span>
-<span>  omp_num_threads <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"general"</span>,     <span class="co"># Default partition to use</span></span>
+<span>  time <span class="op">=</span> <span class="st">"2h"</span>,              <span class="co"># Default time limit</span></span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,       <span class="co"># Default CPU allocation</span></span>
+<span>  mem <span class="op">=</span> <span class="cn">NA</span>,                 <span class="co"># &lt;- omit --mem entirely (some clusters reject this flag)</span></span>
+<span>  omp_num_threads <span class="op">=</span> <span class="fl">1</span>,      <span class="co"># Default OpenMP thread count</span></span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span>            <span class="co"># Save these defaults to config file</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Optionally set a default template path</span></span>
 <span><span class="fu"><a href="../reference/slurm_template_set.html">slurm_template_set</a></span><span class="op">(</span><span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Submit a script using defaults + NA-omit semantics</span></span>
+<span><span class="co"># Now submit jobs using your defaults</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"script.R"</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/submit_slurm.html">submit_slurm()</a></code> merges your call’s <code>resources</code>
-with the defaults, normalizes time, and drops any <code>NA</code> or
-<code>omit()</code> fields before constructing <code>#SBATCH</code>
-lines.</p>
+<p>When you call <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code>, it automatically merges
+your call’s <code>resources</code> parameter with the configured
+defaults, normalizes time specifications, and drops any <code>NA</code>
+or <code>omit()</code> fields before constructing the
+<code>#SBATCH</code> directives for your SLURM job.</p>
 </div>
 <div class="section level2">
-<h2 id="config-file-location">Config file location<a class="anchor" aria-label="anchor" href="#config-file-location"></a>
+<h2 id="configuration-file">Configuration file<a class="anchor" aria-label="anchor" href="#configuration-file"></a>
 </h2>
-<ul>
+<p>Parade searches for configuration files in the following order:</p>
+<ol style="list-style-type: decimal">
 <li>
-<code>PARADE_CONFIG</code> env var (exact file), if set</li>
+<code>PARADE_CONFIG</code> environment variable (exact file path),
+if set</li>
 <li>
-<code>&lt;project&gt;/parade.json</code>, if present</li>
+<code>&lt;project&gt;/parade.json</code>, if present<br>
+</li>
 <li>
-<code>&lt;project&gt;/.parade/parade.json</code> (created as
-needed)</li>
-</ul>
-<p>The file is JSON; example:</p>
+<code>&lt;project&gt;/.parade/parade.json</code> (created
+automatically as needed)</li>
+</ol>
+<p>The configuration file uses JSON format. Here’s an example showing
+typical defaults for a research cluster:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="dt">"slurm"</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>    <span class="dt">"template"</span><span class="fu">:</span> <span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="fu">,</span></span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>    <span class="dt">"defaults"</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>      <span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"general"</span><span class="fu">,</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>      <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"2h"</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>      <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"2h"</span><span class="fu">,</span> </span>
 <span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>      <span class="dt">"cpus_per_task"</span><span class="fu">:</span> <span class="dv">16</span><span class="fu">,</span></span>
 <span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>      <span class="dt">"mem"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
 <span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>      <span class="dt">"omp_num_threads"</span><span class="fu">:</span> <span class="dv">1</span></span>
 <span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>    <span class="fu">}</span></span>
 <span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="fu">}</span></span>
 <span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Note that <code>null</code> in JSON corresponds to <code>NA</code> in
+R, which tells parade to omit that parameter entirely from the SLURM
+submission.</p>
 </div>
 <div class="section level2">
-<h2 id="programmatic-use">Programmatic use<a class="anchor" aria-label="anchor" href="#programmatic-use"></a>
+<h2 id="working-with-defaults-programmatically">Working with defaults programmatically<a class="anchor" aria-label="anchor" href="#working-with-defaults-programmatically"></a>
 </h2>
+<div class="section level3">
+<h3 id="inspecting-current-defaults">Inspecting current defaults<a class="anchor" aria-label="anchor" href="#inspecting-current-defaults"></a>
+</h3>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Build a resource list from defaults + overrides</span></span>
-<span><span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"90min"</span>, mem <span class="op">=</span> <span class="fu">omit</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Inspect or change defaults in-session</span></span>
+<code class="sourceCode R"><span><span class="co"># View all current defaults</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span>           <span class="co"># omit --mem</span></span>
-<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"1h"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># and save</span></span></code></pre></div>
-<p>This keeps your R code <strong>portable</strong> across clusters with
-different Slurm policies.</p>
+<span></span>
+<span><span class="co"># Check specific default values</span></span>
+<span><span class="va">defaults</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">defaults</span><span class="op">$</span><span class="va">time</span>        <span class="co"># "2h"</span></span>
+<span><span class="va">defaults</span><span class="op">$</span><span class="va">partition</span>   <span class="co"># "general"</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="building-resource-lists-with-overrides">Building resource lists with overrides<a class="anchor" aria-label="anchor" href="#building-resource-lists-with-overrides"></a>
+</h3>
+<p>The <code><a href="../reference/slurm_resources.html">slurm_resources()</a></code> function combines defaults with
+job-specific overrides:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Use defaults but override time and explicitly omit memory</span></span>
+<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"90min"</span>, mem <span class="op">=</span> <span class="fu">omit</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Submit job with these specific resources</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"analysis.R"</span>, resources <span class="op">=</span> <span class="va">resources</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="updating-defaults-during-your-session">Updating defaults during your session<a class="anchor" aria-label="anchor" href="#updating-defaults-during-your-session"></a>
+</h3>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Change defaults temporarily (session only)</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span>           <span class="co"># omit --mem flag</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>cpus_per_task <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>  <span class="co"># reduce CPU count</span></span>
+<span></span>
+<span><span class="co"># Make changes permanent by saving to config file</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"1h"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Set multiple defaults at once</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"gpu"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"4h"</span>, </span>
+<span>  gres <span class="op">=</span> <span class="st">"gpu:1"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="overriding-defaults-in-job-submission">Overriding defaults in job submission<a class="anchor" aria-label="anchor" href="#overriding-defaults-in-job-submission"></a>
+</h2>
+<p>You can override defaults on a per-job basis by passing a
+<code>resources</code> argument to <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code>:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Use defaults for most parameters, but need more time and memory for this job</span></span>
+<span><span class="va">big_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"big_analysis.R"</span>, </span>
+<span>                        resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"12h"</span>, mem <span class="op">=</span> <span class="st">"32G"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># For a quick test job, use minimal resources</span></span>
+<span><span class="va">test_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"test.R"</span>, </span>
+<span>                         resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"5min"</span>, cpus_per_task <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Submit to a different partition while keeping other defaults</span></span>
+<span><span class="va">gpu_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"model_training.R"</span>,</span>
+<span>                        resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"gpu"</span>, gres <span class="op">=</span> <span class="st">"gpu:2"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="common-use-cases-and-examples">Common use cases and examples<a class="anchor" aria-label="anchor" href="#common-use-cases-and-examples"></a>
+</h2>
+<div class="section level3">
+<h3 id="setting-up-defaults-for-different-cluster-environments">Setting up defaults for different cluster environments<a class="anchor" aria-label="anchor" href="#setting-up-defaults-for-different-cluster-environments"></a>
+</h3>
+<p>For a cluster that rejects memory specifications:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"compute"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"2h"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,</span>
+<span>  mem <span class="op">=</span> <span class="cn">NA</span>,              <span class="co"># Omit memory specification</span></span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>For a GPU cluster:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"gpu"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"4h"</span>, </span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"16G"</span>,</span>
+<span>  gres <span class="op">=</span> <span class="st">"gpu:1"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>For high-memory jobs:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"highmem"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"8h"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">32</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"128G"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="best-practices">Best practices<a class="anchor" aria-label="anchor" href="#best-practices"></a>
+</h3>
+<ol style="list-style-type: decimal">
+<li><p><strong>Set defaults early</strong>: Configure defaults at the
+beginning of your project after initializing with
+<code><a href="../reference/paths_init.html">paths_init()</a></code></p></li>
+<li><p><strong>Use meaningful time limits</strong>: Set reasonable
+default time limits to avoid jobs sitting in queue
+unnecessarily</p></li>
+<li><p><strong>Consider cluster policies</strong>: Some clusters reject
+certain flags (like <code>--mem</code>) - use <code>NA</code> to omit
+these</p></li>
+<li><p><strong>Environment-specific configs</strong>: Use different
+config files or the <code>PARADE_CONFIG</code> environment variable for
+different clusters</p></li>
+<li><p><strong>Version control</strong>: Consider committing your
+<code>parade.json</code> file to version control so team members share
+the same defaults</p></li>
+</ol>
+<p>This approach keeps your R code <strong>portable</strong> across
+clusters with different SLURM policies and resource requirements.</p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>SLURM defaults, profiles, and NA = omit • parade</title>
+<title>SLURM Profiles: Environment-Specific Configurations • parade</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="SLURM defaults, profiles, and NA = omit">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="SLURM Profiles: Environment-Specific Configurations">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -34,10 +34,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/parade-core.html">Parade core: declarative flows, types, and execution</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM defaults, profiles, and NA = omit</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults.html">SLURM defaults &amp; profiles (NA = omit)</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM Profiles: Environment-Specific Configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults.html">Using SLURM Defaults in parade</a></li>
     <li><a class="dropdown-item" href="../articles/parade-paths.html">Scratch-first paths &amp; registries: project://, artifacts://, registry://</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission from R: submit_slurm(), script_top(), jobs_top()</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission and monitoring from R</a></li>
     <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: clean side-effects, atomic writes, and manifests</a></li>
     <li><a class="dropdown-item" href="../articles/parade-slurm-distribution.html">Distribution: local and SLURM (barriers, throttling, chunking)</a></li>
   </ul>
@@ -60,7 +60,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>SLURM defaults, profiles, and NA = omit</h1>
+      <h1>SLURM Profiles: Environment-Specific Configurations</h1>
             
       
 
@@ -72,38 +72,301 @@
 <blockquote>
 <p>Requires <strong>parade ≥ 0.11.0</strong>.</p>
 </blockquote>
-<p>Set <strong>site/project defaults</strong> once—keep code portable
-across clusters.</p>
+<div class="section level2">
+<h2 id="what-are-profiles-and-how-do-they-differ-from-defaults">What are profiles and how do they differ from defaults?<a class="anchor" aria-label="anchor" href="#what-are-profiles-and-how-do-they-differ-from-defaults"></a>
+</h2>
+<p>While <strong>defaults</strong> provide a single set of baseline
+SLURM parameters for your project (as described in the “Using SLURM
+Defaults” vignette), <strong>profiles</strong> allow you to define
+multiple named sets of defaults for different environments, workflows,
+or job types.</p>
+<p>Think of profiles as named collections of defaults that can be
+switched between depending on your context:</p>
+<ul>
+<li>
+<strong>Defaults</strong>: One set of parameters applied
+globally</li>
+<li>
+<strong>Profiles</strong>: Multiple named sets of parameters (e.g.,
+“production”, “debug”, “gpu_jobs”)</li>
+</ul>
+<p>This enables you to maintain different configurations for various
+scenarios within the same project, making your code portable across
+different environments and use cases.</p>
+</div>
+<div class="section level2">
+<h2 id="quick-start-using-profiles">Quick start: Using profiles<a class="anchor" aria-label="anchor" href="#quick-start-using-profiles"></a>
+</h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Persist defaults to project .parade/parade.json</span></span>
+<span><span class="co"># Set up a production profile with conservative resource allocation</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
-<span>  partition <span class="op">=</span> <span class="st">"general"</span>,</span>
-<span>  time <span class="op">=</span> <span class="st">"2h"</span>,</span>
-<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,</span>
-<span>  mem <span class="op">=</span> <span class="cn">NA</span>,             <span class="co"># omit --mem</span></span>
-<span>  omp_num_threads <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  partition <span class="op">=</span> <span class="st">"compute"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"8h"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">32</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"64G"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"production"</span>,</span>
 <span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Load and merge</span></span>
-<span><span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"90min"</span>, mem <span class="op">=</span> <span class="fu">omit</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># Set up a debug profile for quick testing</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"debug"</span>, </span>
+<span>  time <span class="op">=</span> <span class="st">"30m"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"8G"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"debug"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Default template path</span></span>
-<span><span class="fu"><a href="../reference/slurm_template_set.html">slurm_template_set</a></span><span class="op">(</span><span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Config file locations</strong> (search order):</p>
+<span><span class="co"># Use production profile</span></span>
+<span><span class="va">prod_resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"6h"</span><span class="op">)</span>, profile <span class="op">=</span> <span class="st">"production"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Use debug profile  </span></span>
+<span><span class="va">debug_resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>nodes <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, profile <span class="op">=</span> <span class="st">"debug"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="multi-environment-workflow-examples">Multi-environment workflow examples<a class="anchor" aria-label="anchor" href="#multi-environment-workflow-examples"></a>
+</h2>
+<div class="section level3">
+<h3 id="research-cluster-with-different-partitions">Research cluster with different partitions<a class="anchor" aria-label="anchor" href="#research-cluster-with-different-partitions"></a>
+</h3>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># High-performance partition for production runs</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"highmem"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"24h"</span>, </span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">64</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"256G"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"analysis"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Quick partition for development and testing</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"quick"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"2h"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">8</span>, </span>
+<span>  mem <span class="op">=</span> <span class="st">"16G"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># GPU partition for machine learning workloads</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"gpu"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"12h"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"32G"</span>, </span>
+<span>  gres <span class="op">=</span> <span class="st">"gpu:2"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"ml"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="cross-cluster-portability">Cross-cluster portability<a class="anchor" aria-label="anchor" href="#cross-cluster-portability"></a>
+</h3>
+<p>When working across different clusters, profiles help maintain
+environment-specific configurations:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Cluster A: Allows memory specification</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"general"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"4h"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"32G"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"cluster_a"</span>, </span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Cluster B: Rejects --mem flag, use NA to omit</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"compute"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"4h"</span>, </span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,</span>
+<span>  mem <span class="op">=</span> <span class="cn">NA</span>,                <span class="co"># omit --mem entirely</span></span>
+<span>  profile <span class="op">=</span> <span class="st">"cluster_b"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Switch between clusters by changing profile</span></span>
+<span><span class="va">job_cluster_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"analysis.R"</span>, </span>
+<span>                              resources <span class="op">=</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"cluster_a"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">job_cluster_b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"analysis.R"</span>,</span>
+<span>                              resources <span class="op">=</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"cluster_b"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="configuration-file-structure-with-profiles">Configuration file structure with profiles<a class="anchor" aria-label="anchor" href="#configuration-file-structure-with-profiles"></a>
+</h2>
+<p>Profiles are stored as named sections in your configuration file:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="dt">"slurm"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>    <span class="dt">"template"</span><span class="fu">:</span> <span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>    <span class="dt">"defaults"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>      <span class="dt">"default"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>        <span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"general"</span><span class="fu">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>        <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"2h"</span><span class="fu">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>        <span class="dt">"cpus_per_task"</span><span class="fu">:</span> <span class="dv">16</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>      <span class="dt">"production"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>        <span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"compute"</span><span class="fu">,</span> </span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>        <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"8h"</span><span class="fu">,</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>        <span class="dt">"cpus_per_task"</span><span class="fu">:</span> <span class="dv">32</span><span class="fu">,</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>        <span class="dt">"mem"</span><span class="fu">:</span> <span class="st">"64G"</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>      <span class="dt">"debug"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>        <span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"debug"</span><span class="fu">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>        <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"30m"</span><span class="fu">,</span> </span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>        <span class="dt">"cpus_per_task"</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>        <span class="dt">"mem"</span><span class="fu">:</span> <span class="st">"8G"</span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>      <span class="dt">"gpu_jobs"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>        <span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"gpu"</span><span class="fu">,</span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>        <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"12h"</span><span class="fu">,</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>        <span class="dt">"cpus_per_task"</span><span class="fu">:</span> <span class="dv">16</span><span class="fu">,</span> </span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>        <span class="dt">"mem"</span><span class="fu">:</span> <span class="st">"32G"</span><span class="fu">,</span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>        <span class="dt">"gres"</span><span class="fu">:</span> <span class="st">"gpu:2"</span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="working-with-profiles-programmatically">Working with profiles programmatically<a class="anchor" aria-label="anchor" href="#working-with-profiles-programmatically"></a>
+</h2>
+<div class="section level3">
+<h3 id="retrieving-profile-specific-defaults">Retrieving profile-specific defaults<a class="anchor" aria-label="anchor" href="#retrieving-profile-specific-defaults"></a>
+</h3>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Get defaults from specific profiles</span></span>
+<span><span class="va">prod_defaults</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"production"</span><span class="op">)</span></span>
+<span><span class="va">debug_defaults</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"debug"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># If profile doesn't exist, falls back to "default" profile</span></span>
+<span><span class="va">missing_defaults</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"nonexistent"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="building-resources-with-profile-overrides">Building resources with profile overrides<a class="anchor" aria-label="anchor" href="#building-resources-with-profile-overrides"></a>
+</h3>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Start with production profile, but reduce time for this job</span></span>
+<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"4h"</span>, nodes <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"production"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Submit job using these resources</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"big_analysis.R"</span>, resources <span class="op">=</span> <span class="va">resources</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="best-practices-for-profile-management">Best practices for profile management<a class="anchor" aria-label="anchor" href="#best-practices-for-profile-management"></a>
+</h2>
+<div class="section level3">
+<h3 id="use-descriptive-profile-names">1. Use descriptive profile names<a class="anchor" aria-label="anchor" href="#use-descriptive-profile-names"></a>
+</h3>
+<p>Choose names that clearly indicate the intended use case:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Good: Clear, descriptive names</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span><span class="va">...</span>, profile <span class="op">=</span> <span class="st">"gpu_training"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span><span class="va">...</span>, profile <span class="op">=</span> <span class="st">"quick_test"</span><span class="op">)</span> </span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span><span class="va">...</span>, profile <span class="op">=</span> <span class="st">"production_analysis"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Avoid: Vague or cryptic names</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span><span class="va">...</span>, profile <span class="op">=</span> <span class="st">"config1"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span><span class="va">...</span>, profile <span class="op">=</span> <span class="st">"temp"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="establish-consistent-profile-naming-conventions">2. Establish consistent profile naming conventions<a class="anchor" aria-label="anchor" href="#establish-consistent-profile-naming-conventions"></a>
+</h3>
+<p>Within teams or projects, establish naming patterns:</p>
+<ul>
+<li>Environment-based: <code>dev</code>, <code>staging</code>,
+<code>production</code>
+</li>
+<li>Resource-based: <code>low_mem</code>, <code>high_cpu</code>,
+<code>gpu_intensive</code><br>
+</li>
+<li>Partition-based: <code>debug_partition</code>,
+<code>compute_partition</code>, <code>gpu_partition</code>
+</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="document-your-profiles">3. Document your profiles<a class="anchor" aria-label="anchor" href="#document-your-profiles"></a>
+</h3>
+<p>Include comments in your setup scripts to explain profile
+purposes:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Production profile: Long-running analysis jobs on compute partition</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"compute"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"24h"</span>, </span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">64</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"128G"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"production"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Debug profile: Quick testing on debug partition with minimal resources</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"debug"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"30m"</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">4</span>, </span>
+<span>  mem <span class="op">=</span> <span class="st">"8G"</span>,</span>
+<span>  profile <span class="op">=</span> <span class="st">"debug"</span>,</span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="version-control-your-configuration">4. Version control your configuration<a class="anchor" aria-label="anchor" href="#version-control-your-configuration"></a>
+</h3>
+<p>Consider committing your <code>parade.json</code> file to version
+control so team members can share profile configurations, but be mindful
+of environment-specific settings that may need local customization.</p>
+</div>
+<div class="section level3">
+<h3 id="test-profile-switching">5. Test profile switching<a class="anchor" aria-label="anchor" href="#test-profile-switching"></a>
+</h3>
+<p>Regularly verify that your profiles work correctly across different
+environments:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Test that all profiles can be loaded without errors</span></span>
+<span><span class="va">test_profiles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"production"</span>, <span class="st">"debug"</span>, <span class="st">"gpu_jobs"</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">profile</span> <span class="kw">in</span> <span class="va">test_profiles</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Testing profile:"</span>, <span class="va">profile</span>, <span class="st">"\n"</span><span class="op">)</span></span>
+<span>  <span class="va">defaults</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="va">profile</span><span class="op">)</span></span>
+<span>  <span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="va">profile</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  Partition:"</span>, <span class="va">defaults</span><span class="op">$</span><span class="va">partition</span>, <span class="st">"\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  Time:"</span>, <span class="va">defaults</span><span class="op">$</span><span class="va">time</span>, <span class="st">"\n"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="configuration-file-locations">Configuration file locations<a class="anchor" aria-label="anchor" href="#configuration-file-locations"></a>
+</h2>
+<p>Parade searches for configuration files in this order:</p>
 <ol style="list-style-type: decimal">
 <li>
-<code>PARADE_CONFIG</code> (explicit file)<br>
+<code>PARADE_CONFIG</code> environment variable (explicit file
+path)<br>
 </li>
 <li>
-<code>&lt;project&gt;/parade.json</code><br>
-</li>
-<li><code>&lt;project&gt;/.parade/parade.json</code></li>
-</ol></main>
+<code>&lt;project&gt;/parade.json</code> (project root)</li>
+<li>
+<code>&lt;project&gt;/.parade/parade.json</code> (created
+automatically)</li>
+</ol>
+<p>This search order allows for flexible deployment scenarios where
+different environments can use different configuration files while
+maintaining a fallback hierarchy.</p>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

@@ -34,10 +34,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/parade-core.html">Parade core: declarative flows, types, and execution</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM defaults, profiles, and NA = omit</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults.html">SLURM defaults &amp; profiles (NA = omit)</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM Profiles: Environment-Specific Configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults.html">Using SLURM Defaults in parade</a></li>
     <li><a class="dropdown-item" href="../articles/parade-paths.html">Scratch-first paths &amp; registries: project://, artifacts://, registry://</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission from R: submit_slurm(), script_top(), jobs_top()</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission and monitoring from R</a></li>
     <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: clean side-effects, atomic writes, and manifests</a></li>
     <li><a class="dropdown-item" href="../articles/parade-slurm-distribution.html">Distribution: local and SLURM (barriers, throttling, chunking)</a></li>
   </ul>
@@ -72,39 +72,412 @@
 <blockquote>
 <p>Requires <strong>parade ≥ 0.6.0</strong>.</p>
 </blockquote>
-<p>Parade separates the <strong>DAG</strong> from the
-<strong>distribution plan</strong>.</p>
 <div class="section level2">
-<h2 id="row-wise-vs--barrier-groups">Row-wise vs. barrier groups<a class="anchor" aria-label="anchor" href="#row-wise-vs--barrier-groups"></a>
+<h2 id="introduction-to-distributed-computing-with-parade">Introduction to distributed computing with parade<a class="anchor" aria-label="anchor" href="#introduction-to-distributed-computing-with-parade"></a>
 </h2>
+<p><strong>parade</strong> separates the <strong>workflow
+definition</strong> (DAG) from the <strong>execution strategy</strong>
+(distribution plan), allowing you to run the same computational pipeline
+locally for development or on SLURM clusters for production. This
+separation enables:</p>
+<ul>
+<li>
+<strong>Local development</strong>: Test workflows on your laptop
+with <code><a href="../reference/dist_local.html">dist_local()</a></code>
+</li>
+<li>
+<strong>Cluster scaling</strong>: Execute the same workflow on SLURM
+with <code><a href="../reference/dist_slurm.html">dist_slurm()</a></code>
+</li>
+<li>
+<strong>Resource optimization</strong>: Fine-tune parallelization
+and resource allocation</li>
+<li>
+<strong>Flexible chunking</strong>: Balance job granularity and
+scheduling efficiency</li>
+</ul>
+<p>The key insight is that parade workflows are <em>portable</em> - you
+define your computation once and choose how to distribute it based on
+your current needs.</p>
+</div>
+<div class="section level2">
+<h2 id="local-vs--slurm-distribution-strategies">Local vs. SLURM distribution strategies<a class="anchor" aria-label="anchor" href="#local-vs--slurm-distribution-strategies"></a>
+</h2>
+<div class="section level3">
+<h3 id="local-distribution-for-development">Local distribution for development<a class="anchor" aria-label="anchor" href="#local-distribution-for-development"></a>
+</h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Row-wise: one group per row</span></span>
-<span><span class="va">fl_rowwise</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="cn">NULL</span>, within <span class="op">=</span> <span class="st">"multisession"</span>, workers_within <span class="op">=</span> <span class="fl">64</span>,</span>
-<span>                                          resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>nodes<span class="op">=</span><span class="fl">1</span>, cpus_per_task<span class="op">=</span><span class="fl">64</span>, time<span class="op">=</span><span class="st">"2h"</span><span class="op">)</span>,</span>
-<span>                                          chunks_per_job <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://progressr.futureverse.org" class="external-link">progressr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Barrier by subject (one job per subject)</span></span>
-<span><span class="va">fl_subject</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="st">"subject"</span>, within <span class="op">=</span> <span class="st">"multisession"</span>, workers_within <span class="op">=</span> <span class="fl">8</span>,</span>
-<span>                                          resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>nodes<span class="op">=</span><span class="fl">1</span>, cpus_per_task<span class="op">=</span><span class="fl">8</span>, time<span class="op">=</span><span class="st">"2h"</span><span class="op">)</span>,</span>
-<span>                                          chunks_per_job <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Initialize project structure</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create a parameter grid</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
+<span>  subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sub01"</span>, <span class="st">"sub02"</span>, <span class="st">"sub03"</span><span class="op">)</span>,</span>
+<span>  session <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>,</span>
+<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span></span>
+<span><span class="op">)</span> <span class="co"># Results in 12 rows (3×2×2)</span></span>
+<span></span>
+<span><span class="co"># Define a simple workflow</span></span>
+<span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"process"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">subject</span>, <span class="va">session</span>, <span class="va">condition</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Simulate computational work</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.1</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>result <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">subject</span>, <span class="va">session</span>, <span class="va">condition</span>, sep <span class="op">=</span> <span class="st">"_"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Local development: test on a subset</span></span>
+<span><span class="va">fl_local</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> </span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_local.html">dist_local</a></span><span class="op">(</span></span>
+<span>    by <span class="op">=</span> <span class="st">"subject"</span>,           <span class="co"># Group by subject</span></span>
+<span>    within <span class="op">=</span> <span class="st">"multisession"</span>,  <span class="co"># Use parallel workers within each group  </span></span>
+<span>    workers_within <span class="op">=</span> <span class="fl">2</span>        <span class="co"># Use 2 cores per group</span></span>
+<span>  <span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level2">
-<h2 id="throttling-like-xargs--p">Throttling like xargs -P<a class="anchor" aria-label="anchor" href="#throttling-like-xargs--p"></a>
-</h2>
-<p><code>workers_within</code> limits concurrent tasks
-<strong>inside</strong> each job.<br>
-Use <code>chunks_per_job</code> to split groups into multiple jobs (→
-multiple nodes).</p>
-</div>
-<div class="section level2">
-<h2 id="deferred-runs">Deferred runs<a class="anchor" aria-label="anchor" href="#deferred-runs"></a>
-</h2>
+<div class="section level3">
+<h3 id="slurm-distribution-for-production">SLURM distribution for production<a class="anchor" aria-label="anchor" href="#slurm-distribution-for-production"></a>
+</h3>
+<p>The same workflow can be scaled to a SLURM cluster:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/preflight.html">preflight</a></span><span class="op">(</span><span class="va">fl_rowwise</span><span class="op">)</span></span>
-<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit.html">submit</a></span><span class="op">(</span><span class="va">fl_rowwise</span>, mode <span class="op">=</span> <span class="st">"index"</span><span class="op">)</span> <span class="co"># returns immediately</span></span>
-<span><span class="fu"><a href="../reference/deferred_status.html">deferred_status</a></span><span class="op">(</span><span class="va">d</span>, <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co"># tail logs with scripts/parade_tail.R, or bind results:</span></span>
-<span><span class="fu"><a href="../reference/deferred_collect.html">deferred_collect</a></span><span class="op">(</span><span class="va">d</span>, how <span class="op">=</span> <span class="st">"index"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Row-wise: one job per parameter combination</span></span>
+<span><span class="va">fl_rowwise</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="cn">NULL</span>,                                      <span class="co"># No grouping - each row is independent</span></span>
+<span>  within <span class="op">=</span> <span class="st">"multisession"</span>,                        <span class="co"># Parallel execution within each job</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">4</span>,                             <span class="co"># 4 workers per job</span></span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>                    <span class="co"># SLURM resource specification</span></span>
+<span>    nodes <span class="op">=</span> <span class="fl">1</span>, </span>
+<span>    cpus_per_task <span class="op">=</span> <span class="fl">4</span>, </span>
+<span>    time <span class="op">=</span> <span class="st">"30min"</span>,</span>
+<span>    mem <span class="op">=</span> <span class="st">"8GB"</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>                             <span class="co"># One parameter row per job</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Subject-wise: group related work into fewer jobs</span></span>
+<span><span class="va">fl_subject</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="st">"subject"</span>,                                 <span class="co"># Group by subject</span></span>
+<span>  within <span class="op">=</span> <span class="st">"multisession"</span>,                        <span class="co"># Parallel within each job</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">8</span>,                             <span class="co"># More workers since we're grouping</span></span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>    nodes <span class="op">=</span> <span class="fl">1</span>, </span>
+<span>    cpus_per_task <span class="op">=</span> <span class="fl">8</span>, </span>
+<span>    time <span class="op">=</span> <span class="st">"2h"</span>,                                  <span class="co"># Longer time for grouped work</span></span>
+<span>    mem <span class="op">=</span> <span class="st">"16GB"</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>                             <span class="co"># One subject per job</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="understanding-grouping-strategies">Understanding grouping strategies<a class="anchor" aria-label="anchor" href="#understanding-grouping-strategies"></a>
+</h3>
+<p>The <code>by</code> parameter controls how your parameter grid is
+partitioned:</p>
+<ul>
+<li>
+<strong><code>by = NULL</code></strong> (row-wise): Each parameter
+combination becomes a separate group
+<ul>
+<li>Pro: Maximum parallelization, fine-grained control</li>
+<li>Con: Many small jobs, scheduling overhead</li>
+<li>Best for: Independent tasks that benefit from dedicated
+resources</li>
+</ul>
+</li>
+<li>
+<strong><code>by = "subject"</code></strong> (barrier groups): Group
+related parameter combinations
+<ul>
+<li>Pro: Fewer jobs, shared setup costs, better resource
+utilization</li>
+<li>Con: Less parallelization, potential load imbalance</li>
+<li>Best for: Tasks that share expensive initialization (data loading,
+model setup)</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="resource-allocation-and-optimization">Resource allocation and optimization<a class="anchor" aria-label="anchor" href="#resource-allocation-and-optimization"></a>
+</h2>
+<div class="section level3">
+<h3 id="understanding-the-parallelization-hierarchy">Understanding the parallelization hierarchy<a class="anchor" aria-label="anchor" href="#understanding-the-parallelization-hierarchy"></a>
+</h3>
+<p>parade provides two levels of parallelization control:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Job-level parallelization</strong>: How many SLURM jobs to
+submit</li>
+<li>
+<strong>Within-job parallelization</strong>: How many tasks run
+concurrently within each job</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Example: 24 parameter combinations, grouped by subject (3 subjects × 8 combinations each)</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
+<span>  subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sub01"</span>, <span class="st">"sub02"</span>, <span class="st">"sub03"</span><span class="op">)</span>,</span>
+<span>  session <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, </span>
+<span>  run <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span></span>
+<span><span class="op">)</span> <span class="co"># 24 total combinations</span></span>
+<span></span>
+<span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"analyze"</span>, <span class="va">expensive_computation</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Strategy 1: One job per subject, parallel within</span></span>
+<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="st">"subject"</span>,                    <span class="co"># 3 jobs (one per subject)</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">8</span>,                <span class="co"># 8 parallel tasks per job</span></span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>,                <span class="co"># Each subject in one job</span></span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>    cpus_per_task <span class="op">=</span> <span class="fl">8</span>,               <span class="co"># Match workers_within</span></span>
+<span>    time <span class="op">=</span> <span class="st">"4h"</span>,</span>
+<span>    mem <span class="op">=</span> <span class="st">"32GB"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Strategy 2: Split large groups across multiple jobs</span></span>
+<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="st">"subject"</span>,                    <span class="co"># Group by subject first</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">4</span>,                <span class="co"># 4 parallel tasks per job  </span></span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">2</span>,                <span class="co"># Split each subject into 2 jobs</span></span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>       <span class="co"># Results in 6 total jobs (3 subjects × 2)</span></span>
+<span>    cpus_per_task <span class="op">=</span> <span class="fl">4</span>,               <span class="co"># Match workers_within</span></span>
+<span>    time <span class="op">=</span> <span class="st">"2h"</span>,                     <span class="co"># Shorter time per chunk</span></span>
+<span>    mem <span class="op">=</span> <span class="st">"16GB"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="throttling-concurrent-execution">Throttling concurrent execution<a class="anchor" aria-label="anchor" href="#throttling-concurrent-execution"></a>
+</h3>
+<p>The <code>workers_within</code> parameter acts like
+<code>xargs -P</code>, limiting concurrent tasks <strong>within</strong>
+each SLURM job:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Without throttling: all tasks run simultaneously (may overwhelm resources)</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="st">"subject"</span>, workers_within <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># With throttling: limit to 4 concurrent tasks per job</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="st">"subject"</span>, workers_within <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Guidelines for <code>workers_within</code>:</strong> - Match
+or slightly exceed <code>cpus_per_task</code> - Consider memory usage:
+<code>total_memory / workers_within</code> per task - Account for I/O
+bottlenecks in shared filesystems - Start conservatively and increase
+based on monitoring</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="advanced-chunking-strategies">Advanced chunking strategies<a class="anchor" aria-label="anchor" href="#advanced-chunking-strategies"></a>
+</h2>
+<div class="section level3">
+<h3 id="optimizing-job-granularity">Optimizing job granularity<a class="anchor" aria-label="anchor" href="#optimizing-job-granularity"></a>
+</h3>
+<p>The <code>chunks_per_job</code> parameter controls how groups are
+split across SLURM jobs:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Large groups: split for better parallelization</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
+<span>  subject <span class="op">=</span> <span class="st">"subject01"</span>,  <span class="co"># One subject</span></span>
+<span>  trial <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>          <span class="co"># But 1000 trials</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"process_trial"</span>, <span class="va">trial_analysis</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Split into smaller chunks for better scheduling</span></span>
+<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="st">"subject"</span>,                    <span class="co"># Group by subject</span></span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">100</span>,              <span class="co"># 100 trials per job → 10 jobs total</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">4</span>,                <span class="co"># 4 parallel trials per job</span></span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>    cpus_per_task <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>    time <span class="op">=</span> <span class="st">"1h"</span>,                     <span class="co"># Shorter jobs are easier to schedule</span></span>
+<span>    mem <span class="op">=</span> <span class="st">"8GB"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="multi-dimensional-grouping">Multi-dimensional grouping<a class="anchor" aria-label="anchor" href="#multi-dimensional-grouping"></a>
+</h3>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Complex parameter space</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
+<span>  subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s01"</span>, <span class="st">"s02"</span>, <span class="st">"s03"</span><span class="op">)</span>,</span>
+<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"rest"</span>, <span class="st">"task"</span><span class="op">)</span>,</span>
+<span>  session <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Group by multiple columns</span></span>
+<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"subject"</span>, <span class="st">"condition"</span><span class="op">)</span>,    <span class="co"># One job per subject-condition pair</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">3</span>,                <span class="co"># Parallel across sessions  </span></span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>    cpus_per_task <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>    time <span class="op">=</span> <span class="st">"30min"</span>,</span>
+<span>    mem <span class="op">=</span> <span class="st">"4GB"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="slurm-job-submission-and-monitoring">SLURM job submission and monitoring<a class="anchor" aria-label="anchor" href="#slurm-job-submission-and-monitoring"></a>
+</h2>
+<div class="section level3">
+<h3 id="deferred-execution-workflow">Deferred execution workflow<a class="anchor" aria-label="anchor" href="#deferred-execution-workflow"></a>
+</h3>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 1. Validate workflow locally (recommended)</span></span>
+<span><span class="fu"><a href="../reference/preflight.html">preflight</a></span><span class="op">(</span><span class="va">fl_subject</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Submit to SLURM (returns immediately)</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit.html">submit</a></span><span class="op">(</span><span class="va">fl_subject</span>, mode <span class="op">=</span> <span class="st">"index"</span><span class="op">)</span></span></code></pre></div>
+<p>The workflow is now running on the cluster. Use these commands to
+monitor progress:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Check job status</span></span>
+<span><span class="fu"><a href="../reference/deferred_status.html">deferred_status</a></span><span class="op">(</span><span class="va">d</span>, show_progress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Monitor logs in real-time </span></span>
+<span><span class="co"># Use scripts/parade_tail.R for continuous monitoring</span></span>
+<span></span>
+<span><span class="co"># Collect completed results</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/deferred_collect.html">deferred_collect</a></span><span class="op">(</span><span class="va">d</span>, how <span class="op">=</span> <span class="st">"index"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="resource-specification-examples">Resource specification examples<a class="anchor" aria-label="anchor" href="#resource-specification-examples"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># CPU-intensive tasks</span></span>
+<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"standard"</span>,</span>
+<span>  nodes <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">16</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"4h"</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"32GB"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Memory-intensive tasks  </span></span>
+<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"himem"</span>, </span>
+<span>  nodes <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"8h"</span>, </span>
+<span>  mem <span class="op">=</span> <span class="st">"128GB"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># GPU computing</span></span>
+<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"gpu"</span>,</span>
+<span>  nodes <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  ntasks_per_node <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  gres <span class="op">=</span> <span class="st">"gpu:1"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"2h"</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"24GB"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Multi-node MPI (if supported by your workflow)</span></span>
+<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"standard"</span>,</span>
+<span>  nodes <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ntasks_per_node <span class="op">=</span> <span class="fl">16</span>, </span>
+<span>  time <span class="op">=</span> <span class="st">"12h"</span>,</span>
+<span>  mem <span class="op">=</span> <span class="st">"64GB"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="common-patterns-and-best-practices">Common patterns and best practices<a class="anchor" aria-label="anchor" href="#common-patterns-and-best-practices"></a>
+</h2>
+<div class="section level3">
+<h3 id="pattern-1-development-production-scaling">Pattern 1: Development → Production scaling<a class="anchor" aria-label="anchor" href="#pattern-1-development-production-scaling"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Development: quick test on subset</span></span>
+<span><span class="va">grid_dev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span>subject <span class="op">=</span> <span class="st">"sub01"</span>, session <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">fl_dev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid_dev</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_local.html">dist_local</a></span><span class="op">(</span>workers_within <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Production: full dataset on cluster  </span></span>
+<span><span class="va">grid_prod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span>subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"sub"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span>, session <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">fl_prod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid_prod</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="st">"subject"</span>,</span>
+<span>  workers_within <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>cpus_per_task <span class="op">=</span> <span class="fl">4</span>, time <span class="op">=</span> <span class="st">"2h"</span>, mem <span class="op">=</span> <span class="st">"16GB"</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pattern-2-adaptive-chunking-based-on-data-size">Pattern 2: Adaptive chunking based on data size<a class="anchor" aria-label="anchor" href="#pattern-2-adaptive-chunking-based-on-data-size"></a>
+</h3>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Small datasets: group more aggressively</span></span>
+<span><span class="va">small_fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="st">"subject"</span>, </span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>,        <span class="co"># One job per subject</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">8</span>         <span class="co"># High parallelism within job</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Large datasets: split into smaller chunks  </span></span>
+<span><span class="va">large_fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>  by <span class="op">=</span> <span class="st">"subject"</span>,</span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">4</span>,        <span class="co"># Split each subject across 4 jobs</span></span>
+<span>  workers_within <span class="op">=</span> <span class="fl">2</span>         <span class="co"># Lower parallelism per job</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="common-pitfalls-and-solutions">Common pitfalls and solutions<a class="anchor" aria-label="anchor" href="#common-pitfalls-and-solutions"></a>
+</h2>
+<div class="section level3">
+<h3 id="problem-jobs-fail-with-memory-errors">Problem: Jobs fail with memory errors<a class="anchor" aria-label="anchor" href="#problem-jobs-fail-with-memory-errors"></a>
+</h3>
+<p><strong>Solution</strong>: Increase memory allocation or reduce
+<code>workers_within</code>:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Before: likely to exceed memory</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>workers_within <span class="op">=</span> <span class="fl">16</span>, resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># After: more conservative memory usage</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>workers_within <span class="op">=</span> <span class="fl">4</span>, resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># Now each task gets ~2GB instead of ~512MB</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="problem-many-short-jobs-overwhelming-the-scheduler">Problem: Many short jobs overwhelming the scheduler<a class="anchor" aria-label="anchor" href="#problem-many-short-jobs-overwhelming-the-scheduler"></a>
+</h3>
+<p><strong>Solution</strong>: Increase <code>chunks_per_job</code> to
+create fewer, longer-running jobs:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Before: 1000 small jobs</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="cn">NULL</span>, chunks_per_job <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>  <span class="co"># One job per parameter row</span></span>
+<span></span>
+<span><span class="co"># After: 100 medium jobs</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="cn">NULL</span>, chunks_per_job <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>  <span class="co"># 10 parameter rows per job</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="problem-load-imbalance-in-grouped-jobs">Problem: Load imbalance in grouped jobs<a class="anchor" aria-label="anchor" href="#problem-load-imbalance-in-grouped-jobs"></a>
+</h3>
+<p><strong>Solution</strong>: Use row-wise distribution or smaller
+chunks:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Before: uneven subject sizes cause load imbalance</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="st">"subject"</span>, chunks_per_job <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># After: more even distribution</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="cn">NULL</span>, chunks_per_job <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>  <span class="co"># 5 rows per job regardless of subject</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="problem-io-bottlenecks-on-shared-filesystems">Problem: I/O bottlenecks on shared filesystems<a class="anchor" aria-label="anchor" href="#problem-io-bottlenecks-on-shared-filesystems"></a>
+</h3>
+<p><strong>Solution</strong>: Reduce concurrent tasks and consider I/O
+patterns:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Before: high I/O contention  </span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>workers_within <span class="op">=</span> <span class="fl">32</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># After: reduced contention</span></span>
+<span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>workers_within <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>  <span class="co"># Fewer concurrent file operations</span></span></code></pre></div>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

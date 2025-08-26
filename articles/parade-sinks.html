@@ -34,10 +34,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/parade-core.html">Parade core: declarative flows, types, and execution</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM defaults, profiles, and NA = omit</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults.html">SLURM defaults &amp; profiles (NA = omit)</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM Profiles: Environment-Specific Configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults.html">Using SLURM Defaults in parade</a></li>
     <li><a class="dropdown-item" href="../articles/parade-paths.html">Scratch-first paths &amp; registries: project://, artifacts://, registry://</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission from R: submit_slurm(), script_top(), jobs_top()</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission and monitoring from R</a></li>
     <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: clean side-effects, atomic writes, and manifests</a></li>
     <li><a class="dropdown-item" href="../articles/parade-slurm-distribution.html">Distribution: local and SLURM (barriers, throttling, chunking)</a></li>
   </ul>
@@ -73,45 +73,378 @@
 <p>Requires <strong>parade ≥ 0.6.0</strong> (sink_spec/artifact
 helpers).</p>
 </blockquote>
-<p>For big results, <strong>write to disk</strong> per row and return a
-tiny <em>file reference</em> instead of a large object.</p>
+<div class="section level2">
+<h2 id="what-are-sinks-and-artifacts">What are sinks and artifacts?<a class="anchor" aria-label="anchor" href="#what-are-sinks-and-artifacts"></a>
+</h2>
+<p><strong>Sinks</strong> in parade provide a powerful mechanism for
+persisting large computational results to disk instead of keeping them
+in memory. When your stages produce big objects (models, large datasets,
+complex results), sinks automatically write these to files and return
+lightweight <strong>file references</strong> instead.</p>
+<div class="section level3">
+<h3 id="key-benefits">Key benefits<a class="anchor" aria-label="anchor" href="#key-benefits"></a>
+</h3>
+<ul>
+<li>
+<strong>Memory efficiency</strong>: Large objects don’t accumulate
+in memory across pipeline stages</li>
+<li>
+<strong>Persistence</strong>: Results survive R session crashes and
+can be accessed later</li>
+<li>
+<strong>Atomic writes</strong>: Files are written safely without
+corruption risks</li>
+<li>
+<strong>Metadata tracking</strong>: Automatic checksums, file sizes,
+and timestamps</li>
+<li>
+<strong>Flexible organization</strong>: Configurable directory
+structures and file naming</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="sinks-vs--regular-return-values">Sinks vs. regular return values<a class="anchor" aria-label="anchor" href="#sinks-vs--regular-return-values"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th><strong>Regular returns</strong></th>
+<th><strong>Sink artifacts</strong></th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Objects stay in memory</td>
+<td>Objects written to disk</td>
+</tr>
+<tr class="even">
+<td>Passed directly between stages</td>
+<td>File references passed instead</td>
+</tr>
+<tr class="odd">
+<td>Lost when R session ends</td>
+<td>Persist across sessions</td>
+</tr>
+<tr class="even">
+<td>Can cause memory issues with large data</td>
+<td>Memory-efficient regardless of size</td>
+</tr>
+<tr class="odd">
+<td>No automatic metadata</td>
+<td>Rich metadata (size, checksum, timestamps)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div class="section level2">
 <h2 id="define-a-sink">1) Define a sink<a class="anchor" aria-label="anchor" href="#define-a-sink"></a>
 </h2>
+<p>A <strong>sink specification</strong> defines how and where to
+persist stage outputs:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
-<span>  fields   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>,<span class="st">"metrics"</span><span class="op">)</span>,</span>
-<span>  dir      <span class="op">=</span> <span class="st">"artifacts://fits"</span>,</span>
-<span>  template <span class="op">=</span> <span class="st">"{.stage}/{subject}/{session}-{.row_key}"</span>,   <span class="co"># or a function(row, stage, field) -&gt; path</span></span>
-<span>  format   <span class="op">=</span> <span class="st">"rds"</span>,</span>
-<span>  overwrite <span class="op">=</span> <span class="st">"skip"</span>,           <span class="co"># "overwrite" or "error"</span></span>
-<span>  sidecar   <span class="op">=</span> <span class="st">"json"</span>            <span class="co"># writes sha256, bytes, clock, row key</span></span>
+<span>  fields   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>,<span class="st">"metrics"</span><span class="op">)</span>,       <span class="co"># Which fields to persist</span></span>
+<span>  dir      <span class="op">=</span> <span class="st">"artifacts://fits"</span>,         <span class="co"># Base directory (supports path aliases)</span></span>
+<span>  template <span class="op">=</span> <span class="st">"{.stage}/{subject}/{session}-{.row_key}"</span>,   <span class="co"># File path template</span></span>
+<span>  format   <span class="op">=</span> <span class="st">"rds"</span>,                      <span class="co"># File format (currently only RDS)</span></span>
+<span>  overwrite <span class="op">=</span> <span class="st">"skip"</span>,                    <span class="co"># "skip", "overwrite", or "error"</span></span>
+<span>  sidecar   <span class="op">=</span> <span class="st">"json"</span>,                    <span class="co"># Metadata format: "json" or "none"</span></span>
+<span>  compress  <span class="op">=</span> <span class="st">"gzip"</span>,                    <span class="co"># RDS compression: "gzip", "xz", "bzip2"</span></span>
+<span>  autoload  <span class="op">=</span> <span class="cn">TRUE</span>                       <span class="co"># Auto-load artifacts in downstream stages</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="key-parameters-explained">Key parameters explained<a class="anchor" aria-label="anchor" href="#key-parameters-explained"></a>
+</h3>
+<ul>
+<li>
+<strong><code>fields</code></strong>: Character vector of output
+field names to persist to disk</li>
+<li>
+<strong><code>dir</code></strong>: Base directory path (can use
+aliases like <code>artifacts://</code>, or be a function)</li>
+<li>
+<strong><code>template</code></strong>: Glue template for file
+paths. Available variables:
+<ul>
+<li>
+<code>{.stage}</code>: Current stage name</li>
+<li>
+<code>{.field}</code>: Field being written</li>
+<li>
+<code>{.row_key}</code>: Unique hash of the row parameters</li>
+<li>Plus any columns from your parameter grid (e.g.,
+<code>{subject}</code>, <code>{session}</code>)</li>
+</ul>
+</li>
+<li>
+<strong><code>overwrite</code></strong>: What to do if file exists:
+<code>"skip"</code> (default), <code>"overwrite"</code>, or
+<code>"error"</code>
+</li>
+<li>
+<strong><code>sidecar</code></strong>: JSON metadata with SHA256
+hash, file size, timestamps</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="directory-structure-examples">Directory structure examples<a class="anchor" aria-label="anchor" href="#directory-structure-examples"></a>
+</h3>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Simple flat structure</span></span>
+<span><span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"result"</span>, dir <span class="op">=</span> <span class="st">"artifacts://output"</span><span class="op">)</span></span>
+<span><span class="co"># Files: artifacts://output/stage_name/field/row_hash.rds</span></span>
+<span></span>
+<span><span class="co"># Hierarchical by parameters  </span></span>
+<span><span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"model"</span>, </span>
+<span>          dir <span class="op">=</span> <span class="st">"artifacts://models"</span>,</span>
+<span>          template <span class="op">=</span> <span class="st">"{.stage}/{subject}/run_{session}"</span><span class="op">)</span></span>
+<span><span class="co"># Files: artifacts://models/fit_models/s01/run_1.rds</span></span>
+<span></span>
+<span><span class="co"># Custom function for complex logic</span></span>
+<span><span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"data"</span>, </span>
+<span>          dir <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">row</span>, <span class="va">stage</span>, <span class="va">field</span><span class="op">)</span> <span class="op">{</span></span>
+<span>            <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"results/"</span>, <span class="kw">if</span><span class="op">(</span><span class="va">row</span><span class="op">$</span><span class="va">condition</span> <span class="op">==</span> <span class="st">"control"</span><span class="op">)</span> <span class="st">"ctrl"</span> <span class="kw">else</span> <span class="st">"exp"</span><span class="op">)</span></span>
+<span>          <span class="op">}</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="use-it-in-a-stage">2) Use it in a stage<a class="anchor" aria-label="anchor" href="#use-it-in-a-stage"></a>
 </h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span>, seed_col <span class="op">=</span> <span class="st">"seed"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<p>To use a sink, specify it in your stage definition and declare which
+outputs are artifacts:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create parameter grid</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
+<span>  subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s01"</span>, <span class="st">"s02"</span>, <span class="st">"s03"</span><span class="op">)</span>,</span>
+<span>  session <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Define workflow with sink</span></span>
+<span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span>, seed_col <span class="op">=</span> <span class="st">"seed"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"fit"</span>,</span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">subject</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, metrics <span class="op">=</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span>acc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>          <span class="co"># Simulate expensive computation producing large objects</span></span>
+<span>          <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Large model object</span></span>
+<span>          <span class="va">metrics</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
+<span>            rmse <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,</span>
+<span>            r2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,</span>
+<span>            aic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">100</span>, <span class="fl">200</span><span class="op">)</span></span>
+<span>          <span class="op">)</span></span>
+<span>          </span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="va">model</span>, metrics <span class="op">=</span> <span class="va">metrics</span><span class="op">)</span></span>
 <span>        <span class="op">}</span>,</span>
-<span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span>, metrics <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>        sink <span class="op">=</span> <span class="va">sink</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/collect.html">collect()</a></code> writes files <strong>atomically</strong>; the
-row receives structured <em>file refs</em>
-(<code>path, bytes, sha256, written, existed</code>).</p>
+<span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span>, metrics <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Declare as artifacts</span></span>
+<span>        sink <span class="op">=</span> <span class="va">sink</span><span class="op">)</span>  <span class="co"># Attach the sink</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="what-happens-during-execution">What happens during execution<a class="anchor" aria-label="anchor" href="#what-happens-during-execution"></a>
+</h3>
+<p>When you run <code><a href="../reference/collect.html">collect()</a></code>, parade:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Executes your function</strong> and captures the returned
+list</li>
+<li>
+<strong>Identifies artifact fields</strong> (those declared with
+<code><a href="../reference/artifact.html">artifact()</a></code>)</li>
+<li>
+<strong>Writes each artifact</strong> to disk using the sink
+specification</li>
+<li>
+<strong>Creates file references</strong> with metadata
+(<code>path</code>, <code>bytes</code>, <code>sha256</code>,
+<code>written</code>, <code>existed</code>)</li>
+<li>
+<strong>Returns the row</strong> with file references instead of the
+original objects</li>
+</ol>
+<p>The result is a tibble where artifact fields contain <strong>file
+reference objects</strong> instead of the original data:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">fl</span><span class="op">)</span></span>
+<span><span class="co"># results$model[[1]] contains: </span></span>
+<span><span class="co"># tibble(path = "/path/to/file.rds", bytes = 1024, sha256 = "abc123...", </span></span>
+<span><span class="co">#        written = TRUE, existed = FALSE)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
-<h2 id="read-later">3) Read later<a class="anchor" aria-label="anchor" href="#read-later"></a>
+<h2 id="reading-artifacts-back">3) Reading artifacts back<a class="anchor" aria-label="anchor" href="#reading-artifacts-back"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># autoload=TRUE on the sink will transparently read RDS when used by downstream stages;</span></span>
-<span><span class="co"># or read from the manifest:</span></span>
+<p>There are several ways to access your persisted artifacts:</p>
+<div class="section level3">
+<h3 id="automatic-loading-in-downstream-stages">Automatic loading in downstream stages<a class="anchor" aria-label="anchor" href="#automatic-loading-in-downstream-stages"></a>
+</h3>
+<p>If <code>autoload = TRUE</code> (the default), artifacts are
+automatically loaded when used in downstream stages:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"analyze"</span>, </span>
+<span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">model</span>, <span class="va">metrics</span><span class="op">)</span> <span class="op">{</span>  <span class="co"># Automatically loads from disk</span></span>
+<span>          <span class="co"># model is the actual lm object, not a file reference</span></span>
+<span>          <span class="va">summary_stats</span> <span class="op">&lt;-</span> <span class="fu">broom</span><span class="fu">::</span><span class="fu">tidy</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<span>          <span class="va">combined_metrics</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">metrics</span>, <span class="va">summary_stats</span><span class="op">)</span></span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>analysis <span class="op">=</span> <span class="va">combined_metrics</span><span class="op">)</span></span>
+<span>        <span class="op">}</span>,</span>
+<span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>analysis <span class="op">=</span> <span class="fu">tbl</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="manual-loading">Manual loading<a class="anchor" aria-label="anchor" href="#manual-loading"></a>
+</h3>
+<p>For manual access, use the file path from the reference:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Get results with file references</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">fl</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load a specific artifact manually</span></span>
+<span><span class="va">first_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">results</span><span class="op">$</span><span class="va">model</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">path</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Or use the sink's reader function (if custom)</span></span>
+<span><span class="va">first_model</span> <span class="op">&lt;-</span> <span class="va">sink</span><span class="op">$</span><span class="fu">reader</span><span class="op">(</span><span class="va">results</span><span class="op">$</span><span class="va">model</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">path</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="using-the-manifest-system">Using the manifest system<a class="anchor" aria-label="anchor" href="#using-the-manifest-system"></a>
+</h3>
+<p>The <strong>manifest</strong> function provides a powerful way to
+explore and query your artifacts:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># View all artifacts in a directory</span></span>
 <span><span class="fu"><a href="../reference/manifest.html">manifest</a></span><span class="op">(</span><span class="st">"artifacts://fits"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu">desc</span><span class="op">(</span><span class="va">bytes</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice_head</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu">desc</span><span class="op">(</span><span class="va">bytes</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span>      <span class="co"># Sort by file size</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice_head</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>           <span class="co"># Top 10 largest files</span></span>
+<span></span>
+<span><span class="co"># Filter by specific patterns</span></span>
+<span><span class="fu"><a href="../reference/manifest.html">manifest</a></span><span class="op">(</span><span class="st">"artifacts://fits"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"s01"</span>, <span class="va">path</span><span class="op">)</span>,               <span class="co"># Subject s01 only</span></span>
+<span>    <span class="va">bytes</span> <span class="op">&gt;</span> <span class="fl">1000</span>                      <span class="co"># Files larger than 1KB</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">path</span>, <span class="va">bytes</span>, <span class="va">sha256</span>, <span class="va">mtime</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load artifacts based on manifest query</span></span>
+<span><span class="va">large_models</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/manifest.html">manifest</a></span><span class="op">(</span><span class="st">"artifacts://fits"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="va">path</span><span class="op">)</span>, <span class="va">bytes</span> <span class="op">&gt;</span> <span class="fl">5000</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>artifact <span class="op">=</span> <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">map</a></span><span class="op">(</span><span class="va">path</span>, <span class="va">readRDS</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="manifest-columns">Manifest columns<a class="anchor" aria-label="anchor" href="#manifest-columns"></a>
+</h3>
+<p>The manifest includes rich metadata for each artifact:</p>
+<ul>
+<li>
+<strong><code>path</code></strong>: Full file path</li>
+<li>
+<strong><code>bytes</code></strong>: File size in bytes<br>
+</li>
+<li>
+<strong><code>sha256</code></strong>: SHA256 checksum for integrity
+verification</li>
+<li>
+<strong><code>mtime</code></strong>: File modification
+timestamp</li>
+<li>
+<strong><code>ctime</code></strong>: File creation timestamp</li>
+<li>
+<strong><code>existed</code></strong>: Whether file existed before
+writing (from sidecar)</li>
+<li>
+<strong><code>written</code></strong>: Whether file was written
+successfully (from sidecar)</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="when-to-use-sinks-vs--regular-returns">When to use sinks vs. regular returns<a class="anchor" aria-label="anchor" href="#when-to-use-sinks-vs--regular-returns"></a>
+</h2>
+<div class="section level3">
+<h3 id="use-sinks-for">Use sinks for:<a class="anchor" aria-label="anchor" href="#use-sinks-for"></a>
+</h3>
+<ul>
+<li>
+<strong>Large objects</strong>: Models, big datasets, complex nested
+structures</li>
+<li>
+<strong>Persistent results</strong>: Outputs you want to access
+across R sessions</li>
+<li>
+<strong>Memory management</strong>: When workflow memory usage
+becomes problematic<br>
+</li>
+<li>
+<strong>Reusable artifacts</strong>: Results that multiple
+downstream analyses will use</li>
+<li>
+<strong>Long computations</strong>: Expensive results you don’t want
+to lose or recompute</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="use-regular-returns-for">Use regular returns for:<a class="anchor" aria-label="anchor" href="#use-regular-returns-for"></a>
+</h3>
+<ul>
+<li>
+<strong>Small objects</strong>: Simple scalars, small vectors,
+summary statistics</li>
+<li>
+<strong>Temporary results</strong>: Intermediate values only needed
+for next stage</li>
+<li>
+<strong>Fast computations</strong>: Results that are cheap to
+recompute</li>
+<li>
+<strong>Non-serializable objects</strong>: Objects that don’t save
+well (connections, environments)</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="mixed-usage-example">Mixed usage example<a class="anchor" aria-label="anchor" href="#mixed-usage-example"></a>
+</h3>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"process"</span>,</span>
+<span>      f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">subject</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="co"># Heavy computation</span></span>
+<span>        <span class="va">big_model</span> <span class="op">&lt;-</span> <span class="fu">train_neural_network</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span>        <span class="va">processed_data</span> <span class="op">&lt;-</span> <span class="fu">preprocess_large_dataset</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> </span>
+<span>        </span>
+<span>        <span class="co"># Light summaries  </span></span>
+<span>        <span class="va">n_rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">processed_data</span><span class="op">)</span></span>
+<span>        <span class="va">model_accuracy</span> <span class="op">&lt;-</span> <span class="fu">evaluate_model</span><span class="op">(</span><span class="va">big_model</span><span class="op">)</span></span>
+<span>        </span>
+<span>        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>          model <span class="op">=</span> <span class="va">big_model</span>,          <span class="co"># → sink (large)</span></span>
+<span>          data <span class="op">=</span> <span class="va">processed_data</span>,      <span class="co"># → sink (large) </span></span>
+<span>          n_rows <span class="op">=</span> <span class="va">n_rows</span>,           <span class="co"># → regular return (small)</span></span>
+<span>          accuracy <span class="op">=</span> <span class="va">model_accuracy</span>   <span class="co"># → regular return (small)</span></span>
+<span>        <span class="op">)</span></span>
+<span>      <span class="op">}</span>,</span>
+<span>      schema <span class="op">=</span> <span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span></span>
+<span>        model <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span>,    <span class="co"># Will be persisted</span></span>
+<span>        data <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span>,     <span class="co"># Will be persisted  </span></span>
+<span>        n_rows <span class="op">=</span> <span class="fu"><a href="../reference/int.html">int</a></span><span class="op">(</span><span class="op">)</span>,        <span class="co"># Regular return</span></span>
+<span>        accuracy <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span>       <span class="co"># Regular return</span></span>
+<span>      <span class="op">)</span>,</span>
+<span>      sink <span class="op">=</span> <span class="va">my_sink</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="error-handling-and-overwrite-policies">Error handling and overwrite policies<a class="anchor" aria-label="anchor" href="#error-handling-and-overwrite-policies"></a>
+</h2>
+<p>Configure how sinks handle existing files:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Skip writing if file exists (default - fastest for reruns)</span></span>
+<span><span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"result"</span>, dir <span class="op">=</span> <span class="st">"artifacts://"</span>, overwrite <span class="op">=</span> <span class="st">"skip"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Always overwrite existing files  </span></span>
+<span><span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"result"</span>, dir <span class="op">=</span> <span class="st">"artifacts://"</span>, overwrite <span class="op">=</span> <span class="st">"overwrite"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Error if file exists (strict mode)</span></span>
+<span><span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"result"</span>, dir <span class="op">=</span> <span class="st">"artifacts://"</span>, overwrite <span class="op">=</span> <span class="st">"error"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Recommendation</strong>: Use <code>"skip"</code> during
+development for faster iteration, <code>"overwrite"</code> for
+production runs, and <code>"error"</code> when you need to ensure no
+accidental overwrites.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
