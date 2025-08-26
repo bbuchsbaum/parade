@@ -1,291 +1,490 @@
 ---
-title: "Scratch-first paths & registries: project://, artifacts://, registry://"
+title: "Smart Path Management: Write Once, Run Anywhere"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Parade paths: portable aliases & scratch-first organization}
+  %\VignetteIndexEntry{2. Smart Path Management: Write Once, Run Anywhere}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-> Requires **parade ≥ 0.6.0** (paths system with URI-style aliases).
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
 
-## Path Management Philosophy
+## The Problem: Hardcoded Paths Break Your Code
 
-**parade** uses a **scratch-first** approach to path management that keeps your code portable between development and production environments. Instead of hardcoding file paths, parade uses **URI-style aliases** like `artifacts://models/` and `registry://templates/` that automatically resolve to appropriate locations on any system.
+Imagine you're developing a neuroimaging analysis on your laptop. Your code might look like this:
 
-This design principle solves common HPC workflows where:
+```r
+# Works on your laptop
+model <- readRDS("/Users/alice/projects/brain_study/models/brain_model.rds")
+results <- analyze_brain(model)
+saveRDS(results, "/Users/alice/projects/brain_study/outputs/results.rds")
+```
 
-- **Development** happens on your laptop with small datasets
-- **Production** runs on clusters with different filesystem layouts
-- **Large outputs** need to go to fast scratch storage, not home directories
-- **Code portability** is essential for reproducible research
+But when you or a collaborator runs this code on an HPC cluster, it breaks immediately:
 
-## The Alias System
+- `/Users/alice/` doesn't exist on Linux clusters
+- Different clusters have completely different filesystem layouts
+- Writing large files to home directories often violates cluster policies
+- Your collaborator Bob can't run your code without rewriting all the paths
 
-parade provides seven standard path aliases that cover different types of data and outputs:
+## The Solution: Portable Path Aliases
+
+**parade** solves this with smart path aliases that automatically adapt to any environment:
 
 ```r
 library(parade)
 
+# Same code works everywhere
+model <- readRDS("artifacts://models/brain_model.rds")
+results <- analyze_brain(model)
+saveRDS(results, "artifacts://outputs/results.rds")
+```
+
+The `artifacts://` prefix is a **portable alias** that parade automatically translates:
+
+- **On your laptop**: → `/var/folders/.../parade-artifacts/`
+- **On SLURM cluster**: → `/scratch/$USER/parade-artifacts/`
+- **On your collaborator's machine**: → whatever their appropriate storage location is
+
+No more broken paths. No more rewriting code for different systems.
+
+## Quick Start: Your First Portable Analysis
+
+Let's make a simple analysis portable in three steps:
+
+### Step 1: Initialize parade's path system
+
+```r
+library(parade)
+
+# Auto-detect your environment and set up paths
 paths_init()
+
+# See where your aliases point
 paths_get()
+#> project:   /home/alice/myproject
+#> data:      /home/alice/myproject/data
+#> artifacts: /tmp/RtmpXYZ/parade-artifacts
+#> registry:  /tmp/RtmpXYZ/parade-registry
 ```
 
-| Alias | Purpose | Default Location | HPC Considerations |
-|-------|---------|-----------------|-------------------|
-| `project://` | Source code, scripts | Working directory | Usually your home/project directory |
-| `data://` | Input datasets | `project://data` | Readonly data, often shared |
-| `scratch://` | Temporary storage | System temp or `$SCRATCH` | Fast local storage, not backed up |
-| `artifacts://` | Analysis outputs | `scratch://parade-artifacts` | Large results, models, figures |
-| `registry://` | Job templates, metadata | `scratch://parade-registry` | Workflow management files |
-| `config://` | Settings, profiles | `project://.parade` | Configuration and profiles |
-| `cache://` | Downloaded data, temp files | Platform-specific cache | Reusable downloaded content |
-
-## Environment Detection and Setup
-
-parade automatically detects your computing environment and configures appropriate defaults:
+### Step 2: Use aliases instead of hardcoded paths
 
 ```r
-# On laptop: uses project directories and system temp
-paths_init()
+# Before (breaks on different systems):
+data <- read.csv("/home/alice/myproject/data/experiment.csv")
+saveRDS(model, "/home/alice/myproject/outputs/model.rds")
 
-# On SLURM cluster: automatically detects $SLURM_TMPDIR, $SCRATCH
-paths_init()
-
-# On PBS cluster: detects $PBS_O_WORKDIR, $TMPDIR  
-paths_init()
-
-# Manual override for specific environments
-paths_init(profile = "hpc")
+# After (works everywhere):
+data <- read.csv("data://experiment.csv")
+saveRDS(model, "artifacts://model.rds")
 ```
 
-## Customizing Paths for HPC
-
-For production HPC workflows, redirect large outputs to scratch storage:
+### Step 3: Run the same code anywhere
 
 ```r
-library(parade)
-
+# On your laptop
 paths_init()
+saveRDS(big_model, "artifacts://models/final.rds")
+# Saves to: /var/folders/temp/parade-artifacts/models/final.rds
 
-# Send big outputs & registries to scratch
+# On HPC cluster (same code!)
+paths_init()
+saveRDS(big_model, "artifacts://models/final.rds")
+# Saves to: /scratch/alice/parade-artifacts/models/final.rds
+```
+
+That's it! Your code now works on any system without modification.
+
+## Understanding the Seven Path Aliases
+
+parade provides seven aliases, each designed for a specific type of data in your workflow:
+
+### Core Data Aliases
+
+**`data://`** - Input datasets (read-only)
+```r
+# Your raw data, reference files, shared datasets
+brain_atlas <- readRDS("data://references/MNI_atlas.rds")
+subjects <- read.csv("data://participants.csv")
+```
+
+**`artifacts://`** - Analysis outputs (large files)
+```r
+# Models, results, processed data - goes to fast scratch storage
+saveRDS(fitted_model, "artifacts://models/model_v2.rds")
+write.csv(results, "artifacts://results/final_results.csv")
+```
+
+**`project://`** - Your code and scripts
+```r
+# Source files, small configuration files
+source("project://R/analysis_functions.R")
+params <- yaml::read_yaml("project://config/params.yaml")
+```
+
+### System Aliases
+
+**`scratch://`** - Temporary files (deleted after jobs)
+```r
+# Intermediate files, working data
+temp_file <- "scratch://temp_processing.rds"
+```
+
+**`registry://`** - Job management files
+```r
+# SLURM templates, job scripts (managed by parade)
+template <- "registry://templates/my_slurm.tmpl"
+```
+
+**`config://`** - parade configuration
+```r
+# Settings, profiles (usually automatic)
+"config://profiles/production.json"
+```
+
+**`cache://`** - Downloaded/cached data
+```r
+# Reusable downloads, package data
+"cache://downloaded/large_dataset.tar.gz"
+```
+
+## Common Scenarios
+
+### Scenario 1: Laptop Development → HPC Production
+
+You're developing on your laptop with small test data, then running full analysis on a cluster:
+
+```r
+# During development (laptop)
+paths_init()
 paths_set(
-  scratch   = "/scratch/$USER",
-  artifacts = "/scratch/$USER/parade-artifacts", 
-  registry  = "/scratch/$USER/parade-registry"
+  data = "~/projects/test_data",      # Small test dataset
+  artifacts = "~/projects/outputs"     # Local outputs
 )
 
-# Verify your configuration
-paths_get()
+# Your analysis code (unchanged!)
+run_analysis <- function() {
+  data <- readRDS("data://brain_scans.rds")
+  model <- fit_model(data)
+  saveRDS(model, "artifacts://fitted_model.rds")
+}
+
+# In production (HPC cluster) 
+paths_init()
+paths_set(
+  data = "/shared/datasets/full_data",     # Full dataset
+  artifacts = "/scratch/$USER/outputs"     # Fast scratch storage
+)
+
+# Same analysis code still works!
+run_analysis()
 ```
 
-### Environment Variable Override
+### Scenario 2: Collaboration with Different Systems
 
-Set environment variables to establish system-wide defaults:
+Alice and Bob are collaborating but have different setups:
+
+```r
+# Alice's setup (Mac laptop)
+paths_init()
+#> artifacts: /var/folders/abc/temp/parade-artifacts
+
+# Bob's setup (Linux workstation) 
+paths_init()
+#> artifacts: /tmp/bob/parade-artifacts
+
+# Shared analysis code (works for both!)
+analyze_subjects <- function(subjects) {
+  for (subj in subjects) {
+    data <- readRDS(sprintf("data://subjects/%s.rds", subj))
+    results <- process_subject(data)
+    saveRDS(results, sprintf("artifacts://results/%s.rds", subj))
+  }
+}
+```
+
+### Scenario 3: Multi-stage Pipeline with Different Storage Needs
+
+Different stages of your pipeline need different storage strategies:
+
+```r
+library(parade)
+
+# Configure storage for each data type
+paths_init()
+paths_set(
+  data = "/shared/readonly/inputs",       # Shared input data
+  scratch = Sys.getenv("SLURM_TMPDIR"),  # Fast local SSD
+  artifacts = "/scratch/$USER/outputs"    # Persistent scratch
+)
+
+# Pipeline uses appropriate storage for each stage
+flow(subjects) |>
+  
+  # Stage 1: Load from shared storage
+  stage("load", function(subject) {
+    readRDS(sprintf("data://raw/%s.rds", subject))
+  }) |>
+  
+  # Stage 2: Process using fast local storage
+  stage("process", function(data) {
+    temp_file <- sprintf("scratch://processing_%s.rds", data$id)
+    # ... heavy processing using temp_file ...
+  }) |>
+  
+  # Stage 3: Save results to scratch
+  stage("save", function(results) {
+    saveRDS(results, sprintf("artifacts://final/%s.rds", results$id))
+  })
+```
+
+## Configuring for Your HPC System
+
+### Automatic Detection
+
+parade automatically detects common HPC environments:
+
+```r
+# Auto-detects SLURM
+paths_init()
+# Automatically uses $SLURM_TMPDIR for scratch
+
+# Auto-detects PBS
+paths_init()  
+# Automatically uses $PBS_O_WORKDIR
+
+# Auto-detects SGE
+paths_init()
+# Automatically uses $TMPDIR
+```
+
+### Manual Configuration
+
+For custom HPC setups, explicitly set your paths:
+
+```r
+# Configure once for your HPC system
+paths_set(
+  scratch = "/fast/local/$USER",           # Fast local SSD
+  artifacts = "/lustre/$USER/outputs",     # Parallel filesystem
+  registry = "/lustre/$USER/jobs",         # Shared job storage
+  data = "/projects/shared/datasets"       # Readonly shared data
+)
+
+# Save configuration for future sessions
+paths_set(..., persist = TRUE)
+```
+
+### Environment Variables
+
+Set system-wide defaults via environment variables:
 
 ```bash
-# In your .bashrc or job scripts
+# In ~/.bashrc or job scripts
 export PARADE_SCRATCH="/fast/scratch/$USER"
 export PARADE_ARTIFACTS="/fast/scratch/$USER/outputs"
-export PARADE_REGISTRY="/shared/registry"
-export PARADE_DATA="/shared/datasets"
+export PARADE_DATA="/projects/shared/data"
 ```
 
-## Using Path Aliases in Practice
+## Advanced Patterns
 
-### In Sink Specifications
+### Pattern 1: Dynamic Environment Switching
 
 ```r
-# Artifacts go to fast scratch storage
-sink <- sink_spec(
-  fields = c("model", "metrics"),
-  dir = "artifacts://fits",
-  template = "{.stage}/{subject}-{session}.rds"
+# Detect and configure based on environment
+setup_paths <- function() {
+  if (interactive()) {
+    # Development settings
+    paths_set(artifacts = "~/temp/dev_outputs")
+    message("Using development paths")
+    
+  } else if (Sys.getenv("SLURM_JOB_ID") != "") {
+    # Production SLURM settings
+    paths_set(
+      scratch = Sys.getenv("SLURM_TMPDIR"),
+      artifacts = sprintf("/scratch/%s/prod_outputs", Sys.getenv("USER"))
+    )
+    message("Using SLURM production paths")
+    
+  } else {
+    # Default settings
+    paths_init()
+    message("Using default paths")
+  }
+}
+```
+
+### Pattern 2: Project-Specific Organization
+
+```r
+# Organize outputs by analysis phase
+paths_set(
+  artifacts = "/scratch/$USER/project_X"
 )
 
-# Configuration files stay with project
+# Create structured output directories
+save_results <- function(phase, name, object) {
+  path <- sprintf("artifacts://%s/%s.rds", phase, name)
+  saveRDS(object, path)
+}
+
+# Usage
+save_results("preprocessing", "cleaned_data", cleaned)
+save_results("modeling", "final_model", model)
+save_results("validation", "cv_results", cv)
+
+# Results in:
+# /scratch/$USER/project_X/preprocessing/cleaned_data.rds
+# /scratch/$USER/project_X/modeling/final_model.rds
+# /scratch/$USER/project_X/validation/cv_results.rds
+```
+
+### Pattern 3: Integration with Sinks
+
+```r
+# Sinks automatically use path aliases
+sink_spec(
+  fields = c("model", "predictions"),
+  dir = "artifacts://models",  # Portable path
+  template = "{subject}/{session}_{task}.rds"
+)
+
+# Different storage for different output types
+model_sink <- sink_spec(
+  fields = "model",
+  dir = "artifacts://large_models",  # Goes to scratch
+  format = "rds"
+)
+
 config_sink <- sink_spec(
-  fields = "config",
-  dir = "config://runs", 
-  template = "run-{.row_key}.yaml"
+  fields = "params",
+  dir = "project://configs",  # Stays with code
+  format = "json"
 )
-```
-
-### In File Operations
-
-```r
-# Load reference data
-ref_data <- readRDS("data://reference/brain_atlas.rds")
-
-# Save large model to artifacts
-saveRDS(big_model, "artifacts://models/v1/final_model.rds")
-
-# Store job template in registry
-template_path <- "registry://templates/custom-slurm.tmpl"
-writeLines(slurm_template, resolve_path(template_path))
-```
-
-### In Batch Job Templates
-
-```r
-# Template files use aliases for portability
-tmpl <- scaffold_batch_template("slurm",
-                               out = "registry://templates/parade-slurm.tmpl",
-                               overwrite = TRUE)
-
-# Generated jobs automatically resolve paths
-grid <- param_grid(subject = paste0("s", 1:10))
-job_script <- distribute(flow(grid), template = tmpl)
 ```
 
 ## Path Resolution Functions
 
-parade provides two main functions for working with paths:
-
-### `path_here()` - Direct alias resolution
+### `resolve_path()` - Convert aliases to absolute paths
 
 ```r
-# Build paths from components
+# Resolve any path with an alias
+resolve_path("artifacts://model.rds")
+#> "/scratch/alice/parade-artifacts/model.rds"
+
+resolve_path("data://raw/scan.nii")
+#> "/shared/datasets/raw/scan.nii"
+
+# Works with regular paths too
+resolve_path("/absolute/path.txt")   # Already absolute
+resolve_path("relative/path.txt")    # Made absolute
+```
+
+### `path_here()` - Build paths from components
+
+```r
+# Construct paths programmatically
 model_dir <- path_here("artifacts", "models", "v2")
-config_file <- path_here("config", "analysis.yaml")
+#> "/scratch/alice/parade-artifacts/models/v2"
 
-# Creates directories by default
-output_path <- path_here("artifacts", "results", create = TRUE)
+# Automatically creates directories
+output_dir <- path_here("artifacts", "results", create = TRUE)
 
-# Skip directory creation
+# Skip auto-creation if needed
 temp_path <- path_here("scratch", "temp", create = FALSE)
 ```
 
-### `resolve_path()` - URI-style path resolution
+## Troubleshooting
+
+### Issue: "Cannot find path alias"
 
 ```r
-# Convert URI aliases to absolute paths
-model_path <- resolve_path("artifacts://models/final.rds")
-data_path <- resolve_path("data://processed/clean_data.csv")
+# Check your current configuration
+paths_get()
 
-# Works with regular paths too
-abs_path <- resolve_path("/absolute/path/file.txt")
-rel_path <- resolve_path("relative/path/file.txt")
-
-# Control directory creation
-resolve_path("artifacts://new/dir/file.rds", create = FALSE)
+# Re-initialize if needed
+paths_init()
 ```
 
-## Computing Environment Examples
-
-### Local Development
+### Issue: "Permission denied" when writing
 
 ```r
-# Typical laptop setup
-paths_init()
-#> parade paths: project=/home/user/myproject; scratch=/tmp/RtmpXXX; 
-#>               data=/home/user/myproject/data; artifacts=/tmp/RtmpXXX/parade-artifacts
+# Check that your aliases point to writable locations
+paths_get()
 
-# Small datasets in project, outputs to temp
-saveRDS(small_model, "artifacts://dev/test_model.rds")
+# Update to writable directory
+paths_set(artifacts = "/tmp/my_outputs")
 ```
 
-### SLURM Cluster
+### Issue: Different paths on different nodes
 
 ```r
-# Automatic SLURM detection
-paths_init()
-#> parade paths: project=/home/user/project; scratch=/tmp/slurm.123456; 
-#>               artifacts=/tmp/slurm.123456/parade-artifacts
-
-# Or explicit configuration
+# Use node-local storage for better performance
 paths_set(
-  scratch = Sys.getenv("SLURM_TMPDIR", "/tmp"),
-  artifacts = file.path(Sys.getenv("SLURM_TMPDIR", "/tmp"), "outputs")
+  scratch = ifelse(
+    Sys.getenv("SLURM_TMPDIR") != "",
+    Sys.getenv("SLURM_TMPDIR"),  # Node-local on SLURM
+    "/tmp"                          # Fallback
+  )
 )
 ```
 
-### Shared HPC System
+## Best Practices
 
-```r
-# System-wide configuration for all users
-paths_set(
-  data = "/shared/datasets",
-  artifacts = "/scratch/$USER/parade-outputs", 
-  registry = "/shared/parade-registry"
-)
+1. **Initialize paths at the start of every script**
+   ```r
+   library(parade)
+   paths_init()
+   ```
 
-# Individual jobs automatically inherit these paths
-grid <- param_grid(dataset = c("train", "test", "validation"))
-flow(grid) |>
-  stage("process", 
-        f = function(dataset) {
-          # Reads from shared location
-          data <- readRDS(paste0("data://", dataset, ".rds"))
-          # Writes to user's scratch  
-          saveRDS(results, "artifacts://processed/{dataset}.rds")
-        })
-```
+2. **Use appropriate aliases for different data types**
+   - `data://` for inputs (read-only)
+   - `artifacts://` for outputs (large files)
+   - `scratch://` for temporary files
 
-## Best Practices for Path Organization
+3. **Never hardcode absolute paths**
+   ```r
+   # Bad
+   saveRDS(model, "/home/alice/outputs/model.rds")
+   
+   # Good
+   saveRDS(model, "artifacts://model.rds")
+   ```
 
-### 1. Separate by Data Lifecycle
+4. **Document your path configuration**
+   ```r
+   # Show configuration in logs
+   message("Parade paths configured:")
+   print(paths_get())
+   ```
 
-```r
-# Raw, immutable inputs
-"data://raw/experiment_2024.csv"
+## Next Steps
 
-# Processed, intermediate results  
-"artifacts://processed/clean_data.rds"
+Now that you understand portable paths, learn about:
 
-# Final outputs and models
-"artifacts://final/publication_model.rds"
+- [Using Artifacts and Sinks](parade-artifacts.html) for automatic data management
+- [SLURM Integration](parade-slurm-distribution.html) for cluster computing
+- [Core Workflow Concepts](parade-core.html) for building complete pipelines
 
-# Configuration and metadata
-"config://profiles/hpc_settings.yaml"
-```
+## Quick Reference
 
-### 2. Use Hierarchical Structure
+| Function | Purpose | Example |
+|----------|---------|---------|
+| `paths_init()` | Auto-configure paths | `paths_init()` |
+| `paths_get()` | Show current paths | `paths_get()` |
+| `paths_set()` | Set custom paths | `paths_set(artifacts = "/scratch")` |
+| `resolve_path()` | Convert alias to absolute | `resolve_path("data://file.csv")` |
+| `path_here()` | Build path from parts | `path_here("artifacts", "models")` |
 
-```r
-# Organize by analysis stage
-"artifacts://preprocessing/subject_data/"
-"artifacts://modeling/fitted_models/"  
-"artifacts://evaluation/performance_metrics/"
-"artifacts://visualization/figures/"
-
-# Or by experimental condition
-"artifacts://condition_A/session_{1:10}/"
-"artifacts://condition_B/session_{1:10}/"
-```
-
-### 3. Environment-Specific Configuration
-
-```r
-# Development profile  
-if (interactive()) {
-  paths_set(
-    artifacts = "artifacts://dev",
-    scratch = tempdir()
-  )
-}
-
-# Production profile
-if (Sys.getenv("SLURM_JOB_ID") != "") {
-  paths_set(
-    artifacts = "/scratch/$USER/prod-outputs",
-    registry = "/shared/workflows"  
-  )
-}
-```
-
-### 4. Portable Code Patterns
-
-```r
-# Good: Uses aliases, works everywhere
-load_reference <- function() {
-  readRDS("data://reference/brain_atlas.rds")
-}
-
-# Bad: Hardcoded paths, breaks on different systems
-load_reference <- function() {
-  readRDS("/home/user/data/brain_atlas.rds") 
-}
-```
-
-The key insight is that parade's path system **separates logical organization from physical storage**, making your analysis code portable across any computing environment while automatically optimizing for local storage characteristics.
+| Alias | Use For | Example |
+|-------|---------|---------|
+| `data://` | Input data | `read.csv("data://input.csv")` |
+| `artifacts://` | Outputs | `saveRDS(m, "artifacts://model.rds")` |
+| `scratch://` | Temp files | `"scratch://temp.rds"` |
+| `project://` | Code/config | `source("project://R/utils.R")` |

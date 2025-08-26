@@ -2,7 +2,7 @@
 title: "Mirai backend: fast, scalable parallel execution"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Mirai backend: fast, scalable parallel execution}
+  %\VignetteIndexEntry{4. Parallel Execution: mirai backend for scalable workflows}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

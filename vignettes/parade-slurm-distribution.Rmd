@@ -2,7 +2,7 @@
 title: "Distribution: local and SLURM (barriers, throttling, chunking)"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Distribution: SLURM cluster workflows}
+  %\VignetteIndexEntry{5. SLURM Distribution: cluster workflows and HPC}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -12,6 +12,7 @@
 #' @param seed_furrr Whether to enable deterministic random number generation
 #' @param .progress Whether to display progress bars (default: interactive())
 #' @param limit Optional limit on number of grid rows to process
+#' @param validate Validation mode for flexible types: "light" (default) or "full"
 #' @return A tibble containing results from all executed stages
 #' @export
 #' @examples
@@ -27,14 +28,16 @@ collect <- function(fl,
                     scheduling = 1,
                     seed_furrr = TRUE,
                     .progress = interactive(),
-                    limit     = NULL) {
+                    limit     = NULL,
+                    validate  = c("light", "full")) {
   stopifnot(inherits(fl, "parade_flow"))
   engine <- match.arg(engine)
+  validate <- match.arg(validate)
   grid <- fl$grid; if (!is.null(limit)) grid <- head(grid, limit)
   dist <- fl$dist
   if (is.null(dist) || length(dist$by) == 0L) {
     mapper <- if (engine == "future") { function(.l, .f) furrr::future_pmap(.l, .f, .options=furrr::furrr_options(seed=seed_furrr, scheduling=scheduling), .progress=.progress) } else { function(.l, .f) purrr::pmap(.l, .f) }
-    run <- function() { order <- .toposort(fl$stages); rows <- mapper(grid, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order) }); rows <- purrr::compact(rows); if (!length(rows)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!rows)) }
+    run <- function() { order <- .toposort(fl$stages); rows <- mapper(grid, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order, validate = validate) }); rows <- purrr::compact(rows); if (!length(rows)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!rows)) }
     return(if (.progress) progressr::with_progress(run()) else run())
   }
   key <- tibble::as_tibble(grid[dist$by]); grp_id <- interaction(key, drop=TRUE, lex.order=TRUE); groups <- split(seq_len(nrow(grid)), grp_id)
@@ -42,7 +45,7 @@ collect <- function(fl,
   run_chunk <- function(idx_vec) {
     order <- .toposort(fl$stages); out <- list(); subrows <- unlist(idx_vec, use.names = FALSE)
     sub <- grid[subrows, , drop = FALSE]
-    rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order) }, .options=furrr::furrr_options(seed=seed_furrr, scheduling=scheduling), .progress=FALSE)
+    rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order, validate = validate) }, .options=furrr::furrr_options(seed=seed_furrr, scheduling=scheduling), .progress=FALSE)
     rows <- purrr::compact(rows); if (length(rows)) out <- append(out, list(vctrs::vec_rbind(!!!rows)))
     if (!length(out)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!out))
   }
@@ -55,7 +58,7 @@ collect <- function(fl,
 
 # Core row evaluation ------------------------------------------------------
 #' @keywords internal
-.eval_row_flow <- function(row, stages, seed_col, error, order) {
+.eval_row_flow <- function(row, stages, seed_col, error, order, validate = "light") {
   if (!is.null(seed_col) && !is.null(row[[seed_col]])) set.seed(as.integer(row[[seed_col]]))
   acc <- tibble::as_tibble(row)[, names(row), drop = FALSE]; acc$row_id <- digest::digest(row, algo="sha1")
   diag <- list(); carry <- list(); error <- match.arg(error, c("keep","omit","stop","propagate","propagate"))
@@ -81,6 +84,24 @@ collect <- function(fl,
     if (inherits(res, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' failed: %s", id, as.character(res))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res))); if (identical(error, "propagate")) next else next }
     if (!is.null(st$sink)) { res <- try(.apply_sink(res, st$sink, row, id), silent = (error != "stop")); if (inherits(res, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' sink failed: %s", id, as.character(res))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res))); if (identical(error, "propagate")) next else next } }
     block <- try(.parade_cast_to_ptype_row(res, st$ptype), silent = (error != "stop")); if (inherits(block, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' typing failed: %s", id, as.character(block))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(block, "condition") %||% simpleError(as.character(block))); if (identical(error, "propagate")) next else next }
+    # Validate flexible types if present in schema
+    flex_types <- attr(st$ptype, "flex_types", exact = TRUE)
+    if (!is.null(flex_types) && exists(".validate_flex_row", mode = "function")) {
+      # Build schema with flex types for validation
+      # block is a single-row tibble, convert to list for validation
+      block_as_list <- as.list(block)
+      schema_for_validation <- flex_types
+      flex_check <- .validate_flex_row(block_as_list, schema_for_validation, mode = validate)
+      if (!isTRUE(flex_check$ok)) {
+        err_msg <- paste(flex_check$errors, collapse = "; ")
+        if (identical(error, "stop")) stop(sprintf("Stage '%s' flexible type validation failed: %s", id, err_msg))
+        if (identical(error, "omit")) return(NULL)
+        block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
+        acc <- vctrs::vec_cbind(acc, block)
+        diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = simpleError(err_msg))
+        if (identical(error, "propagate")) next else next
+      }
+    }
     contr <- attr(st$ptype, "contract", exact = TRUE); if (!is.null(contr)) { chk <- try(.parade_validate_contract(block, contr), silent = (error != "stop")); if (inherits(chk, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' contract failed: %s", id, as.character(chk))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(chk, "condition") %||% simpleError(as.character(chk))); if (identical(error, "propagate")) next else next } }
     diag[[id]] <- list(ok = TRUE, skipped = FALSE, error = NULL); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block)
     carry_add <- as.list(.unprefix_block(block, st$id)); if (!is.null(st$sink) && isTRUE(st$sink$autoload)) { reader <- st$sink$reader %||% readRDS; for (nm in st$sink$fields) if (nm %in% names(carry_add)) carry_add[[nm]] <- .materialize(carry_add[[nm]], reader) }

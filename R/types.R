@@ -1,4 +1,6 @@
 # Types + schema -----------------------------------------------------------
+# Note: For flexible type system (isa, blob, maybe, etc.), see types-flex.R
+
 #' Create a double/numeric type specification
 #'
 #' @return A double vector prototype for schema definitions
@@ -40,6 +42,17 @@ lgl <- function() logical()
 lst <- function(ptype = list()) {
   vctrs::new_list_of(list(), ptype = ptype)
 }
+
+#' Create a tibble/data frame type specification
+#'
+#' @param ... Column specifications for the tibble
+#' @return A tibble prototype for schema definitions
+#' @export
+#' @examples
+#' schema(data = tbl())
+tbl <- function(...) {
+  tibble::tibble(...)[0, ]
+}
 #' Define expected return schema for a stage function
 #'
 #' Creates a typed schema specification that defines the expected structure
@@ -53,14 +66,26 @@ lst <- function(ptype = list()) {
 #' returns(result = dbl(), status = chr())
 #' returns(data = lst(), valid = lgl())
 returns <- function(..., .contract = NULL) {
-  dots <- rlang::list2(...); packs <- list()
-  for (nm in names(dots)) if (inherits(dots[[nm]], "parade_pack")) { 
-    packs <- c(packs, setNames(list(dots[[nm]]$ptype), nm))
-    dots[[nm]] <- vctrs::list_of(.ptype = tibble::as_tibble(dots[[nm]]$ptype))[0] 
+  dots <- rlang::list2(...); packs <- list(); flex_types <- list()
+  
+  # Process each field
+  for (nm in names(dots)) {
+    # Handle packed types
+    if (inherits(dots[[nm]], "parade_pack")) { 
+      packs <- c(packs, setNames(list(dots[[nm]]$ptype), nm))
+      dots[[nm]] <- vctrs::list_of(.ptype = tibble::as_tibble(dots[[nm]]$ptype))[0] 
+    }
+    # Handle flexible types - store separately and use lst() as placeholder
+    else if (exists("is_flex_type", mode = "function") && is_flex_type(dots[[nm]])) {
+      flex_types[[nm]] <- dots[[nm]]
+      dots[[nm]] <- lst()  # Use list column as placeholder
+    }
   }
+  
   ptype <- tibble::tibble(!!!dots)[0, ]
   attr(ptype, "contract") <- .contract
   attr(ptype, "packs") <- if (length(packs) > 0) packs else NULL
+  attr(ptype, "flex_types") <- if (length(flex_types) > 0) flex_types else NULL
   ptype
 }
 #' Alias for returns function

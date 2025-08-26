@@ -2,7 +2,7 @@
 title: "Using SLURM Defaults in parade"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using SLURM Defaults in parade}
+  %\VignetteIndexEntry{6. SLURM Defaults: site and project configuration}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

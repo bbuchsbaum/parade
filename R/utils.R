@@ -73,6 +73,33 @@
     result <- list(result)
   }
   
+  # Check for flexible type columns and wrap non-atomic objects in lists
+  # Tibble requires list columns for complex objects
+  flex_types <- attr(ptype, "flex_types", exact = TRUE)
+  if (!is.null(flex_types)) {
+    for (col in names(flex_types)) {
+      if (col %in% names(result)) {
+        val <- result[[col]]
+        # Check if this needs wrapping for tibble
+        # We need to wrap if it's:
+        # 1. NULL (tibble needs NULL in a list column)
+        # 2. A classed object (like lm, glm, etc)
+        # but NOT if it's already a plain list containing such objects
+        if (is.null(val)) {
+          # NULL needs to be wrapped for tibble list columns
+          result[[col]] <- list(val)
+        } else {
+          # If it has a class attribute (other than "list"), it needs wrapping
+          val_class <- class(val)
+          if (!identical(val_class, "list") && !is.null(val_class)) {
+            # It's a classed object that needs to be in a list column
+            result[[col]] <- list(val)
+          }
+        }
+      }
+    }
+  }
+  
   # Create tibble from result
   row <- tibble::as_tibble(result)
   
@@ -82,15 +109,27 @@
   }
   
   # Cast to ptype columns
+  # Check if there are flexible types that shouldn't be cast
+  flex_types <- attr(ptype, "flex_types", exact = TRUE)
+  flex_cols <- if (!is.null(flex_types)) names(flex_types) else character(0)
+  
   for (col in names(ptype)) {
     if (col %in% names(row)) {
-      # Try to cast to expected type
-      tryCatch({
-        row[[col]] <- vctrs::vec_cast(row[[col]], ptype[[col]])
-      }, error = function(e) {
-        # On error, use NA of correct type
-        row[[col]] <- ptype[[col]][NA_integer_]
-      })
+      # Skip casting for flexible type columns - they stay as-is
+      if (col %in% flex_cols) {
+        # Keep the value as is, just ensure it's in a list column if needed
+        if (!is.list(row[[col]])) {
+          row[[col]] <- list(row[[col]])
+        }
+      } else {
+        # Try to cast to expected type
+        tryCatch({
+          row[[col]] <- vctrs::vec_cast(row[[col]], ptype[[col]])
+        }, error = function(e) {
+          # On error, use NA of correct type
+          row[[col]] <- ptype[[col]][NA_integer_]
+        })
+      }
     } else {
       # Add missing columns with NA of correct type
       row[[col]] <- ptype[[col]][NA_integer_]
@@ -119,11 +158,14 @@
         stop("File already exists: ", path)
       }
       
+      # Get writer for this field
+      writer <- .get_field_writer(sink, field)
+      
       # Write with appropriate function
-      if (!is.null(sink$writer)) {
-        sink$writer(result[[field]], path)
+      if (!is.null(writer)) {
+        writer(result[[field]], path)
       } else {
-        .write_atomic_rds(result[[field]], path, compress = sink$compress)
+        .write_atomic_rds(result[[field]], path, compress = sink$compress %||% "gzip")
       }
       
       # Write sidecar if requested
