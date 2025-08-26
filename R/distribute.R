@@ -1,15 +1,55 @@
 # Distribution -------------------------------------------------------------
+#' Add distribution settings to a parade flow
+#'
+#' @param fl A `parade_flow` object
+#' @param dist A distribution specification from `dist_local()` or `dist_slurm()`
+#' @return The input flow with distribution settings applied
 #' @export
+#' @examples
+#' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#' fl <- flow(grid) |> distribute(dist_local(by = "group"))
 distribute <- function(fl, dist) { stopifnot(inherits(fl, "parade_flow")); fl$dist <- dist; fl }
+#' Create local distribution specification
+#'
+#' Configure local parallel execution using the future framework.
+#'
+#' @param by Column names to group by for parallelization
+#' @param within Execution strategy: "multisession" or "sequential"
+#' @param workers_within Number of workers within each job
+#' @param chunks_per_job Number of groups to process per job
+#' @return A `parade_dist` object for local execution
 #' @export
+#' @examples
+#' dist_local(by = "group", within = "multisession")
+#' dist_local(chunks_per_job = 2L)
 dist_local <- function(by = NULL, within = c("multisession","sequential"), workers_within = NULL, chunks_per_job = 1L) {
   within <- match.arg(within)
   structure(list(backend="local", by = by %||% character(), within=within, workers_within=workers_within, chunks_per_job=as.integer(chunks_per_job), slurm=NULL), class="parade_dist")
 }
+#' Create SLURM distribution specification
+#'
+#' Configure distributed execution on SLURM clusters using batchtools.
+#'
+#' @param by Column names to group by for parallelization
+#' @param within Execution strategy within each SLURM job
+#' @param workers_within Number of workers within each SLURM job
+#' @param template Path to SLURM batch template file
+#' @param resources Named list of SLURM resource specifications
+#' @param chunks_per_job Number of groups to process per SLURM job
+#' @return A `parade_dist` object for SLURM execution
 #' @export
+#' @examples
+#' \donttest{
+#' dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
+#' }
 dist_slurm <- function(by = NULL, within = c("multisession","sequential"), workers_within = NULL, template = slurm_template(), resources = list(), chunks_per_job = 1L) {
   within <- match.arg(within)
   structure(list(backend="slurm", by = by %||% character(), within=within, workers_within=workers_within, chunks_per_job=as.integer(chunks_per_job), slurm=list(template=template, resources=resources)), class="parade_dist")
 }
+#' Get path to default SLURM template
+#'
+#' @return Path to package SLURM template file
 #' @export
+#' @examples
+#' template_path <- slurm_template()
 slurm_template <- function() system.file("batchtools", "parade-slurm.tmpl", package = "parade")

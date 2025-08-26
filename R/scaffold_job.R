@@ -1,5 +1,11 @@
 # Scaffold job helpers -----------------------------------------------------
+#' Create a basic SLURM batch template
+#'
+#' @param path Path where template should be created (temp file if NULL)
+#' @return Path to created template file (invisibly)
 #' @export
+#' @examples
+#' template_path <- scaffold_batch_template()
 scaffold_batch_template <- function(path = NULL) {
   if (is.null(path)) {
     path <- file.path(tempdir(), "parade_template.tmpl")
@@ -31,7 +37,24 @@ scaffold_batch_template <- function(path = NULL) {
   invisible(path)
 }
 
+#' Generate scaffold scripts for SLURM flow execution
+#'
+#' Creates a set of helper scripts for submitting, monitoring, and collecting
+#' results from a parade flow on SLURM systems.
+#'
+#' @param flow A `parade_flow` object
+#' @param name Base name for generated scripts
+#' @param registry_dir Registry directory for job execution
+#' @param dir Directory where scripts should be created
+#' @param modules SLURM modules to load
+#' @param exports Environment variables to export
+#' @return List of created script paths (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' flow <- flow(data.frame(x = 1:3))
+#' scaffold_flow_job(flow, name = "my_job")
+#' }
 scaffold_flow_job <- function(flow, 
                               name = "parade_job",
                               registry_dir = NULL,

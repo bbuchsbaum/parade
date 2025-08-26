@@ -1,8 +1,16 @@
 # Config: defaults & profiles ---------------------------------------------
 # JSON-based, portable; lives by default under project '.parade/parade.json' or user config.
 
-#' Locate the parade config file
+#' Locate the parade configuration file
+#'
+#' Finds the appropriate location for the parade configuration file,
+#' checking environment variables and standard locations.
+#'
+#' @param create_dirs Whether to create directories as needed
+#' @return Path to configuration file
 #' @export
+#' @examples
+#' config_path <- parade_config_path()
 parade_config_path <- function(create_dirs = TRUE) {
   env_file <- Sys.getenv("PARADE_CONFIG", unset = NA_character_)
   if (!is.na(env_file) && nzchar(env_file)) return(normalizePath(env_file, mustWork = FALSE))
@@ -15,16 +23,28 @@ parade_config_path <- function(create_dirs = TRUE) {
   file.path(cfg_dir, "parade.json")
 }
 
-#' Read config
+#' Read parade configuration
+#'
+#' @param path Optional path to config file (uses default if NULL)
+#' @return List containing configuration settings
 #' @export
+#' @examples
+#' config <- parade_config_read()
 parade_config_read <- function(path = NULL) {
   path <- path %||% parade_config_path(create_dirs = FALSE)
   if (!file.exists(path)) return(list())
   tryCatch(jsonlite::read_json(path, simplifyVector = TRUE), error = function(e) list())
 }
 
-#' Write config
+#' Write parade configuration
+#'
+#' @param cfg Configuration list to write
+#' @param path Optional path to config file (uses default if NULL)
+#' @return Path to written config file (invisibly)
 #' @export
+#' @examples
+#' cfg <- list(slurm = list(defaults = list(time = "1h")))
+#' parade_config_write(cfg)
 parade_config_write <- function(cfg, path = NULL) {
   path <- path %||% parade_config_path(create_dirs = TRUE)
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
@@ -67,8 +87,15 @@ slurm_defaults_set <- function(..., .list = NULL, profile = "default", persist =
   invisible(slurm_defaults_get(profile = profile))
 }
 
-#' Get the default Slurm template from config or package
+#' Get the default SLURM template path
+#'
+#' Retrieves the configured SLURM template path or falls back to the
+#' package default template.
+#'
+#' @return Path to SLURM template file
 #' @export
+#' @examples
+#' template_path <- slurm_template_default()
 slurm_template_default <- function() {
   cfg <- parade_config_read()
   tmpl <- cfg$slurm$template %||% NULL
@@ -76,8 +103,16 @@ slurm_template_default <- function() {
   slurm_template()
 }
 
-#' Set the default Slurm template path
+#' Set the default SLURM template path
+#'
+#' @param path Path to SLURM template file
+#' @param persist Whether to save to configuration file
+#' @return Resolved template path (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' slurm_template_set("/path/to/custom.tmpl")
+#' }
 slurm_template_set <- function(path, persist = TRUE) {
   cfg <- parade_config_read()
   if (is.null(cfg$slurm)) cfg$slurm <- list()
@@ -86,8 +121,17 @@ slurm_template_set <- function(path, persist = TRUE) {
   invisible(resolve_path(path, create = FALSE))
 }
 
-#' Merge resources with defaults + normalize + drop NA/omit
+#' Build SLURM resources with defaults and normalization
+#'
+#' Merges user-specified resources with configured defaults and
+#' applies normalization through batch_resources().
+#'
+#' @param resources Named list of resource specifications to merge
+#' @param profile Configuration profile to use for defaults
+#' @return Normalized resource specification list
 #' @export
+#' @examples
+#' slurm_resources(list(time = "2h"), profile = "default")
 slurm_resources <- function(resources = NULL, profile = "default") {
   defaults <- slurm_defaults_get(profile = profile)
   # Let explicit user values override defaults

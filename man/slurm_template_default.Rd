@@ -2,10 +2,17 @@
 % Please edit documentation in R/config.R
 \name{slurm_template_default}
 \alias{slurm_template_default}
-\title{Get the default Slurm template from config or package}
+\title{Get the default SLURM template path}
 \usage{
 slurm_template_default()
 }
+\value{
+Path to SLURM template file
+}
 \description{
-Get the default Slurm template from config or package
+Retrieves the configured SLURM template path or falls back to the
+package default template.
+}
+\examples{
+template_path <- slurm_template_default()
 }

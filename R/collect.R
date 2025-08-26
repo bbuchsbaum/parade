@@ -1,5 +1,26 @@
 # Collect (blocking) -------------------------------------------------------
+#' Execute a parade flow and collect results
+#'
+#' Runs all stages in a flow, handling dependencies and parallelization
+#' according to the flow's distribution settings. Returns a tibble with
+#' results from all stages.
+#'
+#' @param fl A `parade_flow` object with stages to execute
+#' @param engine Execution engine: "future" (default) or "sequential"
+#' @param workers Number of workers for parallel execution
+#' @param scheduling Furrr scheduling parameter (0 < value <= 1 or chunk size)
+#' @param seed_furrr Whether to enable deterministic random number generation
+#' @param .progress Whether to display progress bars (default: interactive())
+#' @param limit Optional limit on number of grid rows to process
+#' @return A tibble containing results from all executed stages
 #' @export
+#' @examples
+#' \donttest{
+#' grid <- data.frame(x = 1:3)
+#' fl <- flow(grid) |>
+#'   stage("double", function(x) x * 2, schema = returns(result = dbl()))
+#' results <- collect(fl)
+#' }
 collect <- function(fl,
                     engine    = c("future","sequential"),
                     workers   = NULL,

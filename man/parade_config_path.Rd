@@ -2,10 +2,20 @@
 % Please edit documentation in R/config.R
 \name{parade_config_path}
 \alias{parade_config_path}
-\title{Locate the parade config file}
+\title{Locate the parade configuration file}
 \usage{
 parade_config_path(create_dirs = TRUE)
 }
+\arguments{
+\item{create_dirs}{Whether to create directories as needed}
+}
+\value{
+Path to configuration file
+}
 \description{
-Locate the parade config file
+Finds the appropriate location for the parade configuration file,
+checking environment variables and standard locations.
+}
+\examples{
+config_path <- parade_config_path()
 }

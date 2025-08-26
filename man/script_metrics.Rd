@@ -2,10 +2,23 @@
 % Please edit documentation in R/slurm_stats.R
 \name{script_metrics}
 \alias{script_metrics}
-\title{Snapshot of CPU/memory usage for a script job}
+\title{Get CPU and memory metrics for a SLURM job}
 \usage{
 script_metrics(job)
 }
+\arguments{
+\item{job}{A \code{parade_script_job} object}
+}
+\value{
+Named list with job metrics and resource usage
+}
 \description{
-Snapshot of CPU/memory usage for a script job
+Retrieves current resource usage statistics from SLURM commands
+including CPU utilization, memory consumption, and job status.
+}
+\examples{
+\donttest{
+job <- submit_slurm("script.R")
+metrics <- script_metrics(job)
+}
 }

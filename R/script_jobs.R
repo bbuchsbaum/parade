@@ -1,6 +1,31 @@
 # Generic Slurm script submission -----------------------------------------
 #' Submit an R script to SLURM and monitor it from R
+#'
+#' Submits an R script as a SLURM job using batchtools, with configurable
+#' resources and environment. Returns a handle for monitoring and retrieving
+#' results.
+#'
+#' @param script Path to R script file to execute
+#' @param args Character vector of command line arguments to pass to script
+#' @param name Optional job name (defaults to script basename)
+#' @param template Path to SLURM template file (uses default if NULL)
+#' @param resources Named list of SLURM resource specifications
+#' @param registry_dir Directory for batchtools registry (auto-generated if NULL)
+#' @param env Named character vector of environment variables to set
+#' @param lib_paths Character vector of library paths to use
+#' @param rscript Path to Rscript executable
+#' @param wd Working directory for script execution
+#' @return A `parade_script_job` object for monitoring the job
 #' @export
+#' @examples
+#' \donttest{
+#' # Create a simple R script
+#' script_path <- tempfile(fileext = ".R")
+#' writeLines("cat('Hello from SLURM!')", script_path)
+#' 
+#' # Submit to SLURM
+#' job <- submit_slurm(script_path, resources = list(time = "5min"))
+#' }
 submit_slurm <- function(script,
                          args = character(),
                          name = NULL,
@@ -56,6 +81,11 @@ parade_run_script_bt <- function(i, script, args, env, lib_paths, rscript, wd) {
   if (status != 0L) stop(sprintf("Script exited with status %s", status))
   invisible(list(ok = TRUE, status = status))
 }
+#' Print method for parade script jobs
+#'
+#' @param x A `parade_script_job` object
+#' @param ... Additional arguments (ignored)
+#' @return The input object (invisibly)
 #' @export
 print.parade_script_job <- function(x, ...) {
   cat("<parade_script_job>\n")
@@ -65,14 +95,35 @@ print.parade_script_job <- function(x, ...) {
   cat("  Job ID:   ", x$job_id, "\n", sep = "")
   invisible(x)
 }
+#' Get status of a SLURM script job
+#'
+#' @param job A `parade_script_job` object
+#' @param detail Whether to return detailed job information
+#' @return A tibble with job status information
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' status <- script_status(job)
+#' }
 script_status <- function(job, detail = FALSE) {
   stopifnot(inherits(job, "parade_script_job"))
   if (!requireNamespace("batchtools", quietly = TRUE)) stop("script_status() requires 'batchtools'.")
   reg <- batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
   if (isTRUE(detail)) tibble::as_tibble(batchtools::getJobTable(reg)) else { st <- batchtools::getStatus(reg); tibble::tibble(pending = st$pending, started = st$started, running = st$running, done = st$done, error = st$error) }
 }
+#' Wait for a SLURM script job to complete
+#'
+#' @param job A `parade_script_job` object
+#' @param timeout Maximum time to wait in seconds (default: Inf)
+#' @param poll Polling interval in seconds
+#' @return The input job object (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' script_await(job, timeout = 300)  # Wait up to 5 minutes
+#' }
 script_await <- function(job, timeout = Inf, poll = 10) {
   stopifnot(inherits(job, "parade_script_job"))
   if (!requireNamespace("batchtools", quietly = TRUE)) stop("script_await() requires 'batchtools'.")
@@ -80,7 +131,16 @@ script_await <- function(job, timeout = Inf, poll = 10) {
   batchtools::waitForJobs(reg = reg, timeout = timeout, sleep = poll)
   invisible(job)
 }
+#' Cancel a running SLURM script job
+#'
+#' @param job A `parade_script_job` object
+#' @return The input job object (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' script_cancel(job)
+#' }
 script_cancel <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
   if (!requireNamespace("batchtools", quietly = TRUE)) stop("script_cancel() requires 'batchtools'.")
@@ -89,13 +149,28 @@ script_cancel <- function(job) {
   if (length(ids)) batchtools::killJobs(ids, reg = reg)
   invisible(job)
 }
+#' Load a script job from its registry directory
+#'
+#' @param registry_dir Path to the batchtools registry directory
+#' @return A `parade_script_job` object
 #' @export
+#' @examples
+#' \donttest{
+#' job <- script_load("/path/to/registry")
+#' }
 script_load <- function(registry_dir) {
   p <- file.path(registry_dir, "script_job.rds")
   if (!file.exists(p)) stop("No script_job.rds found under: ", registry_dir)
   readRDS(p)
 }
+#' Find the most recently created script job registries
+#'
+#' @param n Maximum number of registries to return
+#' @param pattern Optional pattern to filter registry names
+#' @return A tibble with registry paths and modification times
 #' @export
+#' @examples
+#' latest_jobs <- script_find_latest(n = 3)
 script_find_latest <- function(n = 5, pattern = NULL) {
   root <- resolve_path("registry://")
   cands <- Sys.glob(file.path(root, "script-*"))

@@ -2,10 +2,29 @@
 % Please edit documentation in R/text_ui.R
 \name{script_top}
 \alias{script_top}
-\title{Interactive (text) monitor for one job}
+\title{Interactive text monitor for a single SLURM job}
 \usage{
 script_top(job, refresh = 2, nlog = 30, clear = TRUE)
 }
+\arguments{
+\item{job}{A \code{parade_script_job} object}
+
+\item{refresh}{Refresh interval in seconds}
+
+\item{nlog}{Number of log lines to display}
+
+\item{clear}{Whether to clear screen between updates}
+}
+\value{
+The input job object (invisibly)
+}
 \description{
-Interactive (text) monitor for one job
+Displays real-time CPU, memory, and log information for a running
+SLURM job in a continuously updating text interface.
+}
+\examples{
+\donttest{
+job <- submit_slurm("script.R")
+script_top(job, refresh = 5)
+}
 }

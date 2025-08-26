@@ -2,7 +2,7 @@
 % Please edit documentation in R/resources.R
 \name{batch_resources}
 \alias{batch_resources}
-\title{Create a list of SLURM resources with friendly parsing.}
+\title{Create a list of SLURM resources with friendly parsing}
 \usage{
 batch_resources(
   partition = NULL,
@@ -20,11 +20,39 @@ batch_resources(
 )
 }
 \arguments{
-\item{partition, time, nodes, ntasks, ntasks_per_node, cpus_per_task, ncpus, mem, account, qos, modules, omp_num_threads}{Various resource fields.}
+\item{partition}{SLURM partition name}
+
+\item{time}{Time limit (accepts formats like '2h', '90min', 'H:MM:SS')}
+
+\item{nodes}{Number of nodes required}
+
+\item{ntasks}{Number of tasks}
+
+\item{ntasks_per_node}{Number of tasks per node}
+
+\item{cpus_per_task}{CPUs per task}
+
+\item{ncpus}{Alias for cpus_per_task}
+
+\item{mem}{Memory requirement (e.g., "4GB", "1000MB")}
+
+\item{account}{SLURM account to charge}
+
+\item{qos}{Quality of service level}
+
+\item{modules}{Environment modules to load}
+
+\item{omp_num_threads}{OpenMP thread count}
 }
 \value{
-Named list suitable for batchtools' \code{submitJobs(resources=...)} and the template.
+Named list suitable for batchtools submitJobs resources
 }
 \description{
-Create a list of SLURM resources with friendly parsing.
+Builds a resource specification for SLURM job submission with convenient
+parsing of time formats and memory specifications. Handles common
+abbreviations and normalizes values for batchtools compatibility.
+}
+\examples{
+batch_resources(time = "2h", mem = "4GB", cpus_per_task = 4)
+batch_resources(partition = "gpu", time = "30min")
 }

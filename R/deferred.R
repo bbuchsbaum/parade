@@ -1,5 +1,28 @@
 # Deferred API -------------------------------------------------------------
+#' Submit a flow for deferred execution
+#'
+#' Submits a parade flow for asynchronous execution, either locally using
+#' future or on SLURM using batchtools. Returns a handle for monitoring
+#' and collecting results.
+#'
+#' @param fl A `parade_flow` object with distribution settings
+#' @param mode Execution mode: "index" (default) or "results"
+#' @param run_id Optional run identifier (auto-generated if NULL)
+#' @param registry_dir Directory for execution registry
+#' @param index_dir Directory for result indices
+#' @param seed_furrr Whether to enable deterministic random number generation
+#' @param scheduling Furrr scheduling parameter
+#' @return A `parade_deferred` object for monitoring execution
 #' @export
+#' @examples
+#' \donttest{
+#' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#' fl <- flow(grid) |>
+#'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+#'   distribute(dist_local(by = "group"))
+#' 
+#' deferred <- submit(fl)
+#' }
 submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir = NULL, index_dir = NULL, seed_furrr = TRUE, scheduling = 1) {
   stopifnot(inherits(fl, "parade_flow"))
   mode <- match.arg(mode)
@@ -54,7 +77,17 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   rows <- purrr::compact(rows); res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
   if (identical(mode, "index")) { p <- file.path(index_dir, sprintf("index-%04d.rds", as.integer(job_id))); dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE); saveRDS(res, p, compress = "gzip"); invisible(list(ok = TRUE, n = nrow(res), index = p)) } else { res }
 }
+#' Get status of a deferred execution
+#'
+#' @param d A `parade_deferred` object
+#' @param detail Whether to return detailed status information
+#' @return A tibble with execution status
 #' @export
+#' @examples
+#' \donttest{
+#' deferred <- submit(fl)
+#' status <- deferred_status(deferred)
+#' }
 deferred_status <- function(d, detail = FALSE) {
   stopifnot(inherits(d, "parade_deferred"))
   if (identical(d$backend, "slurm")) {
@@ -65,7 +98,18 @@ deferred_status <- function(d, detail = FALSE) {
     fs <- d$jobs; states <- vapply(fs, future::resolved, logical(1)); tibble::tibble(total = length(fs), resolved = sum(states), unresolved = sum(!states))
   }
 }
+#' Wait for deferred execution to complete
+#'
+#' @param d A `parade_deferred` object
+#' @param timeout Maximum time to wait in seconds
+#' @param poll Polling interval in seconds
+#' @return The input deferred object (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' deferred <- submit(fl)
+#' deferred_await(deferred, timeout = 600)
+#' }
 deferred_await <- function(d, timeout = Inf, poll = 10) {
   stopifnot(inherits(d, "parade_deferred"))
   if (identical(d$backend, "slurm")) {
@@ -76,7 +120,17 @@ deferred_await <- function(d, timeout = Inf, poll = 10) {
   }
   invisible(d)
 }
+#' Cancel deferred execution jobs
+#'
+#' @param d A `parade_deferred` object
+#' @param which Which jobs to cancel: "running" or "all"
+#' @return The input deferred object (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' deferred <- submit(fl)
+#' deferred_cancel(deferred, which = "running")
+#' }
 deferred_cancel <- function(d, which = c("running","all")) {
   stopifnot(inherits(d, "parade_deferred")); which <- match.arg(which)
   if (identical(d$backend, "slurm")) {
@@ -87,7 +141,18 @@ deferred_cancel <- function(d, which = c("running","all")) {
   }
   invisible(d)
 }
+#' Collect results from deferred execution
+#'
+#' @param d A `parade_deferred` object
+#' @param how How to collect results: "auto", "index", or "results"
+#' @return A tibble with collected results
 #' @export
+#' @examples
+#' \donttest{
+#' deferred <- submit(fl)
+#' deferred_await(deferred)
+#' results <- deferred_collect(deferred)
+#' }
 deferred_collect <- function(d, how = c("auto","index","results")) {
   stopifnot(inherits(d, "parade_deferred")); how <- match.arg(how); if (identical(how, "auto")) how <- d$mode
   if (identical(how, "index")) { dir <- resolve_path(d$index_dir); files <- list.files(dir, pattern = "\\.rds$", full.names = TRUE); if (!length(files)) return(tibble::tibble()); lst <- lapply(files, readRDS); tibble::as_tibble(vctrs::vec_rbind(!!!lst)) }

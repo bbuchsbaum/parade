@@ -1,5 +1,25 @@
 # Sinks / artifacts --------------------------------------------------------
+#' Create a sink specification for artifact persistence
+#'
+#' Defines how stage outputs should be persisted to disk, with configurable
+#' directory structure, file formats, and metadata handling.
+#'
+#' @param fields Character vector of field names to persist
+#' @param dir Base directory or function for artifact storage
+#' @param template Optional glue template for file path generation
+#' @param format File format (currently only "rds" supported)
+#' @param writer Optional custom writer function
+#' @param overwrite Overwrite policy: "skip", "overwrite", or "error"
+#' @param checksum Whether to compute SHA256 checksums
+#' @param sidecar Sidecar metadata format: "json" or "none"
+#' @param compress Compression method for RDS files
+#' @param reader Function to read persisted files
+#' @param autoload Whether to automatically load artifacts
+#' @return A `parade_sink` specification object
 #' @export
+#' @examples
+#' sink_spec("result", dir = "artifacts://results")
+#' sink_spec(c("model", "metrics"), dir = "/tmp/output", compress = "xz")
 sink_spec <- function(fields, dir, template = NULL, format = c("rds"), writer = NULL,
                       overwrite = c("skip","overwrite","error"), checksum = TRUE,
                       sidecar = c("json","none"), compress = "gzip", reader = readRDS, autoload = TRUE) {

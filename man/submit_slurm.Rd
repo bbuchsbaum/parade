@@ -17,6 +17,42 @@ submit_slurm(
   wd = dirname(normalizePath(script))
 )
 }
+\arguments{
+\item{script}{Path to R script file to execute}
+
+\item{args}{Character vector of command line arguments to pass to script}
+
+\item{name}{Optional job name (defaults to script basename)}
+
+\item{template}{Path to SLURM template file (uses default if NULL)}
+
+\item{resources}{Named list of SLURM resource specifications}
+
+\item{registry_dir}{Directory for batchtools registry (auto-generated if NULL)}
+
+\item{env}{Named character vector of environment variables to set}
+
+\item{lib_paths}{Character vector of library paths to use}
+
+\item{rscript}{Path to Rscript executable}
+
+\item{wd}{Working directory for script execution}
+}
+\value{
+A \code{parade_script_job} object for monitoring the job
+}
 \description{
-Submit an R script to SLURM and monitor it from R
+Submits an R script as a SLURM job using batchtools, with configurable
+resources and environment. Returns a handle for monitoring and retrieving
+results.
+}
+\examples{
+\donttest{
+# Create a simple R script
+script_path <- tempfile(fileext = ".R")
+writeLines("cat('Hello from SLURM!')", script_path)
+
+# Submit to SLURM
+job <- submit_slurm(script_path, resources = list(time = "5min"))
+}
 }

@@ -2,10 +2,23 @@
 % Please edit documentation in R/config.R
 \name{slurm_template_set}
 \alias{slurm_template_set}
-\title{Set the default Slurm template path}
+\title{Set the default SLURM template path}
 \usage{
 slurm_template_set(path, persist = TRUE)
 }
+\arguments{
+\item{path}{Path to SLURM template file}
+
+\item{persist}{Whether to save to configuration file}
+}
+\value{
+Resolved template path (invisibly)
+}
 \description{
-Set the default Slurm template path
+Set the default SLURM template path
+}
+\examples{
+\donttest{
+slurm_template_set("/path/to/custom.tmpl")
+}
 }

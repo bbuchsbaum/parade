@@ -2,10 +2,22 @@
 % Please edit documentation in R/config.R
 \name{parade_config_write}
 \alias{parade_config_write}
-\title{Write config}
+\title{Write parade configuration}
 \usage{
 parade_config_write(cfg, path = NULL)
 }
+\arguments{
+\item{cfg}{Configuration list to write}
+
+\item{path}{Optional path to config file (uses default if NULL)}
+}
+\value{
+Path to written config file (invisibly)
+}
 \description{
-Write config
+Write parade configuration
+}
+\examples{
+cfg <- list(slurm = list(defaults = list(time = "1h")))
+parade_config_write(cfg)
 }

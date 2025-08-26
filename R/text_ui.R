@@ -3,8 +3,22 @@
 .fmt_hms <- function(sec) { if (is.null(sec) || is.na(sec)) return("NA"); sec <- as.integer(sec); h <- sec %/% 3600; m <- (sec %% 3600) %/% 60; s <- sec %% 60; sprintf("%d:%02d:%02d", h, m, s) }
 .bar <- function(pct, width = 24) { if (is.na(pct)) return(paste(rep('.', width), collapse='')); pct <- max(0, min(100, pct)); full <- as.integer(round(width * pct / 100)); paste0(paste(rep('#', full), collapse=''), paste(rep('.', width - full), collapse='')) }
 
-#' Interactive (text) monitor for one job
+#' Interactive text monitor for a single SLURM job
+#'
+#' Displays real-time CPU, memory, and log information for a running
+#' SLURM job in a continuously updating text interface.
+#'
+#' @param job A `parade_script_job` object
+#' @param refresh Refresh interval in seconds
+#' @param nlog Number of log lines to display
+#' @param clear Whether to clear screen between updates
+#' @return The input job object (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' script_top(job, refresh = 5)
+#' }
 script_top <- function(job, refresh = 2, nlog = 30, clear = TRUE) {
   stopifnot(inherits(job, "parade_script_job"))
   spin <- c("-", "\\", "|", "/"); i <- 0L; started <- Sys.time(); on.exit(cat("\n"), add = TRUE)
@@ -40,8 +54,23 @@ script_top <- function(job, refresh = 2, nlog = 30, clear = TRUE) {
   stop("jobs_top(): provide a list/data frame of 'parade_script_job' or registry paths.")
 }
 
-#' Live dashboard for multiple script jobs
+#' Live dashboard for multiple SLURM jobs
+#'
+#' Interactive text dashboard showing status, resource usage, and logs
+#' for multiple SLURM jobs simultaneously.
+#'
+#' @param jobs List of `parade_script_job` objects, data frame, or registry paths
+#' @param refresh Refresh interval in seconds
+#' @param nlog Number of log lines to show from running job
+#' @param clear Whether to clear screen between updates
+#' @return The input jobs object (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' job1 <- submit_slurm("script1.R")
+#' job2 <- submit_slurm("script2.R")
+#' jobs_top(list(job1, job2))
+#' }
 jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   J <- .coerce_jobs(jobs)
   on.exit(cat("\n"), add = TRUE)

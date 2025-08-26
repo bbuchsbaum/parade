@@ -2,10 +2,22 @@
 % Please edit documentation in R/config.R
 \name{slurm_resources}
 \alias{slurm_resources}
-\title{Merge resources with defaults + normalize + drop NA/omit}
+\title{Build SLURM resources with defaults and normalization}
 \usage{
 slurm_resources(resources = NULL, profile = "default")
 }
+\arguments{
+\item{resources}{Named list of resource specifications to merge}
+
+\item{profile}{Configuration profile to use for defaults}
+}
+\value{
+Normalized resource specification list
+}
 \description{
-Merge resources with defaults + normalize + drop NA/omit
+Merges user-specified resources with configured defaults and
+applies normalization through batch_resources().
+}
+\examples{
+slurm_resources(list(time = "2h"), profile = "default")
 }

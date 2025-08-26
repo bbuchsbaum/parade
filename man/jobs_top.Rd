@@ -2,10 +2,30 @@
 % Please edit documentation in R/text_ui.R
 \name{jobs_top}
 \alias{jobs_top}
-\title{Live dashboard for multiple script jobs}
+\title{Live dashboard for multiple SLURM jobs}
 \usage{
 jobs_top(jobs, refresh = 3, nlog = 20, clear = TRUE)
 }
+\arguments{
+\item{jobs}{List of \code{parade_script_job} objects, data frame, or registry paths}
+
+\item{refresh}{Refresh interval in seconds}
+
+\item{nlog}{Number of log lines to show from running job}
+
+\item{clear}{Whether to clear screen between updates}
+}
+\value{
+The input jobs object (invisibly)
+}
 \description{
-Live dashboard for multiple script jobs
+Interactive text dashboard showing status, resource usage, and logs
+for multiple SLURM jobs simultaneously.
+}
+\examples{
+\donttest{
+job1 <- submit_slurm("script1.R")
+job2 <- submit_slurm("script2.R")
+jobs_top(list(job1, job2))
+}
 }

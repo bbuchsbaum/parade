@@ -4,9 +4,29 @@
 \name{parade}
 \alias{parade-package}
 \alias{parade}
-\title{parade: Declarative Parallel Dataflow + Slurm utilities}
+\title{Declarative parallel dataflow with Future/Furrr and SLURM utilities}
 \description{
-Declarative, lazy, compositional dataflow for R on top of 'future'/'furrr', with typed schemas, artifacts, diagnostics, and HPC-friendly distribution (local and Slurm via 'future.batchtools'/'batchtools'). Adds an ergonomic SLURM layer: generic script submission from R, live CPU/memory monitors, multi-job dashboards, and now site/project defaults with NA-as-omit semantics and profiles. Configure once, run everywhere.
+The parade package provides a declarative, lazy, and compositional approach
+to parallel dataflow in R. Built on top of the future/furrr ecosystem, it
+offers typed schemas, artifact management, diagnostics, and HPC-friendly
+distribution including seamless SLURM integration via future.batchtools.
+}
+\details{
+Key features include:
+\itemize{
+\item Typed dataflow pipelines with dependency management
+\item Local and SLURM distributed execution
+\item Artifact persistence with automatic metadata
+\item Real-time job monitoring and dashboards
+\item Configurable resource management with profiles
+\item Comprehensive error handling and diagnostics
+}
+}
+\seealso{
+Core functions: \code{\link[=flow]{flow()}}, \code{\link[=stage]{stage()}}, \code{\link[=collect]{collect()}}, \code{\link[=submit]{submit()}}
+Distribution: \code{\link[=dist_local]{dist_local()}}, \code{\link[=dist_slurm]{dist_slurm()}}, \code{\link[=distribute]{distribute()}}
+Configuration: \code{\link[=parade_config_read]{parade_config_read()}}, \code{\link[=slurm_defaults_set]{slurm_defaults_set()}}
+Monitoring: \code{\link[=script_top]{script_top()}}, \code{\link[=jobs_top]{jobs_top()}}, \code{\link[=script_metrics]{script_metrics()}}
 }
 \author{
 \strong{Maintainer}: Parade Authors \email{parade@example.org}

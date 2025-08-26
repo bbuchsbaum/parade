@@ -2,10 +2,19 @@
 % Please edit documentation in R/config.R
 \name{parade_config_read}
 \alias{parade_config_read}
-\title{Read config}
+\title{Read parade configuration}
 \usage{
 parade_config_read(path = NULL)
 }
+\arguments{
+\item{path}{Optional path to config file (uses default if NULL)}
+}
+\value{
+List containing configuration settings
+}
 \description{
-Read config
+Read parade configuration
+}
+\examples{
+config <- parade_config_read()
 }

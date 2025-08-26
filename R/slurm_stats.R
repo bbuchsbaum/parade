@@ -33,8 +33,19 @@
   NULL
 }
 
-#' Snapshot of CPU/memory usage for a script job
+#' Get CPU and memory metrics for a SLURM job
+#'
+#' Retrieves current resource usage statistics from SLURM commands
+#' including CPU utilization, memory consumption, and job status.
+#'
+#' @param job A `parade_script_job` object
+#' @return Named list with job metrics and resource usage
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' metrics <- script_metrics(job)
+#' }
 script_metrics <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
   jid <- job$job_id
@@ -50,7 +61,17 @@ script_metrics <- function(job) {
 }
 
 # Single job text UI -------------------------------------------------------
+#' Display recent log output from a SLURM job
+#'
+#' @param job A `parade_script_job` object
+#' @param n Number of lines to show from end of log
+#' @return Log lines (invisibly)
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' script_tail(job, n = 50)
+#' }
 script_tail <- function(job, n = 200) {
   lg <- script_logs(job)
   if (!nrow(lg)) return(invisible(character()))
@@ -61,7 +82,16 @@ script_tail <- function(job, n = 200) {
   cat(paste(ln, collapse = "\n"), "\n", sep = "")
   invisible(ln)
 }
+#' Get log file paths for a SLURM job
+#'
+#' @param job A `parade_script_job` object
+#' @return Tibble with log file paths and modification times
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' logs <- script_logs(job)
+#' }
 script_logs <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
   logs_dir <- file.path(job$registry_dir, "logs")
@@ -70,7 +100,16 @@ script_logs <- function(job) {
   info <- file.info(files); ord <- order(info$mtime, decreasing = FALSE)
   tibble::tibble(path = normalizePath(files[ord], mustWork = FALSE), mtime = as.POSIXct(info$mtime[ord]))
 }
+#' Check if a SLURM job has completed
+#'
+#' @param job A `parade_script_job` object
+#' @return Logical indicating completion status
 #' @export
+#' @examples
+#' \donttest{
+#' job <- submit_slurm("script.R")
+#' is_done <- script_done(job)
+#' }
 script_done <- function(job) {
   if (!requireNamespace("batchtools", quietly = TRUE)) return(FALSE)
   reg <- batchtools::loadRegistry(job$registry_dir, writeable = FALSE)

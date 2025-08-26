@@ -16,7 +16,16 @@ parade_options <- function(error = NULL, scheduling = NULL, seed_furrr = NULL, p
   options("parade.opts" = opts)
   invisible(opts)
 }
+#' Temporarily set parade options for code execution
+#'
+#' @param ... Named parade option values to set temporarily
+#' @param code Code to execute with modified options
+#' @return Result of executing the code
 #' @export
+#' @examples
+#' with_parade_options(error = "stop", {
+#'   # code runs with error = "stop"
+#' })
 with_parade_options <- function(..., code) {
   old <- getOption("parade.opts", NULL); on.exit(options("parade.opts" = old), add = TRUE)
   parade_options(...); force(code)
