@@ -2,48 +2,263 @@
 title: "Artifacts: clean side-effects, atomic writes, and manifests"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Artifacts: side-effects & manifests}
+  %\VignetteIndexEntry{Sinks and Artifacts: persistent storage system}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 > Requires **parade ≥ 0.6.0** (sink_spec/artifact helpers).
 
-For big results, **write to disk** per row and return a tiny *file reference* instead of a large object.
+## What are sinks and artifacts?
+
+**Sinks** in parade provide a powerful mechanism for persisting large computational results to disk instead of keeping them in memory. When your stages produce big objects (models, large datasets, complex results), sinks automatically write these to files and return lightweight **file references** instead.
+
+### Key benefits
+
+- **Memory efficiency**: Large objects don't accumulate in memory across pipeline stages
+- **Persistence**: Results survive R session crashes and can be accessed later
+- **Atomic writes**: Files are written safely without corruption risks
+- **Metadata tracking**: Automatic checksums, file sizes, and timestamps
+- **Flexible organization**: Configurable directory structures and file naming
+
+### Sinks vs. regular return values
+
+| **Regular returns** | **Sink artifacts** |
+|---------------------|---------------------|
+| Objects stay in memory | Objects written to disk |
+| Passed directly between stages | File references passed instead |
+| Lost when R session ends | Persist across sessions |
+| Can cause memory issues with large data | Memory-efficient regardless of size |
+| No automatic metadata | Rich metadata (size, checksum, timestamps) |
 
 ## 1) Define a sink
 
+A **sink specification** defines how and where to persist stage outputs:
+
 ```r
 sink <- sink_spec(
-  fields   = c("model","metrics"),
-  dir      = "artifacts://fits",
-  template = "{.stage}/{subject}/{session}-{.row_key}",   # or a function(row, stage, field) -> path
-  format   = "rds",
-  overwrite = "skip",           # "overwrite" or "error"
-  sidecar   = "json"            # writes sha256, bytes, clock, row key
+  fields   = c("model","metrics"),       # Which fields to persist
+  dir      = "artifacts://fits",         # Base directory (supports path aliases)
+  template = "{.stage}/{subject}/{session}-{.row_key}",   # File path template
+  format   = "rds",                      # File format (currently only RDS)
+  overwrite = "skip",                    # "skip", "overwrite", or "error"
+  sidecar   = "json",                    # Metadata format: "json" or "none"
+  compress  = "gzip",                    # RDS compression: "gzip", "xz", "bzip2"
+  autoload  = TRUE                       # Auto-load artifacts in downstream stages
 )
+```
+
+### Key parameters explained
+
+- **`fields`**: Character vector of output field names to persist to disk
+- **`dir`**: Base directory path (can use aliases like `artifacts://`, or be a function)
+- **`template`**: Glue template for file paths. Available variables:
+  - `{.stage}`: Current stage name
+  - `{.field}`: Field being written
+  - `{.row_key}`: Unique hash of the row parameters
+  - Plus any columns from your parameter grid (e.g., `{subject}`, `{session}`)
+- **`overwrite`**: What to do if file exists: `"skip"` (default), `"overwrite"`, or `"error"`
+- **`sidecar`**: JSON metadata with SHA256 hash, file size, timestamps
+
+### Directory structure examples
+
+```r
+# Simple flat structure
+sink_spec(fields = "result", dir = "artifacts://output")
+# Files: artifacts://output/stage_name/field/row_hash.rds
+
+# Hierarchical by parameters  
+sink_spec(fields = "model", 
+          dir = "artifacts://models",
+          template = "{.stage}/{subject}/run_{session}")
+# Files: artifacts://models/fit_models/s01/run_1.rds
+
+# Custom function for complex logic
+sink_spec(fields = "data", 
+          dir = function(row, stage, field) {
+            paste0("results/", if(row$condition == "control") "ctrl" else "exp")
+          })
 ```
 
 ## 2) Use it in a stage
 
+To use a sink, specify it in your stage definition and declare which outputs are artifacts:
+
 ```r
+# Create parameter grid
+grid <- param_grid(
+  subject = c("s01", "s02", "s03"),
+  session = 1:2,
+  seed = 1:5
+)
+
+# Define workflow with sink
 fl <- flow(grid, seed_col = "seed") |>
   stage("fit",
         f = function(subject, session) {
-          list(model = list(a = 1), metrics = tibble::tibble(acc = runif(1)))
+          # Simulate expensive computation producing large objects
+          model <- lm(rnorm(1000) ~ rnorm(1000))  # Large model object
+          metrics <- tibble::tibble(
+            rmse = runif(1),
+            r2 = runif(1),
+            aic = runif(1, 100, 200)
+          )
+          
+          list(model = model, metrics = metrics)
         },
-        schema = schema(model = artifact(), metrics = artifact()),
-        sink = sink)
+        schema = schema(model = artifact(), metrics = artifact()),  # Declare as artifacts
+        sink = sink)  # Attach the sink
 ```
 
-`collect()` writes files **atomically**; the row receives structured *file refs* (`path, bytes, sha256, written, existed`).
+### What happens during execution
 
-## 3) Read later
+When you run `collect()`, parade:
+
+1. **Executes your function** and captures the returned list
+2. **Identifies artifact fields** (those declared with `artifact()`)
+3. **Writes each artifact** to disk using the sink specification
+4. **Creates file references** with metadata (`path`, `bytes`, `sha256`, `written`, `existed`)
+5. **Returns the row** with file references instead of the original objects
+
+The result is a tibble where artifact fields contain **file reference objects** instead of the original data:
 
 ```r
-# autoload=TRUE on the sink will transparently read RDS when used by downstream stages;
-# or read from the manifest:
-manifest("artifacts://fits") |>
-  dplyr::arrange(desc(bytes)) |>
-  dplyr::slice_head(n = 10)
+results <- collect(fl)
+# results$model[[1]] contains: 
+# tibble(path = "/path/to/file.rds", bytes = 1024, sha256 = "abc123...", 
+#        written = TRUE, existed = FALSE)
 ```
+
+## 3) Reading artifacts back
+
+There are several ways to access your persisted artifacts:
+
+### Automatic loading in downstream stages
+
+If `autoload = TRUE` (the default), artifacts are automatically loaded when used in downstream stages:
+
+```r
+fl <- fl |>
+  stage("analyze", 
+        f = function(model, metrics) {  # Automatically loads from disk
+          # model is the actual lm object, not a file reference
+          summary_stats <- broom::tidy(model)
+          combined_metrics <- dplyr::bind_rows(metrics, summary_stats)
+          list(analysis = combined_metrics)
+        },
+        schema = schema(analysis = tbl()))
+```
+
+### Manual loading
+
+For manual access, use the file path from the reference:
+
+```r
+# Get results with file references
+results <- collect(fl)
+
+# Load a specific artifact manually
+first_model <- readRDS(results$model[[1]]$path)
+
+# Or use the sink's reader function (if custom)
+first_model <- sink$reader(results$model[[1]]$path)
+```
+
+### Using the manifest system
+
+The **manifest** function provides a powerful way to explore and query your artifacts:
+
+```r
+# View all artifacts in a directory
+manifest("artifacts://fits") |>
+  dplyr::arrange(desc(bytes)) |>      # Sort by file size
+  dplyr::slice_head(n = 10)           # Top 10 largest files
+
+# Filter by specific patterns
+manifest("artifacts://fits") |>
+  dplyr::filter(
+    grepl("s01", path),               # Subject s01 only
+    bytes > 1000                      # Files larger than 1KB
+  ) |>
+  dplyr::select(path, bytes, sha256, mtime)
+
+# Load artifacts based on manifest query
+large_models <- manifest("artifacts://fits") |>
+  dplyr::filter(grepl("model", path), bytes > 5000) |>
+  dplyr::mutate(artifact = purrr::map(path, readRDS))
+```
+
+### Manifest columns
+
+The manifest includes rich metadata for each artifact:
+
+- **`path`**: Full file path
+- **`bytes`**: File size in bytes  
+- **`sha256`**: SHA256 checksum for integrity verification
+- **`mtime`**: File modification timestamp
+- **`ctime`**: File creation timestamp
+- **`existed`**: Whether file existed before writing (from sidecar)
+- **`written`**: Whether file was written successfully (from sidecar)
+
+## When to use sinks vs. regular returns
+
+### Use sinks for:
+
+- **Large objects**: Models, big datasets, complex nested structures
+- **Persistent results**: Outputs you want to access across R sessions
+- **Memory management**: When workflow memory usage becomes problematic  
+- **Reusable artifacts**: Results that multiple downstream analyses will use
+- **Long computations**: Expensive results you don't want to lose or recompute
+
+### Use regular returns for:
+
+- **Small objects**: Simple scalars, small vectors, summary statistics
+- **Temporary results**: Intermediate values only needed for next stage
+- **Fast computations**: Results that are cheap to recompute
+- **Non-serializable objects**: Objects that don't save well (connections, environments)
+
+### Mixed usage example
+
+```r
+stage("process",
+      f = function(subject, session) {
+        # Heavy computation
+        big_model <- train_neural_network(data)
+        processed_data <- preprocess_large_dataset(data) 
+        
+        # Light summaries  
+        n_rows <- nrow(processed_data)
+        model_accuracy <- evaluate_model(big_model)
+        
+        list(
+          model = big_model,          # → sink (large)
+          data = processed_data,      # → sink (large) 
+          n_rows = n_rows,           # → regular return (small)
+          accuracy = model_accuracy   # → regular return (small)
+        )
+      },
+      schema = schema(
+        model = artifact(),    # Will be persisted
+        data = artifact(),     # Will be persisted  
+        n_rows = int(),        # Regular return
+        accuracy = dbl()       # Regular return
+      ),
+      sink = my_sink)
+```
+
+## Error handling and overwrite policies
+
+Configure how sinks handle existing files:
+
+```r
+# Skip writing if file exists (default - fastest for reruns)
+sink_spec(fields = "result", dir = "artifacts://", overwrite = "skip")
+
+# Always overwrite existing files  
+sink_spec(fields = "result", dir = "artifacts://", overwrite = "overwrite")
+
+# Error if file exists (strict mode)
+sink_spec(fields = "result", dir = "artifacts://", overwrite = "error")
+```
+
+**Recommendation**: Use `"skip"` during development for faster iteration, `"overwrite"` for production runs, and `"error"` when you need to ensure no accidental overwrites.

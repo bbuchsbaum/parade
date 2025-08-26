@@ -1,14 +1,24 @@
 ---
-title: "SLURM defaults & profiles (NA = omit)"
+title: "Using SLURM Defaults in parade"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{SLURM defaults & profiles (NA = omit)}
+  %\VignetteIndexEntry{Using SLURM Defaults in parade}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-You can set **site/project defaults** for SLURM submission and omit problematic flags by assigning `NA` (e.g., some clusters reject `--mem`).
-Defaults live in a JSON file and are accessible from R.
+## What are defaults and why use them?
+
+The parade package allows you to set **site/project defaults** for SLURM job submission, making your R code portable across different clusters and reducing repetitive resource specifications. Instead of specifying the same SLURM parameters (partition, memory, CPU count, etc.) in every job submission, you can configure them once and reuse them throughout your project.
+
+Key benefits of using defaults:
+
+- **Portability**: Your R scripts work across different clusters without modification
+- **Consistency**: Ensure all jobs use appropriate resource allocations for your environment  
+- **Flexibility**: Selectively omit problematic flags that some clusters reject (e.g., `--mem`)
+- **Maintainability**: Update resource requirements in one place rather than throughout your codebase
+
+Defaults are stored in a JSON configuration file and are accessible from R through simple functions.
 
 ## Quick start
 
@@ -16,32 +26,34 @@ Defaults live in a JSON file and are accessible from R.
 library(parade)
 paths_init()
 
-# Persist defaults to project .parade/parade.json
+# Set up defaults for your cluster environment
 slurm_defaults_set(
-  partition = "general",
-  time = "2h",
-  cpus_per_task = 16,
-  mem = NA,             # <- omit --mem entirely
-  omp_num_threads = 1,
-  persist = TRUE
+  partition = "general",     # Default partition to use
+  time = "2h",              # Default time limit
+  cpus_per_task = 16,       # Default CPU allocation
+  mem = NA,                 # <- omit --mem entirely (some clusters reject this flag)
+  omp_num_threads = 1,      # Default OpenMP thread count
+  persist = TRUE            # Save these defaults to config file
 )
 
 # Optionally set a default template path
 slurm_template_set("registry://templates/parade-slurm.tmpl")
 
-# Submit a script using defaults + NA-omit semantics
+# Now submit jobs using your defaults
 job <- submit_slurm("script.R")
 ```
 
-`submit_slurm()` merges your call's `resources` with the defaults, normalizes time, and drops any `NA` or `omit()` fields before constructing `#SBATCH` lines.
+When you call `submit_slurm()`, it automatically merges your call's `resources` parameter with the configured defaults, normalizes time specifications, and drops any `NA` or `omit()` fields before constructing the `#SBATCH` directives for your SLURM job.
 
-## Config file location
+## Configuration file
 
-- `PARADE_CONFIG` env var (exact file), if set
-- `<project>/parade.json`, if present
-- `<project>/.parade/parade.json` (created as needed)
+Parade searches for configuration files in the following order:
 
-The file is JSON; example:
+1. `PARADE_CONFIG` environment variable (exact file path), if set
+2. `<project>/parade.json`, if present  
+3. `<project>/.parade/parade.json` (created automatically as needed)
+
+The configuration file uses JSON format. Here's an example showing typical defaults for a research cluster:
 
 ```json
 {
@@ -49,7 +61,7 @@ The file is JSON; example:
     "template": "registry://templates/parade-slurm.tmpl",
     "defaults": {
       "partition": "general",
-      "time": "2h",
+      "time": "2h", 
       "cpus_per_task": 16,
       "mem": null,
       "omp_num_threads": 1
@@ -58,16 +70,122 @@ The file is JSON; example:
 }
 ```
 
-## Programmatic use
+Note that `null` in JSON corresponds to `NA` in R, which tells parade to omit that parameter entirely from the SLURM submission.
+
+## Working with defaults programmatically
+
+### Inspecting current defaults
 
 ```r
-# Build a resource list from defaults + overrides
-slurm_resources(list(time = "90min", mem = omit()))
-
-# Inspect or change defaults in-session
+# View all current defaults
 slurm_defaults_get()
-slurm_defaults_set(mem = NA)           # omit --mem
-slurm_defaults_set(time = "1h", persist = TRUE)  # and save
+
+# Check specific default values
+defaults <- slurm_defaults_get()
+defaults$time        # "2h"
+defaults$partition   # "general"
 ```
 
-This keeps your R code **portable** across clusters with different Slurm policies.
+### Building resource lists with overrides
+
+The `slurm_resources()` function combines defaults with job-specific overrides:
+
+```r
+# Use defaults but override time and explicitly omit memory
+resources <- slurm_resources(list(time = "90min", mem = omit()))
+
+# Submit job with these specific resources
+job <- submit_slurm("analysis.R", resources = resources)
+```
+
+### Updating defaults during your session
+
+```r
+# Change defaults temporarily (session only)
+slurm_defaults_set(mem = NA)           # omit --mem flag
+slurm_defaults_set(cpus_per_task = 8)  # reduce CPU count
+
+# Make changes permanent by saving to config file
+slurm_defaults_set(time = "1h", persist = TRUE)
+
+# Set multiple defaults at once
+slurm_defaults_set(
+  partition = "gpu",
+  time = "4h", 
+  gres = "gpu:1",
+  persist = TRUE
+)
+```
+
+## Overriding defaults in job submission
+
+You can override defaults on a per-job basis by passing a `resources` argument to `submit_slurm()`:
+
+```r
+# Use defaults for most parameters, but need more time and memory for this job
+big_job <- submit_slurm("big_analysis.R", 
+                        resources = list(time = "12h", mem = "32G"))
+
+# For a quick test job, use minimal resources
+test_job <- submit_slurm("test.R", 
+                         resources = list(time = "5min", cpus_per_task = 1))
+
+# Submit to a different partition while keeping other defaults
+gpu_job <- submit_slurm("model_training.R",
+                        resources = list(partition = "gpu", gres = "gpu:2"))
+```
+
+## Common use cases and examples
+
+### Setting up defaults for different cluster environments
+
+For a cluster that rejects memory specifications:
+
+```r
+slurm_defaults_set(
+  partition = "compute",
+  time = "2h",
+  cpus_per_task = 16,
+  mem = NA,              # Omit memory specification
+  persist = TRUE
+)
+```
+
+For a GPU cluster:
+
+```r
+slurm_defaults_set(
+  partition = "gpu",
+  time = "4h", 
+  cpus_per_task = 8,
+  mem = "16G",
+  gres = "gpu:1",
+  persist = TRUE
+)
+```
+
+For high-memory jobs:
+
+```r
+slurm_defaults_set(
+  partition = "highmem",
+  time = "8h",
+  cpus_per_task = 32,
+  mem = "128G",
+  persist = TRUE
+)
+```
+
+### Best practices
+
+1. **Set defaults early**: Configure defaults at the beginning of your project after initializing with `paths_init()`
+
+2. **Use meaningful time limits**: Set reasonable default time limits to avoid jobs sitting in queue unnecessarily
+
+3. **Consider cluster policies**: Some clusters reject certain flags (like `--mem`) - use `NA` to omit these
+
+4. **Environment-specific configs**: Use different config files or the `PARADE_CONFIG` environment variable for different clusters
+
+5. **Version control**: Consider committing your `parade.json` file to version control so team members share the same defaults
+
+This approach keeps your R code **portable** across clusters with different SLURM policies and resource requirements.

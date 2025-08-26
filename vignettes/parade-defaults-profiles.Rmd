@@ -1,40 +1,269 @@
 ---
-title: "SLURM defaults, profiles, and NA = omit"
+title: "SLURM Profiles: Environment-Specific Configurations"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{SLURM defaults & profiles (NA = omit)}
+  %\VignetteIndexEntry{SLURM Profiles: Environment-Specific Configurations}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 > Requires **parade ≥ 0.11.0**.
 
-Set **site/project defaults** once—keep code portable across clusters.
+## What are profiles and how do they differ from defaults?
+
+While **defaults** provide a single set of baseline SLURM parameters for your project (as described in the "Using SLURM Defaults" vignette), **profiles** allow you to define multiple named sets of defaults for different environments, workflows, or job types.
+
+Think of profiles as named collections of defaults that can be switched between depending on your context:
+
+- **Defaults**: One set of parameters applied globally
+- **Profiles**: Multiple named sets of parameters (e.g., "production", "debug", "gpu_jobs")
+
+This enables you to maintain different configurations for various scenarios within the same project, making your code portable across different environments and use cases.
+
+## Quick start: Using profiles
 
 ```r
 library(parade)
 paths_init()
 
-# Persist defaults to project .parade/parade.json
+# Set up a production profile with conservative resource allocation
 slurm_defaults_set(
-  partition = "general",
-  time = "2h",
-  cpus_per_task = 16,
-  mem = NA,             # omit --mem
-  omp_num_threads = 1,
+  partition = "compute",
+  time = "8h",
+  cpus_per_task = 32,
+  mem = "64G",
+  profile = "production",
   persist = TRUE
 )
 
-# Load and merge
-slurm_defaults_get()
-slurm_resources(list(time = "90min", mem = omit()))
+# Set up a debug profile for quick testing
+slurm_defaults_set(
+  partition = "debug", 
+  time = "30m",
+  cpus_per_task = 4,
+  mem = "8G",
+  profile = "debug",
+  persist = TRUE
+)
 
-# Default template path
-slurm_template_set("registry://templates/parade-slurm.tmpl")
+# Use production profile
+prod_resources <- slurm_resources(list(time = "6h"), profile = "production")
+
+# Use debug profile  
+debug_resources <- slurm_resources(list(nodes = 1), profile = "debug")
 ```
 
-**Config file locations** (search order):
+## Multi-environment workflow examples
 
-1. `PARADE_CONFIG` (explicit file)  
-2. `<project>/parade.json`  
-3. `<project>/.parade/parade.json`
+### Research cluster with different partitions
+
+```r
+# High-performance partition for production runs
+slurm_defaults_set(
+  partition = "highmem",
+  time = "24h", 
+  cpus_per_task = 64,
+  mem = "256G",
+  profile = "analysis",
+  persist = TRUE
+)
+
+# Quick partition for development and testing
+slurm_defaults_set(
+  partition = "quick",
+  time = "2h",
+  cpus_per_task = 8, 
+  mem = "16G",
+  profile = "dev",
+  persist = TRUE
+)
+
+# GPU partition for machine learning workloads
+slurm_defaults_set(
+  partition = "gpu",
+  time = "12h",
+  cpus_per_task = 16,
+  mem = "32G", 
+  gres = "gpu:2",
+  profile = "ml",
+  persist = TRUE
+)
+```
+
+### Cross-cluster portability
+
+When working across different clusters, profiles help maintain environment-specific configurations:
+
+```r
+# Cluster A: Allows memory specification
+slurm_defaults_set(
+  partition = "general",
+  time = "4h",
+  cpus_per_task = 16,
+  mem = "32G",
+  profile = "cluster_a", 
+  persist = TRUE
+)
+
+# Cluster B: Rejects --mem flag, use NA to omit
+slurm_defaults_set(
+  partition = "compute",
+  time = "4h", 
+  cpus_per_task = 16,
+  mem = NA,                # omit --mem entirely
+  profile = "cluster_b",
+  persist = TRUE
+)
+
+# Switch between clusters by changing profile
+job_cluster_a <- submit_slurm("analysis.R", 
+                              resources = slurm_resources(profile = "cluster_a"))
+
+job_cluster_b <- submit_slurm("analysis.R",
+                              resources = slurm_resources(profile = "cluster_b"))
+```
+
+## Configuration file structure with profiles
+
+Profiles are stored as named sections in your configuration file:
+
+```json
+{
+  "slurm": {
+    "template": "registry://templates/parade-slurm.tmpl",
+    "defaults": {
+      "default": {
+        "partition": "general",
+        "time": "2h",
+        "cpus_per_task": 16
+      },
+      "production": {
+        "partition": "compute", 
+        "time": "8h",
+        "cpus_per_task": 32,
+        "mem": "64G"
+      },
+      "debug": {
+        "partition": "debug",
+        "time": "30m", 
+        "cpus_per_task": 4,
+        "mem": "8G"
+      },
+      "gpu_jobs": {
+        "partition": "gpu",
+        "time": "12h",
+        "cpus_per_task": 16, 
+        "mem": "32G",
+        "gres": "gpu:2"
+      }
+    }
+  }
+}
+```
+
+## Working with profiles programmatically
+
+### Retrieving profile-specific defaults
+
+```r
+# Get defaults from specific profiles
+prod_defaults <- slurm_defaults_get(profile = "production")
+debug_defaults <- slurm_defaults_get(profile = "debug")
+
+# If profile doesn't exist, falls back to "default" profile
+missing_defaults <- slurm_defaults_get(profile = "nonexistent")
+```
+
+### Building resources with profile overrides
+
+```r
+# Start with production profile, but reduce time for this job
+resources <- slurm_resources(
+  list(time = "4h", nodes = 2),
+  profile = "production"
+)
+
+# Submit job using these resources
+job <- submit_slurm("big_analysis.R", resources = resources)
+```
+
+## Best practices for profile management
+
+### 1. Use descriptive profile names
+
+Choose names that clearly indicate the intended use case:
+
+```r
+# Good: Clear, descriptive names
+slurm_defaults_set(..., profile = "gpu_training")
+slurm_defaults_set(..., profile = "quick_test") 
+slurm_defaults_set(..., profile = "production_analysis")
+
+# Avoid: Vague or cryptic names
+slurm_defaults_set(..., profile = "config1")
+slurm_defaults_set(..., profile = "temp")
+```
+
+### 2. Establish consistent profile naming conventions
+
+Within teams or projects, establish naming patterns:
+
+- Environment-based: `dev`, `staging`, `production`
+- Resource-based: `low_mem`, `high_cpu`, `gpu_intensive`  
+- Partition-based: `debug_partition`, `compute_partition`, `gpu_partition`
+
+### 3. Document your profiles
+
+Include comments in your setup scripts to explain profile purposes:
+
+```r
+# Production profile: Long-running analysis jobs on compute partition
+slurm_defaults_set(
+  partition = "compute",
+  time = "24h", 
+  cpus_per_task = 64,
+  mem = "128G",
+  profile = "production",
+  persist = TRUE
+)
+
+# Debug profile: Quick testing on debug partition with minimal resources
+slurm_defaults_set(
+  partition = "debug",
+  time = "30m",
+  cpus_per_task = 4, 
+  mem = "8G",
+  profile = "debug",
+  persist = TRUE
+)
+```
+
+### 4. Version control your configuration
+
+Consider committing your `parade.json` file to version control so team members can share profile configurations, but be mindful of environment-specific settings that may need local customization.
+
+### 5. Test profile switching
+
+Regularly verify that your profiles work correctly across different environments:
+
+```r
+# Test that all profiles can be loaded without errors
+test_profiles <- c("production", "debug", "gpu_jobs")
+for (profile in test_profiles) {
+  cat("Testing profile:", profile, "\n")
+  defaults <- slurm_defaults_get(profile = profile)
+  resources <- slurm_resources(profile = profile)
+  cat("  Partition:", defaults$partition, "\n")
+  cat("  Time:", defaults$time, "\n")
+}
+```
+
+## Configuration file locations
+
+Parade searches for configuration files in this order:
+
+1. `PARADE_CONFIG` environment variable (explicit file path)  
+2. `<project>/parade.json` (project root)
+3. `<project>/.parade/parade.json` (created automatically)
+
+This search order allows for flexible deployment scenarios where different environments can use different configuration files while maintaining a fallback hierarchy.

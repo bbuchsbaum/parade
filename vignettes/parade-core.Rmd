@@ -9,58 +9,190 @@ vignette: >
 
 > Requires **parade ≥ 0.6.0** (flow/stage/distribute/collect).
 
+## What is parade?
+
+**parade** is a declarative parallel dataflow framework for R that enables you to:
+
+- Build **typed computational pipelines** with explicit dependencies
+- Execute workflows **locally or on HPC clusters** (including SLURM) 
+- Manage **parameter grids** for batch processing
+- Track **artifacts and diagnostics** automatically
+- Handle **errors gracefully** with configurable policies
+
+Think of parade as a way to turn complex, multi-step analyses into reproducible, scalable workflows that can run anywhere from your laptop to a supercomputer.
+
+## Core concepts
+
+```
+Parameter Grid → Flow Definition → Stage Execution → Results Collection
+     ↓               ↓                    ↓              ↓
+   subjects,    typed stages with    parallel or      tibble with
+   sessions,    dependencies and     sequential       diagnostics
+   conditions   error handling       execution        & artifacts
+```
+
 This vignette covers the *essentials*: parameter grids, typed stage outputs, DAG wiring, and execution.
 
-## 1) Grid → Flow
+## 1) Grid → Flow: Setting up your parameter space
+
+The foundation of any parade workflow is a **parameter grid** that defines all the combinations of parameters you want to process:
 
 ```r
 library(parade)
 library(progressr)
 
+# Initialize path aliases for consistent artifact management
 paths_init()                               # stable aliases (project://, artifacts://, registry://)
 
+# Create a parameter grid - each row represents one "job"
 grid <- param_grid(subject = c("s01","s02"),
                    session = 1:2,
                    seed = 1:4)
 
+# This creates 2 × 2 × 4 = 16 parameter combinations
+print(grid)
+```
+
+Now we create a **flow** from this grid. A flow is a computational pipeline that will be applied to each row of the parameter grid:
+
+```r
 fl <- flow(grid, seed_col = "seed") |>
   stage(
     id = "prep",
     f  = function(subject, session) {
+      # Each stage function receives parameters from the current grid row
+      # This stage creates some mock data based on the session
       list(df = tibble::tibble(x = 1:5, y = (1:5) + session))
     },
+    # Define the expected output structure with types
     schema = schema(df = lst(ptype = tibble::tibble(x = int(), y = int()))),
+    # Hoist the nested list structure to top-level columns
     hoist_struct = TRUE
   ) |>
   stage(
     id = "fit",
-    needs = "prep",
+    needs = "prep",  # This stage depends on the "prep" stage
     f  = function(prep.df) {
+      # Stage functions can access outputs from previous stages
+      # Notice the naming: prep.df refers to the 'df' output from 'prep' stage
       list(mean_y = mean(prep.df$y))
     },
     schema = schema(mean_y = dbl())
   )
+
+# View the flow structure
+print(fl)
 ```
 
-## 2) Deterministic types + contracts
+**Key concepts:**
+
+- **`seed_col`**: Ensures reproducible random number generation
+- **`schema`**: Defines expected output types for validation and optimization
+- **`needs`**: Creates dependencies between stages (forms a DAG)
+- **`hoist_struct`**: Flattens nested lists into separate columns
+
+## 2) Deterministic types + validation contracts
+
+Parade's type system ensures your pipeline produces consistent, validated outputs:
 
 ```r
 fl2 <- fl |>
   stage(
     id = "check",
     needs = "fit",
-    f  = function(fit.mean_y) list(ok = is.finite(fit.mean_y)),
-    schema = schema(ok = lgl()),
-    ... = NULL
+    f  = function(fit.mean_y) {
+      # Validate that our computed mean is sensible
+      list(ok = is.finite(fit.mean_y))
+    },
+    schema = schema(ok = lgl()),  # Expect a logical output
+    ... = NULL  # No additional constant arguments
+  )
+
+# Inspect the complete pipeline
+explain(fl2)  # Shows stage dependencies and output schemas
+```
+
+**Available types:**
+- `dbl()` - double/numeric values
+- `int()` - integers  
+- `chr()` - character strings
+- `lgl()` - logical (TRUE/FALSE)
+- `lst()` - lists (can specify nested prototypes)
+- `file_ref()` - file artifacts with metadata
+
+## 3) Execute: local or distributed
+
+Once your flow is defined, execution is straightforward:
+
+```r
+# Set up progress reporting
+handlers(global = TRUE)
+
+# Execute the flow
+out <- collect(fl2, engine = "future", workers = 4, .progress = TRUE)
+
+# View results
+print(out)
+```
+
+**Execution options:**
+- **`engine = "sequential"`**: Single-threaded, good for debugging
+- **`engine = "future"`**: Parallel execution using the future framework
+- **`workers`**: Number of parallel processes
+- **`.progress`**: Show progress bars during execution
+
+Each row in the output represents one parameter combination with:
+- **Original parameters** from the grid
+- **Stage outputs** (typed and validated)
+- **`.ok`**: Overall success status for each row
+- **`.diag`**: Detailed diagnostic information per stage
+
+## Common workflows
+
+### Error handling
+
+Control what happens when stages fail:
+
+```r
+# Different error policies
+fl_robust <- flow(grid, error = "keep")     # Keep failed rows in output
+fl_strict <- flow(grid, error = "stop")     # Stop on first error  
+fl_filter <- flow(grid, error = "omit")     # Remove failed rows
+```
+
+### Conditional execution
+
+Skip stages based on conditions:
+
+```r
+fl_conditional <- fl |>
+  stage(
+    id = "optional_step",
+    needs = "prep",
+    f = function(prep.df) list(processed = TRUE),
+    schema = schema(processed = lgl()),
+    skip_when = function(prep.df) nrow(prep.df) == 0  # Skip if no data
   )
 ```
 
-## 3) Execute: local or future
+### Debugging workflows
 
 ```r
-handlers(global = TRUE)
-out <- collect(fl2, engine = "future", workers = 4, .progress = TRUE)
-out
+# Run a small subset first
+test_results <- collect(fl2, limit = 2)
+
+# Check for failures
+failed_rows <- failed(test_results)
+
+# Examine diagnostics
+stage_diagnostics <- diagnostics(test_results, stage = "fit")
 ```
 
-Each row returns the typed fields; `.diag` and `.ok` summarize per‑stage status.
+## Next steps
+
+- **parade-paths**: Learn about artifact management and path aliases
+- **parade-slurm-distribution**: Scale to HPC clusters with SLURM
+- **parade-sinks**: Persist intermediate results and manage artifacts
+- **parade-defaults**: Configure site-wide and project-specific settings
+
+The power of parade lies in its composability - start simple with local execution, then scale to distributed computing as your needs grow, all with the same declarative interface.
