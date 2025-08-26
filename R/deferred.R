@@ -53,6 +53,53 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     reg <- batchtools::makeRegistry(file.dir = handle$registry_dir, make.default = FALSE, conf.file = NA, cluster.functions = cf)
     batchtools::batchMap(fun = parade:::parade_run_chunk_bt, i = seq_along(chunks), more.args = list(flow_path = handle$flow_path, chunks_path = handle$chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling), reg = reg)
     batchtools::submitJobs(resources = dist$slurm$resources, reg = reg); jt <- batchtools::getJobTable(reg = reg); handle$jobs <- jt$job.id
+  } else if (identical(dist$backend, "mirai")) {
+    if (!requireNamespace("mirai", quietly = TRUE) || !requireNamespace("future.mirai", quietly = TRUE)) stop("submit(): dist_mirai requires 'mirai' and 'future.mirai'.")
+    
+    # Initialize mirai daemons based on configuration
+    if (!is.null(dist$n)) {
+      # Local daemons
+      mirai::daemons(n = dist$n, dispatcher = dist$dispatcher)
+      plan_fn <- future.mirai::mirai_multisession
+    } else if (!is.null(dist$remote)) {
+      # Remote daemons (SSH or SLURM)
+      if (!is.null(dist$url)) {
+        # Evaluate URL expression if it's quoted
+        url <- if (is.language(dist$url)) eval(dist$url) else dist$url
+      } else if (isTRUE(dist$tls)) {
+        url <- mirai::host_url(tls = TRUE, port = dist$port %||% 5555)
+      } else {
+        url <- mirai::local_url(tcp = TRUE, port = dist$port %||% 40491)
+      }
+      
+      # Evaluate the remote config expression
+      remote_config <- eval(dist$remote)
+      mirai::daemons(url = url, remote = remote_config, dispatcher = dist$dispatcher)
+      plan_fn <- future.mirai::mirai_cluster
+    } else {
+      stop("dist_mirai requires either 'n' for local or 'remote' for distributed execution")
+    }
+    
+    # Store cleanup flag
+    handle$mirai_cleanup <- dist$stop_on_exit
+    
+    # Set up future plan (similar to local backend)
+    op <- future::plan(); on.exit(future::plan(op), add = TRUE)
+    
+    inner <- if (identical(dist$within, "mirai")) {
+      future::tweak(plan_fn, workers = dist$workers_within %||% NULL)
+    } else {
+      future::sequential
+    }
+    
+    future::plan(list(inner))
+    
+    # Create futures for chunks (same as local backend)
+    fs <- list()
+    for (i in seq_along(chunks)) {
+      fs[[i]] <- future::future(parade:::parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling))
+    }
+    handle$jobs <- fs
   } else {
     op <- future::plan(); on.exit(future::plan(op), add = TRUE); inner <- if (identical(dist$within, "multisession")) future::tweak(future::multisession, workers = dist$workers_within %||% NULL) else future::sequential
     future::plan(list(inner)); fs <- list(); for (i in seq_along(chunks)) { fs[[i]] <- future::future(parade:::parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)) }; handle$jobs <- fs
@@ -136,6 +183,15 @@ deferred_cancel <- function(d, which = c("running","all")) {
   if (identical(d$backend, "slurm")) {
     if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
     reg <- batchtools::loadRegistry(d$registry_dir, writeable = TRUE); ids <- if (which == "running") batchtools::findRunning(reg = reg) else batchtools::getJobIds(reg = reg); if (length(ids)) batchtools::killJobs(ids, reg = reg)
+  } else if (identical(d$backend, "mirai")) {
+    # Stop mirai daemons if configured
+    if (isTRUE(d$mirai_cleanup)) {
+      if (requireNamespace("mirai", quietly = TRUE)) {
+        mirai::daemons(0)
+      }
+    }
+    # Cancel futures
+    invisible(lapply(d$jobs, function(f) try(future::value(f, timeout = 0.01), silent = TRUE)))
   } else {
     invisible(lapply(d$jobs, function(f) try(future::value(f, timeout = 0.01), silent = TRUE)))
   }
