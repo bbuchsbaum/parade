@@ -1,0 +1,18 @@
+Package: parade
+Type: Package
+Title: Declarative Parallel Dataflow with Future/Furrr
+Version: 0.11.0
+Authors@R: c(person(given = "Parade", family = "Authors", role = c("aut","cre"), email = "parade@example.org"))
+Description: Declarative, lazy, compositional dataflow for R on top of 'future'/'furrr', with
+  typed schemas, artifacts, diagnostics, and HPC-friendly distribution (local and Slurm via
+  'future.batchtools'/'batchtools'). Adds an ergonomic SLURM layer: generic script submission
+  from R, live CPU/memory monitors, multi-job dashboards, and now site/project defaults with
+  NA-as-omit semantics and profiles. Configure once, run everywhere.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: tibble, tidyr, purrr, rlang, vctrs, furrr, future, progressr, glue, jsonlite, digest
+Suggests: knitr, rmarkdown, future.batchtools, batchtools
+VignetteBuilder: knitr
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2.9000

@@ -1,0 +1,33 @@
+---
+title: "Scratch-first paths & registries: project://, artifacts://, registry://"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Scratch-first paths & registries}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Use **aliases** to keep code portable between laptop and cluster.
+
+```r
+library(parade)
+
+paths_init()
+paths_get()
+
+# Send big outputs & registries to scratch
+paths_set(
+  scratch   = "/scratch/$USER",
+  artifacts = "/scratch/$USER/parade-artifacts",
+  registry  = "/scratch/$USER/parade-registry"
+)
+
+# Use in sinks or template locations
+sink <- sink_spec(fields = "blob",
+                  dir      = "artifacts://fit",
+                  template = "{.stage}/{subject}-{session}.rds")
+
+tmpl <- scaffold_batch_template("slurm",
+                                out = "registry://templates/parade-slurm.tmpl",
+                                overwrite = TRUE)
+```

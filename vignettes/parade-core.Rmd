@@ -1,0 +1,66 @@
+---
+title: "Parade core: declarative flows, types, and execution"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Parade core: flows, types, execution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+> Requires **parade ≥ 0.6.0** (flow/stage/distribute/collect).
+
+This vignette covers the *essentials*: parameter grids, typed stage outputs, DAG wiring, and execution.
+
+## 1) Grid → Flow
+
+```r
+library(parade)
+library(progressr)
+
+paths_init()                               # stable aliases (project://, artifacts://, registry://)
+
+grid <- param_grid(subject = c("s01","s02"),
+                   session = 1:2,
+                   seed = 1:4)
+
+fl <- flow(grid, seed_col = "seed") |>
+  stage(
+    id = "prep",
+    f  = function(subject, session) {
+      list(df = tibble::tibble(x = 1:5, y = (1:5) + session))
+    },
+    schema = schema(df = lst(ptype = tibble::tibble(x = int(), y = int()))),
+    hoist_struct = TRUE
+  ) |>
+  stage(
+    id = "fit",
+    needs = "prep",
+    f  = function(prep.df) {
+      list(mean_y = mean(prep.df$y))
+    },
+    schema = schema(mean_y = dbl())
+  )
+```
+
+## 2) Deterministic types + contracts
+
+```r
+fl2 <- fl |>
+  stage(
+    id = "check",
+    needs = "fit",
+    f  = function(fit.mean_y) list(ok = is.finite(fit.mean_y)),
+    schema = schema(ok = lgl()),
+    ... = NULL
+  )
+```
+
+## 3) Execute: local or future
+
+```r
+handlers(global = TRUE)
+out <- collect(fl2, engine = "future", workers = 4, .progress = TRUE)
+out
+```
+
+Each row returns the typed fields; `.diag` and `.ok` summarize per‑stage status.

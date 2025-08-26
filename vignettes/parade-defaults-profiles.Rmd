@@ -1,0 +1,40 @@
+---
+title: "SLURM defaults, profiles, and NA = omit"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SLURM defaults & profiles (NA = omit)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+> Requires **parade ≥ 0.11.0**.
+
+Set **site/project defaults** once—keep code portable across clusters.
+
+```r
+library(parade)
+paths_init()
+
+# Persist defaults to project .parade/parade.json
+slurm_defaults_set(
+  partition = "general",
+  time = "2h",
+  cpus_per_task = 16,
+  mem = NA,             # omit --mem
+  omp_num_threads = 1,
+  persist = TRUE
+)
+
+# Load and merge
+slurm_defaults_get()
+slurm_resources(list(time = "90min", mem = omit()))
+
+# Default template path
+slurm_template_set("registry://templates/parade-slurm.tmpl")
+```
+
+**Config file locations** (search order):
+
+1. `PARADE_CONFIG` (explicit file)  
+2. `<project>/parade.json`  
+3. `<project>/.parade/parade.json`

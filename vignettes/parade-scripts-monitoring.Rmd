@@ -1,0 +1,32 @@
+---
+title: "SLURM script submission from R: submit_slurm(), script_top(), jobs_top()"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SLURM script submission & monitoring in R}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+> Requires **parade ≥ 0.11.0**.
+
+Submit **any R script** to SLURM and monitor it live—no shell required.
+
+```r
+library(parade)
+paths_init()
+
+# Optional site defaults (omit mem entirely)
+slurm_defaults_set(partition="general", time="2h", cpus_per_task=16, mem=NA, persist=TRUE)
+slurm_template_set("registry://templates/parade-slurm.tmpl")
+
+# Submit
+job <- submit_slurm("scripts/train.R", args = c("--fold", "1"))
+
+# Quick checks
+script_status(job)
+script_tail(job, 80)
+
+# Live monitors
+script_top(job, refresh = 2, nlog = 40)
+jobs_top(list(job), refresh = 3, nlog = 20)
+```

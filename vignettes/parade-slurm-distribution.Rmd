@@ -1,0 +1,41 @@
+---
+title: "Distribution: local and SLURM (barriers, throttling, chunking)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Distribution: local and SLURM}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+> Requires **parade ≥ 0.6.0**.
+
+Parade separates the **DAG** from the **distribution plan**.
+
+## Row-wise vs. barrier groups
+
+```r
+# Row-wise: one group per row
+fl_rowwise <- fl |> distribute(dist_slurm(by = NULL, within = "multisession", workers_within = 64,
+                                          resources = batch_resources(nodes=1, cpus_per_task=64, time="2h"),
+                                          chunks_per_job = nrow(grid)))
+
+# Barrier by subject (one job per subject)
+fl_subject <- fl |> distribute(dist_slurm(by = "subject", within = "multisession", workers_within = 8,
+                                          resources = batch_resources(nodes=1, cpus_per_task=8, time="2h"),
+                                          chunks_per_job = 1))
+```
+
+## Throttling like xargs -P
+
+`workers_within` limits concurrent tasks **inside** each job.  
+Use `chunks_per_job` to split groups into multiple jobs (→ multiple nodes).
+
+## Deferred runs
+
+```r
+preflight(fl_rowwise)
+d <- submit(fl_rowwise, mode = "index") # returns immediately
+deferred_status(d, TRUE)
+# tail logs with scripts/parade_tail.R, or bind results:
+deferred_collect(d, how = "index")
+```

@@ -1,0 +1,73 @@
+---
+title: "SLURM defaults & profiles (NA = omit)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SLURM defaults & profiles (NA = omit)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+You can set **site/project defaults** for SLURM submission and omit problematic flags by assigning `NA` (e.g., some clusters reject `--mem`).
+Defaults live in a JSON file and are accessible from R.
+
+## Quick start
+
+```r
+library(parade)
+paths_init()
+
+# Persist defaults to project .parade/parade.json
+slurm_defaults_set(
+  partition = "general",
+  time = "2h",
+  cpus_per_task = 16,
+  mem = NA,             # <- omit --mem entirely
+  omp_num_threads = 1,
+  persist = TRUE
+)
+
+# Optionally set a default template path
+slurm_template_set("registry://templates/parade-slurm.tmpl")
+
+# Submit a script using defaults + NA-omit semantics
+job <- submit_slurm("script.R")
+```
+
+`submit_slurm()` merges your call's `resources` with the defaults, normalizes time, and drops any `NA` or `omit()` fields before constructing `#SBATCH` lines.
+
+## Config file location
+
+- `PARADE_CONFIG` env var (exact file), if set
+- `<project>/parade.json`, if present
+- `<project>/.parade/parade.json` (created as needed)
+
+The file is JSON; example:
+
+```json
+{
+  "slurm": {
+    "template": "registry://templates/parade-slurm.tmpl",
+    "defaults": {
+      "partition": "general",
+      "time": "2h",
+      "cpus_per_task": 16,
+      "mem": null,
+      "omp_num_threads": 1
+    }
+  }
+}
+```
+
+## Programmatic use
+
+```r
+# Build a resource list from defaults + overrides
+slurm_resources(list(time = "90min", mem = omit()))
+
+# Inspect or change defaults in-session
+slurm_defaults_get()
+slurm_defaults_set(mem = NA)           # omit --mem
+slurm_defaults_set(time = "1h", persist = TRUE)  # and save
+```
+
+This keeps your R code **portable** across clusters with different Slurm policies.

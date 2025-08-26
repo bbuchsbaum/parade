@@ -1,0 +1,49 @@
+---
+title: "Artifacts: clean side-effects, atomic writes, and manifests"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Artifacts: side-effects & manifests}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+> Requires **parade ≥ 0.6.0** (sink_spec/artifact helpers).
+
+For big results, **write to disk** per row and return a tiny *file reference* instead of a large object.
+
+## 1) Define a sink
+
+```r
+sink <- sink_spec(
+  fields   = c("model","metrics"),
+  dir      = "artifacts://fits",
+  template = "{.stage}/{subject}/{session}-{.row_key}",   # or a function(row, stage, field) -> path
+  format   = "rds",
+  overwrite = "skip",           # "overwrite" or "error"
+  sidecar   = "json"            # writes sha256, bytes, clock, row key
+)
+```
+
+## 2) Use it in a stage
+
+```r
+fl <- flow(grid, seed_col = "seed") |>
+  stage("fit",
+        f = function(subject, session) {
+          list(model = list(a = 1), metrics = tibble::tibble(acc = runif(1)))
+        },
+        schema = schema(model = artifact(), metrics = artifact()),
+        sink = sink)
+```
+
+`collect()` writes files **atomically**; the row receives structured *file refs* (`path, bytes, sha256, written, existed`).
+
+## 3) Read later
+
+```r
+# autoload=TRUE on the sink will transparently read RDS when used by downstream stages;
+# or read from the manifest:
+manifest("artifacts://fits") |>
+  dplyr::arrange(desc(bytes)) |>
+  dplyr::slice_head(n = 10)
+```
