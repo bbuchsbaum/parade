@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Scratch-first paths &amp; registries: project://, artifacts://, registry:// • parade</title>
+<title>Smart Path Management: Write Once, Run Anywhere • parade</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Scratch-first paths &amp; registries: project://, artifacts://, registry://">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Smart Path Management: Write Once, Run Anywhere">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -33,13 +33,14 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/parade-core.html">Parade core: declarative flows, types, and execution</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM Profiles: Environment-Specific Configurations</a></li>
+<li><a class="dropdown-item" href="../articles/parade-artifacts.html">Artifacts: Managing Large Analysis Outputs</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-core.html">Parade core: declarative flows, types, and execution</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-defaults-profiles.html">SLURM Profiles: One Size Doesn't Fit All Jobs</a></li>
     <li><a class="dropdown-item" href="../articles/parade-defaults.html">Using SLURM Defaults in parade</a></li>
     <li><a class="dropdown-item" href="../articles/parade-mirai.html">Mirai backend: fast, scalable parallel execution</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-paths.html">Scratch-first paths &amp; registries: project://, artifacts://, registry://</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-paths.html">Smart Path Management: Write Once, Run Anywhere</a></li>
     <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission and monitoring from R</a></li>
-    <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: clean side-effects, atomic writes, and manifests</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: format-agnostic sinks, atomic writes, and manifests</a></li>
     <li><a class="dropdown-item" href="../articles/parade-slurm-distribution.html">Distribution: local and SLURM (barriers, throttling, chunking)</a></li>
   </ul>
 </li>
@@ -61,7 +62,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Scratch-first paths &amp; registries: project://, artifacts://, registry://</h1>
+      <h1>Smart Path Management: Write Once, Run Anywhere</h1>
             
       
 
@@ -70,362 +71,571 @@
 
     
     
-<blockquote>
-<p>Requires <strong>parade ≥ 0.6.0</strong> (paths system with URI-style
-aliases).</p>
-</blockquote>
 <div class="section level2">
-<h2 id="path-management-philosophy">Path Management Philosophy<a class="anchor" aria-label="anchor" href="#path-management-philosophy"></a>
+<h2 id="the-problem-hardcoded-paths-break-your-code">The Problem: Hardcoded Paths Break Your Code<a class="anchor" aria-label="anchor" href="#the-problem-hardcoded-paths-break-your-code"></a>
 </h2>
-<p><strong>parade</strong> uses a <strong>scratch-first</strong>
-approach to path management that keeps your code portable between
-development and production environments. Instead of hardcoding file
-paths, parade uses <strong>URI-style aliases</strong> like
-<code>artifacts://models/</code> and <code>registry://templates/</code>
-that automatically resolve to appropriate locations on any system.</p>
-<p>This design principle solves common HPC workflows where:</p>
+<p>Imagine you’re developing a neuroimaging analysis on your laptop.
+Your code might look like this:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Works on your laptop</span></span>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"/Users/alice/projects/brain_study/models/brain_model.rds"</span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">analyze_brain</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"/Users/alice/projects/brain_study/outputs/results.rds"</span><span class="op">)</span></span></code></pre></div>
+<p>But when you or a collaborator runs this code on an HPC cluster, it
+breaks immediately:</p>
 <ul>
 <li>
-<strong>Development</strong> happens on your laptop with small
-datasets</li>
-<li>
-<strong>Production</strong> runs on clusters with different
-filesystem layouts</li>
-<li>
-<strong>Large outputs</strong> need to go to fast scratch storage,
-not home directories</li>
-<li>
-<strong>Code portability</strong> is essential for reproducible
-research</li>
+<code>/Users/alice/</code> doesn’t exist on Linux clusters</li>
+<li>Different clusters have completely different filesystem layouts</li>
+<li>Writing large files to home directories often violates cluster
+policies</li>
+<li>Your collaborator Bob can’t run your code without rewriting all the
+paths</li>
 </ul>
 </div>
 <div class="section level2">
-<h2 id="the-alias-system">The Alias System<a class="anchor" aria-label="anchor" href="#the-alias-system"></a>
+<h2 id="the-solution-portable-path-aliases">The Solution: Portable Path Aliases<a class="anchor" aria-label="anchor" href="#the-solution-portable-path-aliases"></a>
 </h2>
-<p>parade provides seven standard path aliases that cover different
-types of data and outputs:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<p><strong>parade</strong> solves this with smart path aliases that
+automatically adapt to any environment:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/paths_get.html">paths_get</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="13%">
-<col width="17%">
-<col width="32%">
-<col width="36%">
-</colgroup>
-<thead><tr class="header">
-<th>Alias</th>
-<th>Purpose</th>
-<th>Default Location</th>
-<th>HPC Considerations</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><code>project://</code></td>
-<td>Source code, scripts</td>
-<td>Working directory</td>
-<td>Usually your home/project directory</td>
-</tr>
-<tr class="even">
-<td><code>data://</code></td>
-<td>Input datasets</td>
-<td><code>project://data</code></td>
-<td>Readonly data, often shared</td>
-</tr>
-<tr class="odd">
-<td><code>scratch://</code></td>
-<td>Temporary storage</td>
-<td>System temp or <code>$SCRATCH</code>
-</td>
-<td>Fast local storage, not backed up</td>
-</tr>
-<tr class="even">
-<td><code>artifacts://</code></td>
-<td>Analysis outputs</td>
-<td><code>scratch://parade-artifacts</code></td>
-<td>Large results, models, figures</td>
-</tr>
-<tr class="odd">
-<td><code>registry://</code></td>
-<td>Job templates, metadata</td>
-<td><code>scratch://parade-registry</code></td>
-<td>Workflow management files</td>
-</tr>
-<tr class="even">
-<td><code>config://</code></td>
-<td>Settings, profiles</td>
-<td><code>project://.parade</code></td>
-<td>Configuration and profiles</td>
-</tr>
-<tr class="odd">
-<td><code>cache://</code></td>
-<td>Downloaded data, temp files</td>
-<td>Platform-specific cache</td>
-<td>Reusable downloaded content</td>
-</tr>
-</tbody>
-</table>
+<span><span class="co"># Same code works everywhere</span></span>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"artifacts://models/brain_model.rds"</span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">analyze_brain</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"artifacts://outputs/results.rds"</span><span class="op">)</span></span></code></pre></div>
+<p>The <code>artifacts://</code> prefix is a <strong>portable
+alias</strong> that parade automatically translates:</p>
+<ul>
+<li>
+<strong>On your laptop</strong>: →
+<code>/var/folders/.../parade-artifacts/</code>
+</li>
+<li>
+<strong>On SLURM cluster</strong>: →
+<code>/scratch/$USER/parade-artifacts/</code>
+</li>
+<li>
+<strong>On your collaborator’s machine</strong>: → whatever their
+appropriate storage location is</li>
+</ul>
+<p>No more broken paths. No more rewriting code for different
+systems.</p>
 </div>
 <div class="section level2">
-<h2 id="environment-detection-and-setup">Environment Detection and Setup<a class="anchor" aria-label="anchor" href="#environment-detection-and-setup"></a>
+<h2 id="quick-start-your-first-portable-analysis">Quick Start: Your First Portable Analysis<a class="anchor" aria-label="anchor" href="#quick-start-your-first-portable-analysis"></a>
 </h2>
-<p>parade automatically detects your computing environment and
-configures appropriate defaults:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># On laptop: uses project directories and system temp</span></span>
-<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># On SLURM cluster: automatically detects $SLURM_TMPDIR, $SCRATCH</span></span>
-<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># On PBS cluster: detects $PBS_O_WORKDIR, $TMPDIR  </span></span>
-<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Manual override for specific environments</span></span>
-<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"hpc"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="customizing-paths-for-hpc">Customizing Paths for HPC<a class="anchor" aria-label="anchor" href="#customizing-paths-for-hpc"></a>
-</h2>
-<p>For production HPC workflows, redirect large outputs to scratch
-storage:</p>
+<p>Let’s make a simple analysis portable in three steps:</p>
+<div class="section level3">
+<h3 id="step-1-initialize-parades-path-system">Step 1: Initialize parade’s path system<a class="anchor" aria-label="anchor" href="#step-1-initialize-parades-path-system"></a>
+</h3>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Auto-detect your environment and set up paths</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Send big outputs &amp; registries to scratch</span></span>
-<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
-<span>  scratch   <span class="op">=</span> <span class="st">"/scratch/$USER"</span>,</span>
-<span>  artifacts <span class="op">=</span> <span class="st">"/scratch/$USER/parade-artifacts"</span>, </span>
-<span>  registry  <span class="op">=</span> <span class="st">"/scratch/$USER/parade-registry"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Verify your configuration</span></span>
-<span><span class="fu"><a href="../reference/paths_get.html">paths_get</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># See where your aliases point</span></span>
+<span><span class="fu"><a href="../reference/paths_get.html">paths_get</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; project:   /home/alice/myproject</span></span>
+<span><span class="co">#&gt; data:      /home/alice/myproject/data</span></span>
+<span><span class="co">#&gt; artifacts: /tmp/RtmpXYZ/parade-artifacts</span></span>
+<span><span class="co">#&gt; registry:  /tmp/RtmpXYZ/parade-registry</span></span></code></pre></div>
+</div>
 <div class="section level3">
-<h3 id="environment-variable-override">Environment Variable Override<a class="anchor" aria-label="anchor" href="#environment-variable-override"></a>
+<h3 id="step-2-use-aliases-instead-of-hardcoded-paths">Step 2: Use aliases instead of hardcoded paths<a class="anchor" aria-label="anchor" href="#step-2-use-aliases-instead-of-hardcoded-paths"></a>
 </h3>
-<p>Set environment variables to establish system-wide defaults:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># In your .bashrc or job scripts</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_SCRATCH</span><span class="op">=</span><span class="st">"/fast/scratch/</span><span class="va">$USER</span><span class="st">"</span></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_ARTIFACTS</span><span class="op">=</span><span class="st">"/fast/scratch/</span><span class="va">$USER</span><span class="st">/outputs"</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_REGISTRY</span><span class="op">=</span><span class="st">"/shared/registry"</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_DATA</span><span class="op">=</span><span class="st">"/shared/datasets"</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Before (breaks on different systems):</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"/home/alice/myproject/data/experiment.csv"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"/home/alice/myproject/outputs/model.rds"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># After (works everywhere):</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"data://experiment.csv"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"artifacts://model.rds"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="step-3-run-the-same-code-anywhere">Step 3: Run the same code anywhere<a class="anchor" aria-label="anchor" href="#step-3-run-the-same-code-anywhere"></a>
+</h3>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># On your laptop</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">big_model</span>, <span class="st">"artifacts://models/final.rds"</span><span class="op">)</span></span>
+<span><span class="co"># Saves to: /var/folders/temp/parade-artifacts/models/final.rds</span></span>
+<span></span>
+<span><span class="co"># On HPC cluster (same code!)</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">big_model</span>, <span class="st">"artifacts://models/final.rds"</span><span class="op">)</span></span>
+<span><span class="co"># Saves to: /scratch/alice/parade-artifacts/models/final.rds</span></span></code></pre></div>
+<p>That’s it! Your code now works on any system without
+modification.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="using-path-aliases-in-practice">Using Path Aliases in Practice<a class="anchor" aria-label="anchor" href="#using-path-aliases-in-practice"></a>
+<h2 id="understanding-the-seven-path-aliases">Understanding the Seven Path Aliases<a class="anchor" aria-label="anchor" href="#understanding-the-seven-path-aliases"></a>
+</h2>
+<p>parade provides seven aliases, each designed for a specific type of
+data in your workflow:</p>
+<div class="section level3">
+<h3 id="core-data-aliases">Core Data Aliases<a class="anchor" aria-label="anchor" href="#core-data-aliases"></a>
+</h3>
+<p><strong><code>data://</code></strong> - Input datasets
+(read-only)</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Your raw data, reference files, shared datasets</span></span>
+<span><span class="va">brain_atlas</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"data://references/MNI_atlas.rds"</span><span class="op">)</span></span>
+<span><span class="va">subjects</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"data://participants.csv"</span><span class="op">)</span></span></code></pre></div>
+<p><strong><code>artifacts://</code></strong> - Analysis outputs (large
+files)</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Models, results, processed data - goes to fast scratch storage</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">fitted_model</span>, <span class="st">"artifacts://models/model_v2.rds"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"artifacts://results/final_results.csv"</span><span class="op">)</span></span></code></pre></div>
+<p><strong><code>project://</code></strong> - Your code and scripts</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Source files, small configuration files</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"project://R/analysis_functions.R"</span><span class="op">)</span></span>
+<span><span class="va">params</span> <span class="op">&lt;-</span> <span class="fu">yaml</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/yaml/man/read_yaml.html" class="external-link">read_yaml</a></span><span class="op">(</span><span class="st">"project://config/params.yaml"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="system-aliases">System Aliases<a class="anchor" aria-label="anchor" href="#system-aliases"></a>
+</h3>
+<p><strong><code>scratch://</code></strong> - Temporary files (deleted
+after jobs)</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Intermediate files, working data</span></span>
+<span><span class="va">temp_file</span> <span class="op">&lt;-</span> <span class="st">"scratch://temp_processing.rds"</span></span></code></pre></div>
+<p><strong><code>registry://</code></strong> - Job management files</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># SLURM templates, job scripts (managed by parade)</span></span>
+<span><span class="va">template</span> <span class="op">&lt;-</span> <span class="st">"registry://templates/my_slurm.tmpl"</span></span></code></pre></div>
+<p><strong><code>config://</code></strong> - parade configuration</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Settings, profiles (usually automatic)</span></span>
+<span><span class="st">"config://profiles/production.json"</span></span></code></pre></div>
+<p><strong><code>cache://</code></strong> - Downloaded/cached data</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Reusable downloads, package data</span></span>
+<span><span class="st">"cache://downloaded/large_dataset.tar.gz"</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="common-scenarios">Common Scenarios<a class="anchor" aria-label="anchor" href="#common-scenarios"></a>
 </h2>
 <div class="section level3">
-<h3 id="in-sink-specifications">In Sink Specifications<a class="anchor" aria-label="anchor" href="#in-sink-specifications"></a>
+<h3 id="scenario-1-laptop-development-hpc-production">Scenario 1: Laptop Development → HPC Production<a class="anchor" aria-label="anchor" href="#scenario-1-laptop-development-hpc-production"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Artifacts go to fast scratch storage</span></span>
-<span><span class="va">sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
-<span>  fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"metrics"</span><span class="op">)</span>,</span>
-<span>  dir <span class="op">=</span> <span class="st">"artifacts://fits"</span>,</span>
-<span>  template <span class="op">=</span> <span class="st">"{.stage}/{subject}-{session}.rds"</span></span>
+<p>You’re developing on your laptop with small test data, then running
+full analysis on a cluster:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># During development (laptop)</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="st">"~/projects/test_data"</span>,      <span class="co"># Small test dataset</span></span>
+<span>  artifacts <span class="op">=</span> <span class="st">"~/projects/outputs"</span>     <span class="co"># Local outputs</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Configuration files stay with project</span></span>
+<span><span class="co"># Your analysis code (unchanged!)</span></span>
+<span><span class="va">run_analysis</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"data://brain_scans.rds"</span><span class="op">)</span></span>
+<span>  <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">fit_model</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"artifacts://fitted_model.rds"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># In production (HPC cluster) </span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="st">"/shared/datasets/full_data"</span>,     <span class="co"># Full dataset</span></span>
+<span>  artifacts <span class="op">=</span> <span class="st">"/scratch/$USER/outputs"</span>     <span class="co"># Fast scratch storage</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Same analysis code still works!</span></span>
+<span><span class="fu">run_analysis</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="scenario-2-collaboration-with-different-systems">Scenario 2: Collaboration with Different Systems<a class="anchor" aria-label="anchor" href="#scenario-2-collaboration-with-different-systems"></a>
+</h3>
+<p>Alice and Bob are collaborating but have different setups:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Alice's setup (Mac laptop)</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; artifacts: /var/folders/abc/temp/parade-artifacts</span></span>
+<span></span>
+<span><span class="co"># Bob's setup (Linux workstation) </span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; artifacts: /tmp/bob/parade-artifacts</span></span>
+<span></span>
+<span><span class="co"># Shared analysis code (works for both!)</span></span>
+<span><span class="va">analyze_subjects</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">subjects</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">subj</span> <span class="kw">in</span> <span class="va">subjects</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"data://subjects/%s.rds"</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">process_subject</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"artifacts://results/%s.rds"</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="scenario-3-multi-stage-pipeline-with-different-storage-needs">Scenario 3: Multi-stage Pipeline with Different Storage Needs<a class="anchor" aria-label="anchor" href="#scenario-3-multi-stage-pipeline-with-different-storage-needs"></a>
+</h3>
+<p>Different stages of your pipeline need different storage
+strategies:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Configure storage for each data type</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="st">"/shared/readonly/inputs"</span>,       <span class="co"># Shared input data</span></span>
+<span>  scratch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_TMPDIR"</span><span class="op">)</span>,  <span class="co"># Fast local SSD</span></span>
+<span>  artifacts <span class="op">=</span> <span class="st">"/scratch/$USER/outputs"</span>    <span class="co"># Persistent scratch</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Pipeline uses appropriate storage for each stage</span></span>
+<span><span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">subjects</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  </span>
+<span>  <span class="co"># Stage 1: Load from shared storage</span></span>
+<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"load"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">subject</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"data://raw/%s.rds"</span>, <span class="va">subject</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  </span>
+<span>  <span class="co"># Stage 2: Process using fast local storage</span></span>
+<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"process"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">temp_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"scratch://processing_%s.rds"</span>, <span class="va">data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
+<span>    <span class="co"># ... heavy processing using temp_file ...</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  </span>
+<span>  <span class="co"># Stage 3: Save results to scratch</span></span>
+<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"save"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">results</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"artifacts://final/%s.rds"</span>, <span class="va">results</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="configuring-for-your-hpc-system">Configuring for Your HPC System<a class="anchor" aria-label="anchor" href="#configuring-for-your-hpc-system"></a>
+</h2>
+<div class="section level3">
+<h3 id="automatic-detection">Automatic Detection<a class="anchor" aria-label="anchor" href="#automatic-detection"></a>
+</h3>
+<p>parade automatically detects common HPC environments:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Auto-detects SLURM</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># Automatically uses $SLURM_TMPDIR for scratch</span></span>
+<span></span>
+<span><span class="co"># Auto-detects PBS</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span>  </span>
+<span><span class="co"># Automatically uses $PBS_O_WORKDIR</span></span>
+<span></span>
+<span><span class="co"># Auto-detects SGE</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># Automatically uses $TMPDIR</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="manual-configuration">Manual Configuration<a class="anchor" aria-label="anchor" href="#manual-configuration"></a>
+</h3>
+<p>For custom HPC setups, explicitly set your paths:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Configure once for your HPC system</span></span>
+<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
+<span>  scratch <span class="op">=</span> <span class="st">"/fast/local/$USER"</span>,           <span class="co"># Fast local SSD</span></span>
+<span>  artifacts <span class="op">=</span> <span class="st">"/lustre/$USER/outputs"</span>,     <span class="co"># Parallel filesystem</span></span>
+<span>  registry <span class="op">=</span> <span class="st">"/lustre/$USER/jobs"</span>,         <span class="co"># Shared job storage</span></span>
+<span>  data <span class="op">=</span> <span class="st">"/projects/shared/datasets"</span>       <span class="co"># Readonly shared data</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Save configuration for future sessions</span></span>
+<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span><span class="va">...</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="environment-variables">Environment Variables<a class="anchor" aria-label="anchor" href="#environment-variables"></a>
+</h3>
+<p>Set system-wide defaults via environment variables:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># In ~/.bashrc or job scripts</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_SCRATCH</span><span class="op">=</span><span class="st">"/fast/scratch/</span><span class="va">$USER</span><span class="st">"</span></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_ARTIFACTS</span><span class="op">=</span><span class="st">"/fast/scratch/</span><span class="va">$USER</span><span class="st">/outputs"</span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_DATA</span><span class="op">=</span><span class="st">"/projects/shared/data"</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="advanced-patterns">Advanced Patterns<a class="anchor" aria-label="anchor" href="#advanced-patterns"></a>
+</h2>
+<div class="section level3">
+<h3 id="pattern-1-dynamic-environment-switching">Pattern 1: Dynamic Environment Switching<a class="anchor" aria-label="anchor" href="#pattern-1-dynamic-environment-switching"></a>
+</h3>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Detect and configure based on environment</span></span>
+<span><span class="va">setup_paths</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Development settings</span></span>
+<span>    <span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span>artifacts <span class="op">=</span> <span class="st">"~/temp/dev_outputs"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Using development paths"</span><span class="op">)</span></span>
+<span>    </span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_JOB_ID"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Production SLURM settings</span></span>
+<span>    <span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
+<span>      scratch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_TMPDIR"</span><span class="op">)</span>,</span>
+<span>      artifacts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"/scratch/%s/prod_outputs"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"USER"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Using SLURM production paths"</span><span class="op">)</span></span>
+<span>    </span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="co"># Default settings</span></span>
+<span>    <span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Using default paths"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pattern-2-project-specific-organization">Pattern 2: Project-Specific Organization<a class="anchor" aria-label="anchor" href="#pattern-2-project-specific-organization"></a>
+</h3>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Organize outputs by analysis phase</span></span>
+<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
+<span>  artifacts <span class="op">=</span> <span class="st">"/scratch/$USER/project_X"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create structured output directories</span></span>
+<span><span class="va">save_results</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">phase</span>, <span class="va">name</span>, <span class="va">object</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"artifacts://%s/%s.rds"</span>, <span class="va">phase</span>, <span class="va">name</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">path</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># Usage</span></span>
+<span><span class="fu">save_results</span><span class="op">(</span><span class="st">"preprocessing"</span>, <span class="st">"cleaned_data"</span>, <span class="va">cleaned</span><span class="op">)</span></span>
+<span><span class="fu">save_results</span><span class="op">(</span><span class="st">"modeling"</span>, <span class="st">"final_model"</span>, <span class="va">model</span><span class="op">)</span></span>
+<span><span class="fu">save_results</span><span class="op">(</span><span class="st">"validation"</span>, <span class="st">"cv_results"</span>, <span class="va">cv</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Results in:</span></span>
+<span><span class="co"># /scratch/$USER/project_X/preprocessing/cleaned_data.rds</span></span>
+<span><span class="co"># /scratch/$USER/project_X/modeling/final_model.rds</span></span>
+<span><span class="co"># /scratch/$USER/project_X/validation/cv_results.rds</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pattern-3-integration-with-sinks">Pattern 3: Integration with Sinks<a class="anchor" aria-label="anchor" href="#pattern-3-integration-with-sinks"></a>
+</h3>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Sinks automatically use path aliases</span></span>
+<span><span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
+<span>  fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"predictions"</span><span class="op">)</span>,</span>
+<span>  dir <span class="op">=</span> <span class="st">"artifacts://models"</span>,  <span class="co"># Portable path</span></span>
+<span>  template <span class="op">=</span> <span class="st">"{subject}/{session}_{task}.rds"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Different storage for different output types</span></span>
+<span><span class="va">model_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
+<span>  fields <span class="op">=</span> <span class="st">"model"</span>,</span>
+<span>  dir <span class="op">=</span> <span class="st">"artifacts://large_models"</span>,  <span class="co"># Goes to scratch</span></span>
+<span>  format <span class="op">=</span> <span class="st">"rds"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">config_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
-<span>  fields <span class="op">=</span> <span class="st">"config"</span>,</span>
-<span>  dir <span class="op">=</span> <span class="st">"config://runs"</span>, </span>
-<span>  template <span class="op">=</span> <span class="st">"run-{.row_key}.yaml"</span></span>
+<span>  fields <span class="op">=</span> <span class="st">"params"</span>,</span>
+<span>  dir <span class="op">=</span> <span class="st">"project://configs"</span>,  <span class="co"># Stays with code</span></span>
+<span>  format <span class="op">=</span> <span class="st">"json"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="in-file-operations">In File Operations<a class="anchor" aria-label="anchor" href="#in-file-operations"></a>
-</h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load reference data</span></span>
-<span><span class="va">ref_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"data://reference/brain_atlas.rds"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Save large model to artifacts</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">big_model</span>, <span class="st">"artifacts://models/v1/final_model.rds"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Store job template in registry</span></span>
-<span><span class="va">template_path</span> <span class="op">&lt;-</span> <span class="st">"registry://templates/custom-slurm.tmpl"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="va">slurm_template</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="va">template_path</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="in-batch-job-templates">In Batch Job Templates<a class="anchor" aria-label="anchor" href="#in-batch-job-templates"></a>
-</h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Template files use aliases for portability</span></span>
-<span><span class="va">tmpl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/scaffold_batch_template.html">scaffold_batch_template</a></span><span class="op">(</span><span class="st">"slurm"</span>,</span>
-<span>                               out <span class="op">=</span> <span class="st">"registry://templates/parade-slurm.tmpl"</span>,</span>
-<span>                               overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Generated jobs automatically resolve paths</span></span>
-<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span>subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"s"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">job_script</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span>, template <span class="op">=</span> <span class="va">tmpl</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="path-resolution-functions">Path Resolution Functions<a class="anchor" aria-label="anchor" href="#path-resolution-functions"></a>
 </h2>
-<p>parade provides two main functions for working with paths:</p>
 <div class="section level3">
-<h3 id="path_here---direct-alias-resolution">
-<code>path_here()</code> - Direct alias resolution<a class="anchor" aria-label="anchor" href="#path_here---direct-alias-resolution"></a>
+<h3 id="resolve_path---convert-aliases-to-absolute-paths">
+<code>resolve_path()</code> - Convert aliases to absolute paths<a class="anchor" aria-label="anchor" href="#resolve_path---convert-aliases-to-absolute-paths"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Build paths from components</span></span>
-<span><span class="va">model_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/path_here.html">path_here</a></span><span class="op">(</span><span class="st">"artifacts"</span>, <span class="st">"models"</span>, <span class="st">"v2"</span><span class="op">)</span></span>
-<span><span class="va">config_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/path_here.html">path_here</a></span><span class="op">(</span><span class="st">"config"</span>, <span class="st">"analysis.yaml"</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Resolve any path with an alias</span></span>
+<span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://model.rds"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; "/scratch/alice/parade-artifacts/model.rds"</span></span>
 <span></span>
-<span><span class="co"># Creates directories by default</span></span>
-<span><span class="va">output_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/path_here.html">path_here</a></span><span class="op">(</span><span class="st">"artifacts"</span>, <span class="st">"results"</span>, create <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Skip directory creation</span></span>
-<span><span class="va">temp_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/path_here.html">path_here</a></span><span class="op">(</span><span class="st">"scratch"</span>, <span class="st">"temp"</span>, create <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="resolve_path---uri-style-path-resolution">
-<code>resolve_path()</code> - URI-style path resolution<a class="anchor" aria-label="anchor" href="#resolve_path---uri-style-path-resolution"></a>
-</h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Convert URI aliases to absolute paths</span></span>
-<span><span class="va">model_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://models/final.rds"</span><span class="op">)</span></span>
-<span><span class="va">data_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"data://processed/clean_data.csv"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"data://raw/scan.nii"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; "/shared/datasets/raw/scan.nii"</span></span>
 <span></span>
 <span><span class="co"># Works with regular paths too</span></span>
-<span><span class="va">abs_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"/absolute/path/file.txt"</span><span class="op">)</span></span>
-<span><span class="va">rel_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"relative/path/file.txt"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"/absolute/path.txt"</span><span class="op">)</span>   <span class="co"># Already absolute</span></span>
+<span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"relative/path.txt"</span><span class="op">)</span>    <span class="co"># Made absolute</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="path_here---build-paths-from-components">
+<code>path_here()</code> - Build paths from components<a class="anchor" aria-label="anchor" href="#path_here---build-paths-from-components"></a>
+</h3>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Construct paths programmatically</span></span>
+<span><span class="va">model_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/path_here.html">path_here</a></span><span class="op">(</span><span class="st">"artifacts"</span>, <span class="st">"models"</span>, <span class="st">"v2"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; "/scratch/alice/parade-artifacts/models/v2"</span></span>
 <span></span>
-<span><span class="co"># Control directory creation</span></span>
-<span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://new/dir/file.rds"</span>, create <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Automatically creates directories</span></span>
+<span><span class="va">output_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/path_here.html">path_here</a></span><span class="op">(</span><span class="st">"artifacts"</span>, <span class="st">"results"</span>, create <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Skip auto-creation if needed</span></span>
+<span><span class="va">temp_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/path_here.html">path_here</a></span><span class="op">(</span><span class="st">"scratch"</span>, <span class="st">"temp"</span>, create <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
-<h2 id="computing-environment-examples">Computing Environment Examples<a class="anchor" aria-label="anchor" href="#computing-environment-examples"></a>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" aria-label="anchor" href="#troubleshooting"></a>
 </h2>
 <div class="section level3">
-<h3 id="local-development">Local Development<a class="anchor" aria-label="anchor" href="#local-development"></a>
+<h3 id="issue-cannot-find-path-alias">Issue: “Cannot find path alias”<a class="anchor" aria-label="anchor" href="#issue-cannot-find-path-alias"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Typical laptop setup</span></span>
-<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; parade paths: project=/home/user/myproject; scratch=/tmp/RtmpXXX; </span></span>
-<span><span class="co">#&gt;               data=/home/user/myproject/data; artifacts=/tmp/RtmpXXX/parade-artifacts</span></span>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Check your current configuration</span></span>
+<span><span class="fu"><a href="../reference/paths_get.html">paths_get</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Small datasets in project, outputs to temp</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">small_model</span>, <span class="st">"artifacts://dev/test_model.rds"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Re-initialize if needed</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="slurm-cluster">SLURM Cluster<a class="anchor" aria-label="anchor" href="#slurm-cluster"></a>
+<h3 id="issue-permission-denied-when-writing">Issue: “Permission denied” when writing<a class="anchor" aria-label="anchor" href="#issue-permission-denied-when-writing"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Automatic SLURM detection</span></span>
-<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; parade paths: project=/home/user/project; scratch=/tmp/slurm.123456; </span></span>
-<span><span class="co">#&gt;               artifacts=/tmp/slurm.123456/parade-artifacts</span></span>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Check that your aliases point to writable locations</span></span>
+<span><span class="fu"><a href="../reference/paths_get.html">paths_get</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Or explicit configuration</span></span>
+<span><span class="co"># Update to writable directory</span></span>
+<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span>artifacts <span class="op">=</span> <span class="st">"/tmp/my_outputs"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="issue-different-paths-on-different-nodes">Issue: Different paths on different nodes<a class="anchor" aria-label="anchor" href="#issue-different-paths-on-different-nodes"></a>
+</h3>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Use node-local storage for better performance</span></span>
 <span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
-<span>  scratch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_TMPDIR"</span>, <span class="st">"/tmp"</span><span class="op">)</span>,</span>
-<span>  artifacts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_TMPDIR"</span>, <span class="st">"/tmp"</span><span class="op">)</span>, <span class="st">"outputs"</span><span class="op">)</span></span>
+<span>  scratch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_TMPDIR"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_TMPDIR"</span><span class="op">)</span>,  <span class="co"># Node-local on SLURM</span></span>
+<span>    <span class="st">"/tmp"</span>                          <span class="co"># Fallback</span></span>
+<span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level3">
-<h3 id="shared-hpc-system">Shared HPC System<a class="anchor" aria-label="anchor" href="#shared-hpc-system"></a>
-</h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># System-wide configuration for all users</span></span>
-<span><span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
-<span>  data <span class="op">=</span> <span class="st">"/shared/datasets"</span>,</span>
-<span>  artifacts <span class="op">=</span> <span class="st">"/scratch/$USER/parade-outputs"</span>, </span>
-<span>  registry <span class="op">=</span> <span class="st">"/shared/parade-registry"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Individual jobs automatically inherit these paths</span></span>
-<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"train"</span>, <span class="st">"test"</span>, <span class="st">"validation"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"process"</span>, </span>
-<span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">dataset</span><span class="op">)</span> <span class="op">{</span></span>
-<span>          <span class="co"># Reads from shared location</span></span>
-<span>          <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"data://"</span>, <span class="va">dataset</span>, <span class="st">".rds"</span><span class="op">)</span><span class="op">)</span></span>
-<span>          <span class="co"># Writes to user's scratch  </span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"artifacts://processed/{dataset}.rds"</span><span class="op">)</span></span>
-<span>        <span class="op">}</span><span class="op">)</span></span></code></pre></div>
-</div>
 </div>
 <div class="section level2">
-<h2 id="best-practices-for-path-organization">Best Practices for Path Organization<a class="anchor" aria-label="anchor" href="#best-practices-for-path-organization"></a>
+<h2 id="best-practices">Best Practices<a class="anchor" aria-label="anchor" href="#best-practices"></a>
 </h2>
-<div class="section level3">
-<h3 id="separate-by-data-lifecycle">1. Separate by Data Lifecycle<a class="anchor" aria-label="anchor" href="#separate-by-data-lifecycle"></a>
-</h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Raw, immutable inputs</span></span>
-<span><span class="st">"data://raw/experiment_2024.csv"</span></span>
+<ol style="list-style-type: decimal">
+<li>
+<p><strong>Initialize paths at the start of every
+script</strong></p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</li>
+<li>
+<p><strong>Use appropriate aliases for different data
+types</strong></p>
+<ul>
+<li>
+<code>data://</code> for inputs (read-only)</li>
+<li>
+<code>artifacts://</code> for outputs (large files)</li>
+<li>
+<code>scratch://</code> for temporary files</li>
+</ul>
+</li>
+<li>
+<p><strong>Never hardcode absolute paths</strong></p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Bad</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"/home/alice/outputs/model.rds"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Processed, intermediate results  </span></span>
-<span><span class="st">"artifacts://processed/clean_data.rds"</span></span>
-<span></span>
-<span><span class="co"># Final outputs and models</span></span>
-<span><span class="st">"artifacts://final/publication_model.rds"</span></span>
-<span></span>
-<span><span class="co"># Configuration and metadata</span></span>
-<span><span class="st">"config://profiles/hpc_settings.yaml"</span></span></code></pre></div>
+<span><span class="co"># Good</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"artifacts://model.rds"</span><span class="op">)</span></span></code></pre></div>
+</li>
+<li>
+<p><strong>Document your path configuration</strong></p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Show configuration in logs</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Parade paths configured:"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="../reference/paths_get.html">paths_get</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</li>
+</ol>
 </div>
-<div class="section level3">
-<h3 id="use-hierarchical-structure">2. Use Hierarchical Structure<a class="anchor" aria-label="anchor" href="#use-hierarchical-structure"></a>
-</h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Organize by analysis stage</span></span>
-<span><span class="st">"artifacts://preprocessing/subject_data/"</span></span>
-<span><span class="st">"artifacts://modeling/fitted_models/"</span>  </span>
-<span><span class="st">"artifacts://evaluation/performance_metrics/"</span></span>
-<span><span class="st">"artifacts://visualization/figures/"</span></span>
-<span></span>
-<span><span class="co"># Or by experimental condition</span></span>
-<span><span class="st">"artifacts://condition_A/session_{1:10}/"</span></span>
-<span><span class="st">"artifacts://condition_B/session_{1:10}/"</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="next-steps">Next Steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p>Now that you understand portable paths, learn about:</p>
+<ul>
+<li>
+<a href="parade-artifacts.html">Using Artifacts and Sinks</a> for
+automatic data management</li>
+<li>
+<a href="parade-slurm-distribution.html">SLURM Integration</a> for
+cluster computing</li>
+<li>
+<a href="parade-core.html">Core Workflow Concepts</a> for building
+complete pipelines</li>
+</ul>
 </div>
-<div class="section level3">
-<h3 id="environment-specific-configuration">3. Environment-Specific Configuration<a class="anchor" aria-label="anchor" href="#environment-specific-configuration"></a>
-</h3>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Development profile  </span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
-<span>    artifacts <span class="op">=</span> <span class="st">"artifacts://dev"</span>,</span>
-<span>    scratch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="co"># Production profile</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_JOB_ID"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="../reference/paths_set.html">paths_set</a></span><span class="op">(</span></span>
-<span>    artifacts <span class="op">=</span> <span class="st">"/scratch/$USER/prod-outputs"</span>,</span>
-<span>    registry <span class="op">=</span> <span class="st">"/shared/workflows"</span>  </span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="portable-code-patterns">4. Portable Code Patterns<a class="anchor" aria-label="anchor" href="#portable-code-patterns"></a>
-</h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Good: Uses aliases, works everywhere</span></span>
-<span><span class="va">load_reference</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"data://reference/brain_atlas.rds"</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="co"># Bad: Hardcoded paths, breaks on different systems</span></span>
-<span><span class="va">load_reference</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"/home/user/data/brain_atlas.rds"</span><span class="op">)</span> </span>
-<span><span class="op">}</span></span></code></pre></div>
-<p>The key insight is that parade’s path system <strong>separates
-logical organization from physical storage</strong>, making your
-analysis code portable across any computing environment while
-automatically optimizing for local storage characteristics.</p>
-</div>
+<div class="section level2">
+<h2 id="quick-reference">Quick Reference<a class="anchor" aria-label="anchor" href="#quick-reference"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="35%">
+<col width="32%">
+<col width="32%">
+</colgroup>
+<thead><tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code><a href="../reference/paths_init.html">paths_init()</a></code></td>
+<td>Auto-configure paths</td>
+<td><code><a href="../reference/paths_init.html">paths_init()</a></code></td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/paths_get.html">paths_get()</a></code></td>
+<td>Show current paths</td>
+<td><code><a href="../reference/paths_get.html">paths_get()</a></code></td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/paths_set.html">paths_set()</a></code></td>
+<td>Set custom paths</td>
+<td><code>paths_set(artifacts = "/scratch")</code></td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/resolve_path.html">resolve_path()</a></code></td>
+<td>Convert alias to absolute</td>
+<td><code>resolve_path("data://file.csv")</code></td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/path_here.html">path_here()</a></code></td>
+<td>Build path from parts</td>
+<td><code>path_here("artifacts", "models")</code></td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<thead><tr class="header">
+<th>Alias</th>
+<th>Use For</th>
+<th>Example</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>data://</code></td>
+<td>Input data</td>
+<td><code>read.csv("data://input.csv")</code></td>
+</tr>
+<tr class="even">
+<td><code>artifacts://</code></td>
+<td>Outputs</td>
+<td><code>saveRDS(m, "artifacts://model.rds")</code></td>
+</tr>
+<tr class="odd">
+<td><code>scratch://</code></td>
+<td>Temp files</td>
+<td><code>"scratch://temp.rds"</code></td>
+</tr>
+<tr class="even">
+<td><code>project://</code></td>
+<td>Code/config</td>
+<td><code>source("project://R/utils.R")</code></td>
+</tr>
+</tbody>
+</table>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

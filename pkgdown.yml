@@ -2,6 +2,7 @@ pandoc: 3.1.11
 pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
+  parade-artifacts: parade-artifacts.html
   parade-core: parade-core.html
   parade-defaults-profiles: parade-defaults-profiles.html
   parade-defaults: parade-defaults.html
@@ -10,7 +11,7 @@ articles:
   parade-scripts-monitoring: parade-scripts-monitoring.html
   parade-sinks: parade-sinks.html
   parade-slurm-distribution: parade-slurm-distribution.html
-last_built: 2025-08-26T03:15Z
+last_built: 2025-08-26T16:21Z
 urls:
   reference: https://bbuchsbaum.github.io/parade/reference
   article: https://bbuchsbaum.github.io/parade/articles
