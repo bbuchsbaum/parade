@@ -295,10 +295,9 @@ test_that(".slurm_sacct_info handles memory values with NA", {
 # ===========================================================================
 
 test_that(".slurm_sstat_info parses sstat output correctly", {
-  stub(parade:::.slurm_sstat_info, "parade:::.run_cmd", 
-       function(...) "12345.batch|RUNNING|00:15:30|00:20:00|128M|256M|512M|1024M|node001|node001|1")
-  
-  result <- parade:::.slurm_sstat_info("12345")
+  with_mocked_bindings(
+    {
+      result <- parade:::.slurm_sstat_info("12345")
   expect_equal(result$JobID, "12345.batch")
   expect_equal(result$State, "RUNNING")
   expect_equal(result$CPUUtilized, 15*60 + 30)  # 15 minutes 30 seconds
@@ -310,32 +309,43 @@ test_that(".slurm_sstat_info parses sstat output correctly", {
   expect_equal(result$MaxRSSNode, "node001")
   expect_equal(result$MaxVMSizeNode, "node001")
   expect_equal(result$Tasks, 1)
+    },
+    .run_cmd = function(...) "12345.batch|RUNNING|00:15:30|00:20:00|128M|256M|512M|1024M|node001|node001|1",
+    .package = "parade"
+  )
 })
 
 test_that(".slurm_sstat_info returns NULL when job not found", {
-  stub(parade:::.slurm_sstat_info, "parade:::.run_cmd", function(...) character(0))
-  
-  result <- parade:::.slurm_sstat_info("99999")
-  expect_null(result)
+  with_mocked_bindings(
+    {
+      result <- parade:::.slurm_sstat_info("99999")
+      expect_null(result)
+    },
+    .run_cmd = function(...) character(0),
+    .package = "parade"
+  )
 })
 
 test_that(".slurm_sstat_info tries .batch suffix first, then job ID", {
   # Create a counter to track calls
   call_count <- 0
-  stub(parade:::.slurm_sstat_info, "parade:::.run_cmd", 
-       function(...) {
-         call_count <<- call_count + 1
-         if (call_count == 1) {
-           character(0)  # First call for .batch returns empty
-         } else {
-           "12345|RUNNING|00:10:00|00:15:00|64M|128M|256M|512M|node002|node002|2"
-         }
-       })
-  
-  result <- parade:::.slurm_sstat_info("12345")
-  expect_equal(result$JobID, "12345")
-  expect_equal(result$State, "RUNNING")
-  expect_equal(result$Tasks, 2)
+  with_mocked_bindings(
+    {
+      result <- parade:::.slurm_sstat_info("12345")
+      expect_equal(result$JobID, "12345")
+      expect_equal(result$State, "RUNNING")
+      expect_equal(result$Tasks, 2)
+    },
+    .run_cmd = function(...) {
+      call_count <<- call_count + 1
+      if (call_count == 1) {
+        character(0)  # First call for .batch returns empty
+      } else {
+        "12345|RUNNING|00:10:00|00:15:00|64M|128M|256M|512M|node002|node002|2"
+      }
+    },
+    .package = "parade"
+  )
 })
 
 # ===========================================================================
@@ -356,18 +366,18 @@ test_that("script_metrics combines data from all sources", {
   class(mock_job) <- "parade_script_job"
   
   # Stub the three info functions
-  stub(script_metrics, "parade:::.slurm_squeue_info", 
+  stub(script_metrics, ".slurm_squeue_info", 
        function(...) list(state = "RUNNING", time = 30*60, timelimit = 2*3600,
                          cpus = 4, nodes = 1, reason = "None", nodelist = "node001"))
   
-  stub(script_metrics, "parade:::.slurm_sstat_info",
+  stub(script_metrics, ".slurm_sstat_info",
        function(...) list(JobID = "12345.batch", State = "RUNNING",
                          CPUUtilized = 25*60, Elapsed = 30*60,
                          AveRSS = 512 * 1024^2, MaxRSS = 1024 * 1024^2,
                          AveVMSize = 2048 * 1024^2, MaxVMSize = 4096 * 1024^2,
                          MaxRSSNode = "node001", MaxVMSizeNode = "node001", Tasks = 1))
   
-  stub(script_metrics, "parade:::.slurm_sacct_info", function(...) NULL)
+  stub(script_metrics, ".slurm_sacct_info", function(...) NULL)
   
   result <- script_metrics(mock_job)
   
@@ -400,14 +410,14 @@ test_that("script_metrics handles completed job with sacct data", {
   )
   class(mock_job) <- "parade_script_job"
   
-  stub(script_metrics, "parade:::.slurm_squeue_info",
+  stub(script_metrics, ".slurm_squeue_info",
        function(...) list(state = NULL, time = NA_real_, timelimit = NA_real_,
                          cpus = NA_real_, nodes = NA_real_, 
                          reason = NA_character_, nodelist = NA_character_))
   
-  stub(script_metrics, "parade:::.slurm_sstat_info", function(...) NULL)
+  stub(script_metrics, ".slurm_sstat_info", function(...) NULL)
   
-  stub(script_metrics, "parade:::.slurm_sacct_info",
+  stub(script_metrics, ".slurm_sacct_info",
        function(...) list(JobID = "12346", State = "COMPLETED",
                          ElapsedRaw = 7200, TotalCPU = 2*3600,
                          AllocCPUS = 8, ReqMem = "16G",
@@ -662,13 +672,13 @@ test_that("script_metrics handles missing SLURM commands gracefully", {
   class(mock_job) <- "parade_script_job"
   
   # Mock all info functions to return empty/NULL as if SLURM not available
-  stub(script_metrics, "parade:::.slurm_squeue_info",
+  stub(script_metrics, ".slurm_squeue_info",
        function(...) list(state = "UNKNOWN", time = NA_real_, timelimit = NA_real_,
                          cpus = NA_real_, nodes = NA_real_,
                          reason = NA_character_, nodelist = NA_character_))
   
-  stub(script_metrics, "parade:::.slurm_sstat_info", function(...) NULL)
-  stub(script_metrics, "parade:::.slurm_sacct_info", function(...) NULL)
+  stub(script_metrics, ".slurm_sstat_info", function(...) NULL)
+  stub(script_metrics, ".slurm_sacct_info", function(...) NULL)
   
   result <- script_metrics(mock_job)
   
@@ -678,6 +688,6 @@ test_that("script_metrics handles missing SLURM commands gracefully", {
   expect_true(is.na(result$node))
   expect_true(is.na(result$elapsed))
   expect_equal(result$cpus_alloc, 4)
-  expect_true(is.na(result$cpu_used))
+  expect_null(result$cpu_used)
   expect_true(is.na(result$cpu_pct))
 })

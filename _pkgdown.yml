@@ -2,3 +2,13 @@ url: https://bbuchsbaum.github.io/parade/
 template:
   bootstrap: 5
 
+home:
+  title: "Declarative Parallel Dataflow with Future/Mirai/SLURM"
+  description: "Parade builds typed, parallel pipelines with artifact sinks and HPC ergonomics."
+  # Override default links so CRAN isn't shown
+  links:
+    - text: "Source on GitHub"
+      href: "https://github.com/bbuchsbaum/parade"
+    - text: "Get started (Parade core)"
+      href: "articles/parade-core.html"
+

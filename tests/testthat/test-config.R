@@ -52,7 +52,10 @@ test_that("parade_config_path respects environment variable", {
 
 test_that("parade_config_path finds project file when it exists", {
   with_envvar(c(PARADE_CONFIG = NA), {
-    stub(parade_config_path, "path_here", mock_path_here)
+    stub(parade_config_path, "paths_get", function() list(
+      project = "/mock/project",
+      config = "/mock/project/.parade"
+    ))
     stub(parade_config_path, "file.exists", function(x) {
       x == "/mock/project/parade.json"
     })
@@ -64,7 +67,10 @@ test_that("parade_config_path finds project file when it exists", {
 
 test_that("parade_config_path falls back to config directory", {
   with_envvar(c(PARADE_CONFIG = NA), {
-    stub(parade_config_path, "path_here", mock_path_here)
+    stub(parade_config_path, "paths_get", function() list(
+      project = "/mock/project",
+      config = "/mock/project/.parade"
+    ))
     stub(parade_config_path, "file.exists", function(x) FALSE)
     stub(parade_config_path, "dir.create", function(...) invisible(TRUE))
     
@@ -75,7 +81,10 @@ test_that("parade_config_path falls back to config directory", {
 
 test_that("parade_config_path handles create_dirs parameter", {
   with_envvar(c(PARADE_CONFIG = NA), {
-    stub(parade_config_path, "path_here", mock_path_here)
+    stub(parade_config_path, "paths_get", function() list(
+      project = "/mock/project",
+      config = "/mock/project/.parade"
+    ))
     stub(parade_config_path, "file.exists", function(x) FALSE)
     
     dir_created <- FALSE
@@ -193,7 +202,7 @@ test_that("slurm_defaults_get retrieves profile defaults", {
   )
   
   stub(slurm_defaults_get, "parade_config_read", function() test_config)
-  with_options(list(parade.slurm.defaults = NULL), {
+  withr::with_options(list(parade.slurm.defaults = NULL), {
     result <- slurm_defaults_get("heavy")
     expect_equal(result$mem, "16G")
     expect_equal(result$time, "8h")
@@ -211,7 +220,7 @@ test_that("slurm_defaults_get merges options with config", {
   )
   
   stub(slurm_defaults_get, "parade_config_read", function() test_config)
-  with_options(list(parade.slurm.defaults = list(mem = "8G", nodes = 2)), {
+  withr::with_options(list(parade.slurm.defaults = list(mem = "8G", nodes = 2)), {
     result <- slurm_defaults_get("default")
     expect_equal(result$mem, "8G")  # Option overrides config
     expect_equal(result$time, "2h")  # From config
@@ -229,7 +238,7 @@ test_that("slurm_defaults_get handles missing profile", {
   )
   
   stub(slurm_defaults_get, "parade_config_read", function() test_config)
-  with_options(list(parade.slurm.defaults = NULL), {
+  withr::with_options(list(parade.slurm.defaults = NULL), {
     # Non-existent profile should fall back to general defaults
     result <- slurm_defaults_get("nonexistent")
     expect_true(is.list(result))
@@ -238,7 +247,7 @@ test_that("slurm_defaults_get handles missing profile", {
 
 test_that("slurm_defaults_get handles empty config", {
   stub(slurm_defaults_get, "parade_config_read", function() list())
-  with_options(list(parade.slurm.defaults = list(mem = "2G")), {
+  withr::with_options(list(parade.slurm.defaults = list(mem = "2G")), {
     result <- slurm_defaults_get("default")
     expect_equal(result$mem, "2G")
   })
@@ -246,7 +255,7 @@ test_that("slurm_defaults_get handles empty config", {
 
 # Test slurm_defaults_set() ----------------------------------------------
 test_that("slurm_defaults_set updates session options", {
-  with_options(list(parade.slurm.defaults = NULL), {
+  withr::with_options(list(parade.slurm.defaults = NULL), {
     stub(slurm_defaults_set, "parade_config_read", function() list())
     stub(slurm_defaults_set, "slurm_defaults_get", function(...) list(mem = "8G"))
     
@@ -259,7 +268,7 @@ test_that("slurm_defaults_set updates session options", {
 })
 
 test_that("slurm_defaults_set accepts list parameter", {
-  with_options(list(parade.slurm.defaults = NULL), {
+  withr::with_options(list(parade.slurm.defaults = NULL), {
     stub(slurm_defaults_set, "parade_config_read", function() list())
     stub(slurm_defaults_set, "slurm_defaults_get", function(...) list())
     
@@ -283,7 +292,7 @@ test_that("slurm_defaults_set persists to config when requested", {
   })
   stub(slurm_defaults_set, "slurm_defaults_get", function(...) list())
   
-  with_options(list(parade.slurm.defaults = NULL), {
+  withr::with_options(list(parade.slurm.defaults = NULL), {
     slurm_defaults_set(mem = "8G", time = "4h", profile = "heavy", persist = TRUE)
     
     expect_equal(written_config$slurm$defaults$heavy$mem, "8G")
@@ -293,7 +302,7 @@ test_that("slurm_defaults_set persists to config when requested", {
 })
 
 test_that("slurm_defaults_set handles NA values", {
-  with_options(list(parade.slurm.defaults = list(mem = "4G")), {
+  withr::with_options(list(parade.slurm.defaults = list(mem = "4G")), {
     stub(slurm_defaults_set, "parade_config_read", function() list())
     stub(slurm_defaults_set, "slurm_defaults_get", function(...) list(mem = NA))
     
@@ -483,7 +492,7 @@ test_that("config handles concurrent modification scenarios", {
   })
   stub(slurm_defaults_set, "slurm_defaults_get", function(...) list())
   
-  with_options(list(parade.slurm.defaults = NULL), {
+  withr::with_options(list(parade.slurm.defaults = NULL), {
     # Two modifications - the second reads fresh config with external change
     slurm_defaults_set(mem = "8G", persist = TRUE)
     slurm_defaults_set(cpus = 4, persist = TRUE)

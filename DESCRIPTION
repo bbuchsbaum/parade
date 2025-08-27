@@ -1,7 +1,7 @@
 Package: parade
 Type: Package
 Title: Declarative Parallel Dataflow with Future/Furrr
-Version: 0.11.0
+Version: 0.12.0
 Authors@R: c(person(given = "Parade", family = "Authors", role = c("aut","cre"), email = "parade@example.org"))
 Description: Declarative, lazy, compositional dataflow for R on top of 'future'/'furrr', with
   typed schemas, artifacts, diagnostics, and HPC-friendly distribution (local, Slurm via

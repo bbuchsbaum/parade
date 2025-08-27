@@ -19,17 +19,9 @@
   
   parts <- strsplit(output[[1]], "|", fixed = TRUE)[[1]]
   
-  # Handle malformed output
-  if (length(parts) < 7) {
-    return(list(
-      state = "UNKNOWN",
-      time = NA_real_,
-      timelimit = NA_real_,
-      cpus = NA_real_,
-      nodes = NA_real_,
-      reason = NA_character_,
-      nodelist = NA_character_
-    ))
+  # Ensure we have at least 7 elements (pad with empty strings if needed)
+  while (length(parts) < 7) {
+    parts <- c(parts, "")
   }
   
   list(
@@ -48,10 +40,11 @@
 .parse_sacct_output <- function(output, job_id) {
   if (length(output) == 0L) return(NULL)
   
-  rows <- strsplit(output, "\\|", fixed = TRUE)
+  rows <- strsplit(output, "|", fixed = TRUE)
   best <- NULL
   
-  for (r in rows) {
+  for (i in seq_along(rows)) {
+    r <- rows[[i]]
     if (length(r) < 8) next
     jid <- r[[1]]
     if (grepl(paste0("^", job_id, "(\\.batch)?$"), jid)) {
@@ -64,7 +57,7 @@
     best <- rows[[1]]
   }
   
-  if (is.null(best)) return(NULL)
+  if (is.null(best) || length(best) < 8) return(NULL)
   
   list(
     JobID = best[[1]],

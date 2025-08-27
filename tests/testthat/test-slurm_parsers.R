@@ -3,9 +3,6 @@
 
 library(testthat)
 
-# Source the parser functions
-source(system.file("R", "slurm_parsers.R", package = "parade"))
-
 test_that(".parse_squeue_output handles RUNNING state correctly", {
   output <- "RUNNING|00:05:30|01:00:00|4|1|None|node001"
   result <- parade:::.parse_squeue_output(output)

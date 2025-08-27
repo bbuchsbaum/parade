@@ -38,8 +38,8 @@ batch_resources <- function(partition = NULL,
   if (!is.null(time)) time <- .parade_norm_time(time)
   # alias
   if (!is.null(ncpus) && is.null(cpus_per_task)) cpus_per_task <- ncpus
-  # pack
-  compact <- function(x) x[!vapply(x, is.null, logical(1))]
+  # pack - remove NULL, NA, and omit() values
+  compact <- function(x) x[!vapply(x, .is_missing, logical(1))]
   compact(list(partition=partition, time=time, nodes=nodes, ntasks=ntasks, ntasks_per_node=ntasks_per_node,
                cpus_per_task=cpus_per_task, mem=mem, account=account, qos=qos, modules=modules,
                omp_num_threads=omp_num_threads))

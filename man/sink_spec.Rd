@@ -8,13 +8,14 @@ sink_spec(
   fields,
   dir,
   template = NULL,
-  format = c("rds"),
+  format = "rds",
+  formats = NULL,
   writer = NULL,
+  reader = NULL,
   overwrite = c("skip", "overwrite", "error"),
   checksum = TRUE,
   sidecar = c("json", "none"),
   compress = "gzip",
-  reader = readRDS,
   autoload = TRUE
 )
 }
@@ -25,9 +26,13 @@ sink_spec(
 
 \item{template}{Optional glue template for file path generation}
 
-\item{format}{File format (currently only "rds" supported)}
+\item{format}{File format string or list of per-field formats}
+
+\item{formats}{Optional named list of per-field format specifications}
 
 \item{writer}{Optional custom writer function}
+
+\item{reader}{Function to read persisted files}
 
 \item{overwrite}{Overwrite policy: "skip", "overwrite", or "error"}
 
@@ -36,8 +41,6 @@ sink_spec(
 \item{sidecar}{Sidecar metadata format: "json" or "none"}
 
 \item{compress}{Compression method for RDS files}
-
-\item{reader}{Function to read persisted files}
 
 \item{autoload}{Whether to automatically load artifacts}
 }
@@ -51,4 +54,8 @@ directory structure, file formats, and metadata handling.
 \examples{
 sink_spec("result", dir = "artifacts://results")
 sink_spec(c("model", "metrics"), dir = "/tmp/output", compress = "xz")
+
+# Using different formats per field
+sink_spec(c("data", "model"), dir = "output",
+  formats = list(data = "csv", model = "rds"))
 }

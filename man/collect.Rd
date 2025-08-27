@@ -11,7 +11,8 @@ collect(
   scheduling = 1,
   seed_furrr = TRUE,
   .progress = interactive(),
-  limit = NULL
+  limit = NULL,
+  validate = c("light", "full")
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ collect(
 \item{.progress}{Whether to display progress bars (default: interactive())}
 
 \item{limit}{Optional limit on number of grid rows to process}
+
+\item{validate}{Validation mode for flexible types: "light" (default) or "full"}
 }
 \value{
 A tibble containing results from all executed stages

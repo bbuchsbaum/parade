@@ -14,12 +14,35 @@
 parade_config_path <- function(create_dirs = TRUE) {
   env_file <- Sys.getenv("PARADE_CONFIG", unset = NA_character_)
   if (!is.na(env_file) && nzchar(env_file)) return(normalizePath(env_file, mustWork = FALSE))
-  # project file takes precedence
-  proj_file <- file.path(path_here("project"), "parade.json")
-  if (file.exists(proj_file)) return(normalizePath(proj_file, mustWork = FALSE))
-  # project .parade/
-  cfg_dir <- path_here("config")
-  if (isTRUE(create_dirs)) dir.create(cfg_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  # Try to get paths, but handle failure gracefully
+  paths <- tryCatch(paths_get(), error = function(e) NULL)
+  
+  if (!is.null(paths)) {
+    # project file takes precedence
+    proj_dir <- paths$project
+    if (!is.null(proj_dir)) {
+      proj_file <- file.path(proj_dir, "parade.json")
+      if (file.exists(proj_file)) return(normalizePath(proj_file, mustWork = FALSE))
+    }
+    
+    # project .parade/
+    cfg_dir <- paths$config
+    if (!is.null(cfg_dir)) {
+      if (isTRUE(create_dirs)) {
+        tryCatch(dir.create(cfg_dir, recursive = TRUE, showWarnings = FALSE),
+                error = function(e) NULL)
+      }
+      return(file.path(cfg_dir, "parade.json"))
+    }
+  }
+  
+  # Fallback to temp directory if paths not available
+  cfg_dir <- file.path(tempdir(), ".parade")
+  if (isTRUE(create_dirs)) {
+    tryCatch(dir.create(cfg_dir, recursive = TRUE, showWarnings = FALSE),
+            error = function(e) NULL)
+  }
   file.path(cfg_dir, "parade.json")
 }
 
