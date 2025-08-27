@@ -2,6 +2,7 @@
 # These tests don't require SLURM to be installed
 
 library(testthat)
+devtools::load_all()
 
 test_that(".parse_squeue_output handles RUNNING state correctly", {
   output <- "RUNNING|00:05:30|01:00:00|4|1|None|node001"

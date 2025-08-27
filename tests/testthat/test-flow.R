@@ -197,10 +197,12 @@ test_that("basic type functions work", {
 })
 
 test_that("lst() creates list_of type", {
-  lst_type <- lst()
+  skip_if_not_installed("vctrs")
+  
+  lst_type <- parade::lst()
   expect_s3_class(lst_type, "vctrs_list_of")
   
-  lst_int <- lst(ptype = integer())
+  lst_int <- parade::lst(ptype = integer())
   expect_s3_class(lst_int, "vctrs_list_of")
 })
 

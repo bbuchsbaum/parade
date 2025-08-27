@@ -19,7 +19,22 @@
   
   parts <- strsplit(output[[1]], "|", fixed = TRUE)[[1]]
   
-  # Ensure we have at least 7 elements (pad with empty strings if needed)
+  # Check if we have truly malformed output (too few critical parts)
+  # We need at least the basic fields: state, time, timelimit, cpus, nodes
+  # So we need at least 5 parts to be considered parseable
+  if (length(parts) < 5) {
+    return(list(
+      state = "UNKNOWN", 
+      time = NA_real_, 
+      timelimit = NA_real_, 
+      cpus = NA_real_, 
+      nodes = NA_real_, 
+      reason = NA_character_, 
+      nodelist = NA_character_
+    ))
+  }
+  
+  # Ensure we have exactly 7 elements (pad with empty strings if needed)
   while (length(parts) < 7) {
     parts <- c(parts, "")
   }

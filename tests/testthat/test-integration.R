@@ -60,11 +60,11 @@ setup_batchtools_mocks <- function() {
     clearRegistry = mock(function(...) invisible(NULL)),
     batchMap = mock(function(...) invisible(1L)),
     submitJobs = mock(function(...) 1L),
-    getJobTable = mock(function(...) mock_job_table),
-    loadRegistry = mock(function(...) mock_registry),
-    getStatus = mock(function(...) list(
+    getJobTable = mock(mock_job_table, cycle = TRUE),
+    loadRegistry = mock(mock_registry, cycle = TRUE),
+    getStatus = mock(list(
       pending = 0, started = 0, running = 1, done = 0, error = 0
-    )),
+    ), cycle = TRUE),
     waitForJobs = mock(function(...) TRUE),
     findRunning = mock(function(...) integer(0)),
     killJobs = mock(function(...) invisible(NULL))
@@ -103,7 +103,8 @@ test_that("Configuration + Job Submission workflow integrates correctly", {
   )
   
   expect_equal(defaults$partition, "compute")
-  expect_equal(defaults$time, "2:00:00")
+  # Time values are stored as-is in defaults and normalized later in batch_resources
+  expect_equal(defaults$time, "2h")
   expect_equal(defaults$mem, "8G")
   expect_equal(defaults$cpus_per_task, 4)
   
@@ -122,6 +123,7 @@ test_that("Configuration + Job Submission workflow integrates correctly", {
   
   expect_s3_class(job, "parade_script_job")
   expect_equal(job$resources$partition, "compute")
+  # Resources should contain normalized time from slurm_resources
   expect_equal(job$resources$time, "2:00:00")
   expect_equal(job$resources$mem, "8G")
   expect_equal(job$resources$cpus_per_task, 4)
@@ -261,8 +263,8 @@ test_that("Job Submission + Monitoring workflow provides correct status", {
   expect_equal(metrics$cpus_alloc, 4)
   
   # Step 3: Check status with script_status
-  stub(script_status, "batchtools::loadRegistry", function(...) mocks$loadRegistry(...))
-  stub(script_status, "batchtools::getStatus", function(...) mocks$getStatus(...))
+  stub(script_status, "batchtools::loadRegistry", mocks$loadRegistry)
+  stub(script_status, "batchtools::getStatus", mocks$getStatus)
   
   status <- script_status(job)
   

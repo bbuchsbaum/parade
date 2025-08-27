@@ -1,4 +1,6 @@
 # Test sink format registry
+library(testthat)
+devtools::load_all(".", quiet = TRUE)  # Load parade package from source
 
 test_that("register_sink_format works correctly", {
   # Register a custom format
@@ -114,7 +116,7 @@ test_that(".write_atomic_generic performs atomic writes", {
   if (file.exists(target)) unlink(target)
   
   # Perform atomic write
-  .write_atomic_generic(writer_fn, "test content", target)
+  parade:::.write_atomic_generic(writer_fn, "test content", target)
   
   expect_true(file.exists(target))
   expect_equal(readLines(target), "test content")
@@ -130,7 +132,7 @@ test_that(".write_atomic_generic performs atomic writes", {
 test_that(".formula_to_function converts formulas correctly", {
   # Writer formula
   write_formula <- ~ write.csv(.x, .path, row.names = FALSE)
-  write_fn <- .formula_to_function(write_formula, write_mode = TRUE)
+  write_fn <- parade:::.formula_to_function(write_formula, write_mode = TRUE)
   
   expect_type(write_fn, "closure")
   
@@ -144,7 +146,7 @@ test_that(".formula_to_function converts formulas correctly", {
   
   # Reader formula
   read_formula <- ~ read.csv(.path)
-  read_fn <- .formula_to_function(read_formula, write_mode = FALSE)
+  read_fn <- parade:::.formula_to_function(read_formula, write_mode = FALSE)
   
   expect_type(read_fn, "closure")
   
@@ -157,7 +159,7 @@ test_that(".formula_to_function converts formulas correctly", {
 
 test_that(".get_writer_reader handles different input types", {
   # Format name
-  result <- .get_writer_reader("rds")
+  result <- parade:::.get_writer_reader("rds")
   expect_type(result, "list")
   expect_type(result$writer, "closure")
   expect_type(result$reader, "closure")
@@ -165,20 +167,20 @@ test_that(".get_writer_reader handles different input types", {
   
   # Unknown format
   expect_error(
-    .get_writer_reader("unknown_format"),
+    parade:::.get_writer_reader("unknown_format"),
     "Unknown format"
   )
   
   # Function
   my_writer <- function(x, path, ...) saveRDS(x, path)
-  result <- .get_writer_reader(my_writer)
+  result <- parade:::.get_writer_reader(my_writer)
   expect_identical(result$writer, my_writer)
   expect_null(result$reader)
   expect_true(result$atomic)
   
   # Formula
   write_formula <- ~ saveRDS(.x, .path)
-  result <- .get_writer_reader(write_formula)
+  result <- parade:::.get_writer_reader(write_formula)
   expect_type(result$writer, "closure")
   expect_null(result$reader)
   expect_true(result$atomic)

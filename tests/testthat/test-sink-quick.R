@@ -1,4 +1,6 @@
 # Test sink_quick and sink_temp
+library(testthat)
+devtools::load_all(".", quiet = TRUE)  # Load parade package from source
 
 test_that("sink_quick creates sink with format name", {
   # Using registered format

@@ -15,7 +15,7 @@
 .slurm_sacct_info <- function(job_id) {
   out <- .run_cmd("sacct", c("-j", as.character(job_id), "-n", "-p", "-X", "-o", "JobID,State,ElapsedRaw,TotalCPU,AllocCPUS,ReqMem,MaxRSS,MaxVMSize"))
   if (length(out) == 0L) return(NULL)
-  rows <- strsplit(out, "\\|", fixed = TRUE)
+  rows <- strsplit(out, "|", fixed = TRUE)
   best <- NULL
   for (r in rows) { if (length(r) < 8) next; jid <- r[[1]]; if (grepl(paste0("^", job_id, "(\\.batch)?$"), jid)) { best <- r; break } }
   if (is.null(best)) best <- rows[[1]]

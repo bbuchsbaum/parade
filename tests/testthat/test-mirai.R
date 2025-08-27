@@ -1,6 +1,9 @@
 # Test mirai integration
+library(testthat)
+devtools::load_all(".", quiet = TRUE)  # Load parade package from source
 
 test_that("dist_mirai creates correct structure", {
+  skip_if_not_installed("mirai")
   # Test local configuration
   d1 <- dist_mirai(n = 4)
   expect_s3_class(d1, "parade_dist")
@@ -34,6 +37,7 @@ test_that("dist_mirai creates correct structure", {
 })
 
 test_that("use_mirai_local creates proper configuration", {
+  skip_if_not_installed("mirai")
   # Default configuration
   d1 <- use_mirai_local()
   expect_s3_class(d1, "parade_dist")
@@ -52,6 +56,7 @@ test_that("use_mirai_local creates proper configuration", {
 })
 
 test_that("use_mirai_slurm creates SLURM configuration", {
+  skip_if_not_installed("mirai")
   d <- use_mirai_slurm(
     n = 8,
     partition = "compute",
@@ -83,6 +88,7 @@ test_that("use_mirai_slurm creates SLURM configuration", {
 })
 
 test_that("use_mirai_ssh creates SSH configuration", {
+  skip_if_not_installed("mirai")
   # With tunneling
   d1 <- use_mirai_ssh(
     remotes = c("ssh://node1", "ssh://node2"),
@@ -111,6 +117,7 @@ test_that("use_mirai_ssh creates SSH configuration", {
 })
 
 test_that("mirai backend integrates with flow", {
+  skip_if_not_installed("mirai")
   skip_if_not_installed("tibble")
   
   grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
@@ -125,6 +132,7 @@ test_that("mirai backend integrates with flow", {
 })
 
 test_that("mirai utilities work correctly", {
+  skip_if_not_installed("mirai")
   # Test availability check
   is_available <- mirai_available()
   expect_type(is_available, "logical")
@@ -138,6 +146,7 @@ test_that("mirai utilities work correctly", {
 })
 
 test_that("mirai distribution with grouping works", {
+  skip_if_not_installed("mirai")
   d <- dist_mirai(
     n = 4,
     by = c("group", "condition"),
@@ -149,6 +158,7 @@ test_that("mirai distribution with grouping works", {
 })
 
 test_that("mirai cleanup flag is properly set", {
+  skip_if_not_installed("mirai")
   # Default should cleanup
   d1 <- dist_mirai(n = 2)
   expect_true(d1$stop_on_exit)
