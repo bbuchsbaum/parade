@@ -5,14 +5,14 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Declarative Parallel Dataflow with Future/Furrr • parade</title>
+<title>Declarative Parallel Dataflow with Future/Mirai/SLURM • parade</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Declarative Parallel Dataflow with Future/Furrr">
-<meta name="description" content="Declarative, lazy, compositional dataflow for R on top of future/furrr, with typed schemas, artifacts, diagnostics, and HPC-friendly distribution (local, Slurm via future.batchtools/batchtools, and mirai for high-performance parallel execution). Adds an ergonomic SLURM layer: generic script submission from R, live CPU/memory monitors, multi-job dashboards, and now site/project defaults with NA-as-omit semantics and profiles. Mirai backend provides unlimited parallelism, SSH tunneling, and TLS security. Configure once, run everywhere.">
-<meta property="og:description" content="Declarative, lazy, compositional dataflow for R on top of future/furrr, with typed schemas, artifacts, diagnostics, and HPC-friendly distribution (local, Slurm via future.batchtools/batchtools, and mirai for high-performance parallel execution). Adds an ergonomic SLURM layer: generic script submission from R, live CPU/memory monitors, multi-job dashboards, and now site/project defaults with NA-as-omit semantics and profiles. Mirai backend provides unlimited parallelism, SSH tunneling, and TLS security. Configure once, run everywhere.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Declarative Parallel Dataflow with Future/Mirai/SLURM">
+<meta name="description" content="Parade builds typed, parallel pipelines with artifact sinks and HPC ergonomics.">
+<meta property="og:description" content="Parade builds typed, parallel pipelines with artifact sinks and HPC ergonomics.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,24 +59,157 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="parade-v0110--slurm-defaults-naomit--profiles--jobs_top">parade v0.11.0 — SLURM defaults (NA=omit) + profiles + jobs_top<a class="anchor" aria-label="anchor" href="#parade-v0110--slurm-defaults-naomit--profiles--jobs_top"></a>
+<div class="page-header"><h1 id="parade">parade<a class="anchor" aria-label="anchor" href="#parade"></a>
 </h1></div>
+<p><strong>Declarative parallel dataflow for R</strong> — from laptop to HPC. Define <em>what</em> to compute, not <em>how</em> to loop. Parade builds typed, parallel workflows; persists large outputs as <strong>artifacts</strong> (sinks); and talks to <strong>SLURM</strong> directly (submit, monitor, cancel) so you rarely have to leave R.</p>
+<ul>
+<li>Website &amp; docs: <a href="https://bbuchsbaum.github.io/parade/" class="uri">https://bbuchsbaum.github.io/parade/</a>
+</li>
+<li>Source: <a href="https://github.com/bbuchsbaum/parade" class="external-link uri">https://github.com/bbuchsbaum/parade</a>
+</li>
+</ul>
+<blockquote>
+<p><strong>Why parade?</strong> Clean, composable pipelines with explicit types and lazily persisted outputs, plus first-class HPC ergonomics (portable paths, SLURM defaults, live monitoring).</p>
+</blockquote>
+<div class="section level2">
+<h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># development version</span></span>
+<span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"bbuchsbaum/parade"</span><span class="op">)</span></span></code></pre></div>
+<p>Note: The CRAN package named <code>parade</code> is unrelated (economic “income parades”). This project is currently GitHub-only.</p>
+</div>
+<div class="section level2">
+<h2 id="id_60-second-tour">60-second tour<a class="anchor" aria-label="anchor" href="#id_60-second-tour"></a>
+</h2>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://progressr.futureverse.org" class="external-link">progressr</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://progressr.futureverse.org/reference/handlers.html" class="external-link">handlers</a></span><span class="op">(</span>global <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># progress bars everywhere</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span>              <span class="co"># portable paths: artifacts://, data://, etc.</span></span>
+<span></span>
+<span><span class="co"># Declare the parameter space</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/param_grid.html">param_grid</a></span><span class="op">(</span>subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s01"</span>, <span class="st">"s02"</span><span class="op">)</span>, session <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Build a typed, composable pipeline</span></span>
+<span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/stage.html">stage</a></span><span class="op">(</span></span>
+<span>    id <span class="op">=</span> <span class="st">"fit"</span>,</span>
+<span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">subject</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="va">model</span>, rmse <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span>,</span>
+<span>    schema <span class="op">=</span> <span class="fu"><a href="reference/schema.html">schema</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span>, rmse <span class="op">=</span> <span class="fu"><a href="reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,   <span class="co"># big → artifact, small → memory</span></span>
+<span>    sink   <span class="op">=</span> <span class="fu"><a href="reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"model"</span>,</span>
+<span>                       dir <span class="op">=</span> <span class="st">"artifacts://fits"</span>,</span>
+<span>                       template <span class="op">=</span> <span class="st">"{.stage}/{subject}/ses{session}-{.row_key}"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Execute locally or with futures/mirai/SLURM</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/collect.html">collect</a></span><span class="op">(</span><span class="va">fl</span>, engine <span class="op">=</span> <span class="st">"future"</span>, workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">res</span><span class="op">$</span><span class="va">model</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>   <span class="co"># file-ref (path, bytes, sha256, written/existed)</span></span>
+<span><span class="va">res</span><span class="op">$</span><span class="va">rmse</span>         <span class="co"># numeric in-memory</span></span></code></pre></div>
 <ul>
 <li>
-<strong>NA or omit() drop resources</strong>: <code><a href="reference/batch_resources.html">batch_resources()</a></code> now removes <code>NA</code>/<code>omit()</code> values so flags like <code>--mem</code> can be intentionally omitted per site.</li>
+<strong>Artifacts (sinks)</strong> keep memory tiny and runs resumable — see the <a href="https://bbuchsbaum.github.io/parade/articles/parade-artifacts.html">Artifacts vignette</a>.</li>
 <li>
-<strong>Configurable defaults</strong> in <code>parade.json</code>: <code><a href="reference/slurm_defaults_set.html">slurm_defaults_set()</a></code> / <code><a href="reference/slurm_defaults_get.html">slurm_defaults_get()</a></code> with optional persistence; <code><a href="reference/slurm_template_set.html">slurm_template_set()</a></code> to pin a default template.</li>
+<strong>Portable paths</strong> like <code>artifacts://</code> resolve to scratch on HPC or temp on laptops — see <a href="https://bbuchsbaum.github.io/parade/articles/parade-paths.html">Smart Path Management</a>.</li>
 <li>
-<strong>Merged resources</strong> via <code><a href="reference/slurm_resources.html">slurm_resources()</a></code>; <code><a href="reference/submit_slurm.html">submit_slurm()</a></code> uses defaults automatically.</li>
-<li>
-<strong>jobs_top()</strong>: multi-job live dashboard alongside <code><a href="reference/script_top.html">script_top()</a></code>.</li>
+<strong>Typed returns</strong> (<code><a href="reference/dbl.html">dbl()</a></code>, <code><a href="reference/int.html">int()</a></code>, <code><a href="reference/lst.html">lst()</a></code>, <code><a href="reference/artifact.html">artifact()</a></code>) catch mistakes early — see <a href="https://bbuchsbaum.github.io/parade/articles/parade-core.html">Core concepts</a>.</li>
 </ul>
-<p>Config search precedence: <code>PARADE_CONFIG</code> file → <code>&lt;project&gt;/parade.json</code> → <code>&lt;project&gt;/.parade/parade.json</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="submit--monitor-slurm-jobs-from-r">Submit &amp; monitor SLURM jobs from R<a class="anchor" aria-label="anchor" href="#submit--monitor-slurm-jobs-from-r"></a>
+</h2>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
+<span>  partition <span class="op">=</span> <span class="st">"general"</span>,</span>
+<span>  time <span class="op">=</span> <span class="st">"2h"</span>,           <span class="co"># accepts 2h / 120min / H:MM:SS</span></span>
+<span>  cpus_per_task <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  mem <span class="op">=</span> <span class="cn">NA</span>,              <span class="co"># omit --mem if your site forbids it</span></span>
+<span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"scripts/train.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--fold"</span>, <span class="st">"1"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span>  <span class="co"># quick check</span></span>
+<span><span class="fu"><a href="reference/script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span>, <span class="fl">80</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span>     <span class="co"># live CPU/RSS and logs</span></span>
+<span></span>
+<span><span class="co"># Multiple jobs together:</span></span>
+<span><span class="fu"><a href="reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">job1</span>, <span class="va">job2</span>, <span class="va">job3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<ul>
+<li>
+<strong>Defaults &amp; omit-by-NA</strong> are built in — see <a href="https://bbuchsbaum.github.io/parade/articles/parade-defaults.html">Using SLURM Defaults</a>.</li>
+<li>
+<strong><code><a href="reference/script_top.html">script_top()</a></code> / <code><a href="reference/jobs_top.html">jobs_top()</a></code></strong> give a text dashboard for CPU/RSS + logs — see <a href="https://bbuchsbaum.github.io/parade/articles/parade-scripts-monitoring.html">SLURM script submission &amp; monitoring</a>.</li>
+<li>
+<strong>Distribution options</strong> (grouping/barriers, throttling, chunking) are declarative — see <a href="https://bbuchsbaum.github.io/parade/articles/parade-slurm-distribution.html">Distribution: local &amp; SLURM</a>.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="mirai-backend-optional">Mirai backend (optional)<a class="anchor" aria-label="anchor" href="#mirai-backend-optional"></a>
+</h2>
+<p>Use mirai for low-latency, scalable fan-out (no socket limits; SSH/TLS if needed).</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># dev: local daemons</span></span>
+<span><span class="va">fl</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8</span>, dispatcher <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># HPC: daemon pools under SLURM</span></span>
+<span><span class="va">handle</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="reference/use_mirai_slurm.html">use_mirai_slurm</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">32</span>, partition <span class="op">=</span> <span class="st">"compute"</span>, time <span class="op">=</span> <span class="st">"2h"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/submit.html">submit</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>See <a href="https://bbuchsbaum.github.io/parade/articles/parade-mirai.html">Mirai backend</a> for patterns and tradeoffs.</p>
+</div>
+<div class="section level2">
+<h2 id="portable-paths-laptop--hpc-without-edits">Portable paths (laptop ↔︎ HPC without edits)<a class="anchor" aria-label="anchor" href="#portable-paths-laptop--hpc-without-edits"></a>
+</h2>
+<p>Write once, run anywhere: - <code>artifacts://</code> → <code>/scratch/$USER/parade-artifacts</code> on SLURM, tempdir on laptops - <code>data://</code>, <code>project://</code>, <code>scratch://</code>, <code>registry://</code>, <code>config://</code>, <code>cache://</code></p>
+<p>Configure via <code><a href="reference/paths_set.html">paths_set()</a></code> or env vars (<code>PARADE_ARTIFACTS</code>, <code>PARADE_SCRATCH</code>, …). See <a href="https://bbuchsbaum.github.io/parade/articles/parade-paths.html">Smart Path Management</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="why-not-targets--drake--furrr">Why not {targets} / {drake} / {furrr}?<a class="anchor" aria-label="anchor" href="#why-not-targets--drake--furrr"></a>
+</h2>
+<p>Parade is deliberately small and compositional: - Dataframe-shaped param grids vs. global DAG caches - Pseudo-typed returns for crisp contracts - Built-in sinks for large results - HPC ergonomics: SLURM submission, defaults, monitoring, path aliases</p>
+<p>They play nicely together; parade focuses on elegant, fast fan-out/fan-in.</p>
+</div>
+<div class="section level2">
+<h2 id="learn-more">Learn more<a class="anchor" aria-label="anchor" href="#learn-more"></a>
+</h2>
+<ul>
+<li>Parade core: flows, stages, schemas → <a href="https://bbuchsbaum.github.io/parade/articles/parade-core.html" class="uri">https://bbuchsbaum.github.io/parade/articles/parade-core.html</a>
+</li>
+<li>Artifacts &amp; sinks → <a href="https://bbuchsbaum.github.io/parade/articles/parade-artifacts.html" class="uri">https://bbuchsbaum.github.io/parade/articles/parade-artifacts.html</a>
+</li>
+<li>Distribution (local/SLURM) → <a href="https://bbuchsbaum.github.io/parade/articles/parade-slurm-distribution.html" class="uri">https://bbuchsbaum.github.io/parade/articles/parade-slurm-distribution.html</a>
+</li>
+<li>SLURM monitoring → <a href="https://bbuchsbaum.github.io/parade/articles/parade-scripts-monitoring.html" class="uri">https://bbuchsbaum.github.io/parade/articles/parade-scripts-monitoring.html</a>
+</li>
+<li>Mirai backend → <a href="https://bbuchsbaum.github.io/parade/articles/parade-mirai.html" class="uri">https://bbuchsbaum.github.io/parade/articles/parade-mirai.html</a>
+</li>
+<li>Paths → <a href="https://bbuchsbaum.github.io/parade/articles/parade-paths.html" class="uri">https://bbuchsbaum.github.io/parade/articles/parade-paths.html</a>
+</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
+</h2>
+<p>PRs welcome! Please: - follow tidyverse style (lintr + styler), - add tests for new user-facing behavior, - update roxygen and a NEWS entry.</p>
+</div>
 </div>
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
 <li><a href="https://cloud.r-project.org/package=parade" class="external-link">View on CRAN</a></li>
+<li><a href="https://github.com/bbuchsbaum/parade" class="external-link">Source on GitHub</a></li>
+<li><a href="articles/parade-core.html">Get started (Parade core)</a></li>
 </ul>
 </div>
 

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -147,33 +147,33 @@ structures and file naming</li>
 <div class="section level2">
 <h2 id="quick-start-sink_quick-for-rapid-prototyping">Quick start: sink_quick() for rapid prototyping<a class="anchor" aria-label="anchor" href="#quick-start-sink_quick-for-rapid-prototyping"></a>
 </h2>
-<p>New in parade 0.12.0, <code>sink_quick()</code> provides the fastest
+<p>New in parade 0.12.0, <code><a href="../reference/sink_quick.html">sink_quick()</a></code> provides the fastest
 way to create sinks:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># One-liner sink using registered format</span></span>
-<span><span class="va">sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span><span class="st">"result"</span>, write <span class="op">=</span> <span class="st">"rds"</span><span class="op">)</span></span>
+<span><span class="va">sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span><span class="st">"result"</span>, write <span class="op">=</span> <span class="st">"rds"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># CSV sink with formula syntax</span></span>
-<span><span class="va">csv_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span><span class="st">"data"</span>,</span>
+<span><span class="va">csv_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span><span class="st">"data"</span>,</span>
 <span>  write <span class="op">=</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">.x</span>, <span class="va">.path</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  read <span class="op">=</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">.path</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  ext <span class="op">=</span> <span class="st">".csv"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Temporary sink for testing (writes to tempdir)</span></span>
-<span><span class="va">tmp_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_temp</span><span class="op">(</span><span class="st">"output"</span>, write <span class="op">=</span> <span class="st">"json"</span><span class="op">)</span></span>
+<span><span class="va">tmp_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_temp.html">sink_temp</a></span><span class="op">(</span><span class="st">"output"</span>, write <span class="op">=</span> <span class="st">"json"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Use in a flow</span></span>
 <span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"process"</span>,</span>
 <span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>result <span class="op">=</span> <span class="fu">process_data</span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>result <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    sink <span class="op">=</span> <span class="fu">sink_quick</span><span class="op">(</span><span class="st">"result"</span>, write <span class="op">=</span> <span class="st">"parquet"</span><span class="op">)</span></span>
+<span>    sink <span class="op">=</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span><span class="st">"result"</span>, write <span class="op">=</span> <span class="st">"parquet"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="formula-syntax-conventions">Formula syntax conventions<a class="anchor" aria-label="anchor" href="#formula-syntax-conventions"></a>
 </h3>
-<p>When using formulas with <code>sink_quick()</code>: - <code>.x</code>
+<p>When using formulas with <code><a href="../reference/sink_quick.html">sink_quick()</a></code>: - <code>.x</code>
 - the object to write - <code>.path</code> - the full target path (with
 extension) - <code>.base</code> - the target path without extension</p>
 </div>
@@ -261,14 +261,14 @@ case:</p>
 </h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List all registered formats</span></span>
-<span><span class="fu">list_sink_formats</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/list_sink_formats.html">list_sink_formats</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co"># [1] "csv" "feather" "json" "parquet" "qs" "rds" "readr_csv" "tsv"</span></span>
 <span></span>
 <span><span class="co"># Check if a specific format is available</span></span>
-<span><span class="fu">has_sink_format</span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span>  <span class="co"># TRUE if arrow is installed</span></span>
+<span><span class="fu"><a href="../reference/has_sink_format.html">has_sink_format</a></span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span>  <span class="co"># TRUE if arrow is installed</span></span>
 <span></span>
 <span><span class="co"># Get format details</span></span>
-<span><span class="va">fmt</span> <span class="op">&lt;-</span> <span class="fu">get_sink_format</span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span></span>
+<span><span class="va">fmt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_sink_format.html">get_sink_format</a></span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span></span>
 <span><span class="co"># List with writer, reader, ext, atomic fields</span></span></code></pre></div>
 </div>
 </div>
@@ -341,7 +341,7 @@ and timestamps</li>
 <p>Extend parade with your own formats using the registry system:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Register a custom format globally</span></span>
-<span><span class="fu">register_sink_format</span><span class="op">(</span><span class="st">"nifti"</span>,</span>
+<span><span class="fu"><a href="../reference/register_sink_format.html">register_sink_format</a></span><span class="op">(</span><span class="st">"nifti"</span>,</span>
 <span>  writer <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu">write_vol</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
@@ -354,10 +354,10 @@ and timestamps</li>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Now use it anywhere</span></span>
-<span><span class="va">brain_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span><span class="st">"brain_data"</span>, write <span class="op">=</span> <span class="st">"nifti"</span><span class="op">)</span></span>
+<span><span class="va">brain_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span><span class="st">"brain_data"</span>, write <span class="op">=</span> <span class="st">"nifti"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Or define inline without registration</span></span>
-<span><span class="va">custom_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span><span class="st">"special"</span>,</span>
+<span><span class="va">custom_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span><span class="st">"special"</span>,</span>
 <span>  write <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Your custom write logic</span></span>
 <span>    <span class="fu">my_special_writer</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span><span class="op">)</span></span>
@@ -373,7 +373,7 @@ and timestamps</li>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Register HDF5 support</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"hdf5r"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu">register_sink_format</span><span class="op">(</span><span class="st">"hdf5"</span>,</span>
+<span>  <span class="fu"><a href="../reference/register_sink_format.html">register_sink_format</a></span><span class="op">(</span><span class="st">"hdf5"</span>,</span>
 <span>    writer <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="va">file</span> <span class="op">&lt;-</span> <span class="fu">hdf5r</span><span class="fu">::</span><span class="va">H5File</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">path</span>, mode <span class="op">=</span> <span class="st">"w"</span><span class="op">)</span></span>
 <span>      <span class="va">file</span><span class="op">[[</span><span class="st">"data"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">x</span></span>
@@ -394,14 +394,14 @@ and timestamps</li>
 <div class="section level2">
 <h2 id="temporary-sinks-for-development">3) Temporary sinks for development<a class="anchor" aria-label="anchor" href="#temporary-sinks-for-development"></a>
 </h2>
-<p>Use <code>sink_temp()</code> for ephemeral storage during development
+<p>Use <code><a href="../reference/sink_temp.html">sink_temp()</a></code> for ephemeral storage during development
 and testing:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Creates sink in tempdir() with timestamp</span></span>
-<span><span class="va">dev_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_temp</span><span class="op">(</span><span class="st">"test_output"</span>, write <span class="op">=</span> <span class="st">"json"</span><span class="op">)</span></span>
+<span><span class="va">dev_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_temp.html">sink_temp</a></span><span class="op">(</span><span class="st">"test_output"</span>, write <span class="op">=</span> <span class="st">"json"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Custom prefix for organization</span></span>
-<span><span class="va">test_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_temp</span><span class="op">(</span><span class="st">"experiment"</span>,</span>
+<span><span class="va">test_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_temp.html">sink_temp</a></span><span class="op">(</span><span class="st">"experiment"</span>,</span>
 <span>  write <span class="op">=</span> <span class="st">"csv"</span>,</span>
 <span>  prefix <span class="op">=</span> <span class="st">"unittest"</span></span>
 <span><span class="op">)</span></span>
@@ -411,7 +411,7 @@ and testing:</p>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"test"</span>,</span>
 <span>    f <span class="op">=</span> <span class="va">my_experimental_function</span>,</span>
 <span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>output <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    sink <span class="op">=</span> <span class="fu">sink_temp</span><span class="op">(</span><span class="st">"output"</span>, write <span class="op">=</span> <span class="st">"rds"</span><span class="op">)</span>  <span class="co"># No cleanup needed!</span></span>
+<span>    sink <span class="op">=</span> <span class="fu"><a href="../reference/sink_temp.html">sink_temp</a></span><span class="op">(</span><span class="st">"output"</span>, write <span class="op">=</span> <span class="st">"rds"</span><span class="op">)</span>  <span class="co"># No cleanup needed!</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p>Files are written to <code>tempdir()/parade-quick-TIMESTAMP/</code>
 and cleaned up automatically by R.</p>
@@ -485,7 +485,7 @@ automatically:</p>
 <span>      <span class="va">enhanced</span> <span class="op">&lt;-</span> <span class="fu">enhance_summary</span><span class="op">(</span><span class="va">summary</span>, <span class="va">combined</span><span class="op">)</span></span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>final <span class="op">=</span> <span class="va">enhanced</span><span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>
-<span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>final <span class="op">=</span> <span class="fu">tbl</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>final <span class="op">=</span> <span class="fu"><a href="../reference/tbl.html">tbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -580,13 +580,13 @@ Configuration, metadata, web integration</p>
 </h3>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Register specialized formats</span></span>
-<span><span class="fu">register_sink_format</span><span class="op">(</span><span class="st">"matlab"</span>,</span>
+<span><span class="fu"><a href="../reference/register_sink_format.html">register_sink_format</a></span><span class="op">(</span><span class="st">"matlab"</span>,</span>
 <span>  writer <span class="op">=</span> <span class="op">~</span> <span class="fu">R.matlab</span><span class="fu">::</span><span class="fu">writeMat</span><span class="op">(</span><span class="va">.x</span>, <span class="va">.path</span><span class="op">)</span>,</span>
 <span>  reader <span class="op">=</span> <span class="op">~</span> <span class="fu">R.matlab</span><span class="fu">::</span><span class="fu">readMat</span><span class="op">(</span><span class="va">.path</span><span class="op">)</span>,</span>
 <span>  ext <span class="op">=</span> <span class="st">".mat"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">register_sink_format</span><span class="op">(</span><span class="st">"netcdf"</span>,</span>
+<span><span class="fu"><a href="../reference/register_sink_format.html">register_sink_format</a></span><span class="op">(</span><span class="st">"netcdf"</span>,</span>
 <span>  writer <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu">ncdf4</span><span class="fu">::</span><span class="fu">nc_create</span><span class="op">(</span><span class="va">path</span>, <span class="va">x</span><span class="op">$</span><span class="va">var_defs</span><span class="op">)</span></span>
 <span>    <span class="co"># ... write logic</span></span>
@@ -595,7 +595,7 @@ Configuration, metadata, web integration</p>
 <span>  ext <span class="op">=</span> <span class="st">".nc"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">scientific_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span></span>
+<span><span class="va">scientific_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span></span>
 <span>  fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"simulation"</span>, <span class="st">"observations"</span><span class="op">)</span>,</span>
 <span>  write <span class="op">=</span> <span class="st">"netcdf"</span>,</span>
 <span>  dir <span class="op">=</span> <span class="st">"artifacts://climate_model"</span></span>
@@ -610,7 +610,7 @@ Configuration, metadata, web integration</p>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"experiment"</span>,</span>
 <span>    f <span class="op">=</span> <span class="va">my_experimental_analysis</span>,</span>
 <span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>result <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    sink <span class="op">=</span> <span class="fu">sink_temp</span><span class="op">(</span><span class="st">"result"</span>, write <span class="op">=</span> <span class="st">"rds"</span><span class="op">)</span></span>
+<span>    sink <span class="op">=</span> <span class="fu"><a href="../reference/sink_temp.html">sink_temp</a></span><span class="op">(</span><span class="st">"result"</span>, write <span class="op">=</span> <span class="st">"rds"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Test and iterate quickly</span></span>
@@ -739,7 +739,7 @@ full structure</li>
 <span>      brain_data <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span>,  <span class="co"># Large array to disk</span></span>
 <span>      header <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span>,           <span class="co"># Complex S4 object in memory</span></span>
 <span>      space <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span>,            <span class="co"># Spatial object in memory</span></span>
-<span>      stats <span class="op">=</span> <span class="fu">tbl</span><span class="op">(</span><span class="op">)</span>             <span class="co"># Tibble in memory</span></span>
+<span>      stats <span class="op">=</span> <span class="fu"><a href="../reference/tbl.html">tbl</a></span><span class="op">(</span><span class="op">)</span>             <span class="co"># Tibble in memory</span></span>
 <span>    <span class="op">)</span>,</span>
 <span>    sink <span class="op">=</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
 <span>      fields <span class="op">=</span> <span class="st">"brain_data"</span>,</span>
@@ -782,20 +782,20 @@ validation:</p>
 <div class="section level3">
 <h3 id="class-based-validation-with-isa">Class-based validation with isa()<a class="anchor" aria-label="anchor" href="#class-based-validation-with-isa"></a>
 </h3>
-<p>Instead of creating prototype objects, use <code><a href="https://rdrr.io/r/base/class.html" class="external-link">isa()</a></code> to
+<p>Instead of creating prototype objects, use <code><a href="../reference/isa.html">isa()</a></code> to
 validate by class name:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Traditional approach (requires prototype object)</span></span>
 <span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/structure.html" class="external-link">structure</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, class <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Awkward!</span></span>
 <span></span>
 <span><span class="co"># Flexible approach (class name only)</span></span>
-<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Clean and clear</span></span>
+<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Clean and clear</span></span>
 <span></span>
 <span><span class="co"># Works with any class, including S4 and package-specific</span></span>
 <span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span></span>
-<span>  brain <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"neuroim2::NeuroVol"</span><span class="op">)</span>,</span>
-<span>  model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"glm"</span>, <span class="st">"lm"</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Accepts multiple classes</span></span>
-<span>  network <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"igraph"</span><span class="op">)</span></span>
+<span>  brain <span class="op">=</span> <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"neuroim2::NeuroVol"</span><span class="op">)</span>,</span>
+<span>  model <span class="op">=</span> <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"glm"</span>, <span class="st">"lm"</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Accepts multiple classes</span></span>
+<span>  network <span class="op">=</span> <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"igraph"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -813,7 +813,7 @@ validate by class name:</p>
 <span>      <span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span></span>
-<span>      model <span class="op">=</span> <span class="fu">maybe</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Can be lm or NULL</span></span>
+<span>      model <span class="op">=</span> <span class="fu"><a href="../reference/maybe.html">maybe</a></span><span class="op">(</span><span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Can be lm or NULL</span></span>
 <span>      n_obs <span class="op">=</span> <span class="fu"><a href="../reference/int.html">int</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
@@ -824,11 +824,11 @@ validate by class name:</p>
 <p>Accept multiple possible types:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span></span>
-<span>  result <span class="op">=</span> <span class="fu">one_of</span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span>,      <span class="co"># Linear model</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"glm"</span><span class="op">)</span>,     <span class="co"># Generalized linear model</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"nls"</span><span class="op">)</span>,     <span class="co"># Nonlinear model</span></span>
-<span>    <span class="fu">tbl</span><span class="op">(</span><span class="op">)</span>           <span class="co"># Or a summary table</span></span>
+<span>  result <span class="op">=</span> <span class="fu"><a href="../reference/one_of.html">one_of</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span>,      <span class="co"># Linear model</span></span>
+<span>    <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"glm"</span><span class="op">)</span>,     <span class="co"># Generalized linear model</span></span>
+<span>    <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"nls"</span><span class="op">)</span>,     <span class="co"># Nonlinear model</span></span>
+<span>    <span class="fu"><a href="../reference/tbl.html">tbl</a></span><span class="op">(</span><span class="op">)</span>           <span class="co"># Or a summary table</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -839,12 +839,12 @@ validate by class name:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Light validation (always runs)</span></span>
 <span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span></span>
-<span>  data <span class="op">=</span> <span class="fu">pred</span><span class="op">(</span><span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">.</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span>, cost <span class="op">=</span> <span class="st">"light"</span><span class="op">)</span></span>
+<span>  data <span class="op">=</span> <span class="fu"><a href="../reference/pred.html">pred</a></span><span class="op">(</span><span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">.</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span>, cost <span class="op">=</span> <span class="st">"light"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Heavy validation (only in full mode)</span></span>
 <span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span></span>
-<span>  image <span class="op">=</span> <span class="fu">pred</span><span class="op">(</span><span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">.</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">91</span>, <span class="fl">109</span>, <span class="fl">91</span><span class="op">)</span><span class="op">)</span>, cost <span class="op">=</span> <span class="st">"full"</span><span class="op">)</span></span>
+<span>  image <span class="op">=</span> <span class="fu"><a href="../reference/pred.html">pred</a></span><span class="op">(</span><span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">.</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">91</span>, <span class="fl">109</span>, <span class="fl">91</span><span class="op">)</span><span class="op">)</span>, cost <span class="op">=</span> <span class="st">"full"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Use with collect()</span></span>
@@ -857,16 +857,16 @@ validate by class name:</p>
 <p>Parade includes neuroimaging-specific validators:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Any neuroimaging volume</span></span>
-<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>brain <span class="op">=</span> <span class="fu">neurovol</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>brain <span class="op">=</span> <span class="fu"><a href="../reference/neurovol.html">neurovol</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Specific volume type</span></span>
-<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>mask <span class="op">=</span> <span class="fu">neurovol</span><span class="op">(</span>class <span class="op">=</span> <span class="st">"LogicalNeuroVol"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>mask <span class="op">=</span> <span class="fu"><a href="../reference/neurovol.html">neurovol</a></span><span class="op">(</span>class <span class="op">=</span> <span class="st">"LogicalNeuroVol"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># With dimension validation (full mode only)</span></span>
-<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>mni <span class="op">=</span> <span class="fu">neurovol</span><span class="op">(</span>dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">91</span>, <span class="fl">109</span>, <span class="fl">91</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>mni <span class="op">=</span> <span class="fu"><a href="../reference/neurovol.html">neurovol</a></span><span class="op">(</span>dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">91</span>, <span class="fl">109</span>, <span class="fl">91</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Optional neuroimaging data</span></span>
-<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>mask <span class="op">=</span> <span class="fu">maybe_neurovol</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/schema.html">schema</a></span><span class="op">(</span>mask <span class="op">=</span> <span class="fu"><a href="../reference/maybe_neurovol.html">maybe_neurovol</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="performance-modes">Performance modes<a class="anchor" aria-label="anchor" href="#performance-modes"></a>
@@ -915,12 +915,12 @@ validate by class name:</p>
 <span>  score <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  </span>
 <span>  <span class="co"># Flexible types</span></span>
-<span>  model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span>,</span>
-<span>  optimizer <span class="op">=</span> <span class="fu">maybe</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">isa</a></span><span class="op">(</span><span class="st">"optim"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  model <span class="op">=</span> <span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"lm"</span><span class="op">)</span>,</span>
+<span>  optimizer <span class="op">=</span> <span class="fu"><a href="../reference/maybe.html">maybe</a></span><span class="op">(</span><span class="fu"><a href="../reference/isa.html">isa</a></span><span class="op">(</span><span class="st">"optim"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  </span>
 <span>  <span class="co"># Mixed in artifacts</span></span>
 <span>  large_matrix <span class="op">=</span> <span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metadata <span class="op">=</span> <span class="fu">one_of</span><span class="op">(</span><span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu">tbl</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>  metadata <span class="op">=</span> <span class="fu"><a href="../reference/one_of.html">one_of</a></span><span class="op">(</span><span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/tbl.html">tbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -939,7 +939,7 @@ files. Perfect for preprocessing pipelines that generate dozens of
 intermediate files.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Sentinel pattern - track one file that signals success</span></span>
-<span><span class="va">sentinel_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span></span>
+<span><span class="va">sentinel_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span></span>
 <span>  fields <span class="op">=</span> <span class="st">"run"</span>,</span>
 <span>  dir <span class="op">=</span> <span class="st">"artifacts://neuro"</span>,</span>
 <span>  template <span class="op">=</span> <span class="st">"{.stage}/{subject}/{session}/{.row_key}"</span>,</span>
@@ -1016,7 +1016,7 @@ success, filesystem has all outputs</p>
 <p>Track a directory itself as the artifact when downstream stages need
 to explore the contents.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">bundle_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">bundle_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span></span>
 <span>  fields <span class="op">=</span> <span class="st">"bundle"</span>,</span>
 <span>  dir <span class="op">=</span> <span class="st">"artifacts://analysis"</span>,</span>
 <span>  template <span class="op">=</span> <span class="st">"{.stage}/{subject}/{session}"</span>,</span>
@@ -1052,7 +1052,7 @@ to explore the contents.</p>
 <p>Track only the main output file when there’s a clear primary
 result.</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">primary_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">primary_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span></span>
 <span>  fields <span class="op">=</span> <span class="st">"main_result"</span>,</span>
 <span>  dir <span class="op">=</span> <span class="st">"artifacts://results"</span>,</span>
 <span>  template <span class="op">=</span> <span class="st">"{.stage}/{subject}/outputs"</span>,</span>
@@ -1131,7 +1131,7 @@ result.</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">fmri_sink</span> <span class="op">&lt;-</span> <span class="fu">sink_quick</span><span class="op">(</span></span>
+<span><span class="va">fmri_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_quick.html">sink_quick</a></span><span class="op">(</span></span>
 <span>  fields <span class="op">=</span> <span class="st">"preprocessing"</span>,</span>
 <span>  dir <span class="op">=</span> <span class="st">"artifacts://fmri"</span>,</span>
 <span>  template <span class="op">=</span> <span class="st">"{.stage}/{subject}/ses-{session}/run-{run}"</span>,</span>
@@ -1233,7 +1233,7 @@ tree if needed</li>
 <h2 id="tips-and-best-practices">Tips and best practices<a class="anchor" aria-label="anchor" href="#tips-and-best-practices"></a>
 </h2>
 <ol style="list-style-type: decimal">
-<li><p><strong>Start simple</strong>: Use <code>sink_quick()</code>
+<li><p><strong>Start simple</strong>: Use <code><a href="../reference/sink_quick.html">sink_quick()</a></code>
 during development, refine with <code><a href="../reference/sink_spec.html">sink_spec()</a></code> for
 production</p></li>
 <li>

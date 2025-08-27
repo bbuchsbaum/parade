@@ -11,7 +11,7 @@ results."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,7 +127,7 @@ results.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Submit to SLURM</span></span></span>
 <span class="r-in"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">submit_slurm</span><span class="op">(</span><span class="va">script_path</span>, resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"5min"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in dir.create(p, recursive = TRUE, showWarnings = FALSE):</span> invalid 'path' argument</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in submit_slurm(script_path, resources = list(time = "5min")):</span> Template not found: /path/to/custom.tmpl</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

@@ -9,7 +9,7 @@ including CPU utilization, memory consumption, and job status."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,6 +67,24 @@ including CPU utilization, memory consumption, and job status.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Named list with job metrics and resource usage</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>This function queries SLURM's accounting system to retrieve job metrics:</p>
+<p><strong>Data Sources:</strong></p><ul><li><p>Uses <code>sacct</code> for historical/completed job metrics</p></li>
+<li><p>Uses <code>sstat</code> for live metrics of running jobs</p></li>
+<li><p>Falls back to <code>squeue</code> when accounting is unavailable</p></li>
+</ul><p><strong>Metrics Returned:</strong></p><ul><li><p><code>cpu_pct</code>: CPU utilization percentage</p></li>
+<li><p><code>ave_rss</code>, <code>max_rss</code>: Average/maximum resident set size (bytes)</p></li>
+<li><p><code>ncpus</code>/<code>alloc_cpus</code>: Number of allocated CPUs</p></li>
+<li><p><code>elapsed</code>: Elapsed time in seconds</p></li>
+<li><p><code>node</code>: Node list where job is running</p></li>
+<li><p><code>state</code>: Current job state (RUNNING, COMPLETED, FAILED, etc.)</p></li>
+</ul><p><strong>Prerequisites:</strong></p><ul><li><p>SLURM commands (<code>sacct</code>, <code>sstat</code>, <code>squeue</code>) must be available in PATH</p></li>
+<li><p>SLURM accounting must be enabled for detailed metrics</p></li>
+</ul><p><strong>Failure Behavior:</strong></p><ul><li><p>Returns NA for unavailable metrics (never errors)</p></li>
+<li><p>Warns once if SLURM commands are missing</p></li>
+<li><p>Degrades gracefully when accounting is disabled</p></li>
+</ul></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -75,6 +93,7 @@ including CPU utilization, memory consumption, and job status.</p>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in submit_slurm("script.R"):</span> Script not found: script.R</span>
 <span class="r-in"><span><span class="va">metrics</span> <span class="op">&lt;-</span> <span class="fu">script_metrics</span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'job' not found</span>
+<span class="r-in"><span><span class="co"># Returns list with: cpu_pct, ave_rss, max_rss, elapsed, state, etc.</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

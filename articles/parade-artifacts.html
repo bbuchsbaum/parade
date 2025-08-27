@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -326,8 +326,8 @@ in memory, large stuff on disk:</p>
 <span>      <span class="op">}</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span></span>
-<span>      model <span class="op">=</span> <span class="fu">maybe</span><span class="op">(</span><span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Might be NULL</span></span>
-<span>      stats <span class="op">=</span> <span class="fu">maybe</span><span class="op">(</span><span class="fu"><a href="../reference/struct.html">struct</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>      model <span class="op">=</span> <span class="fu"><a href="../reference/maybe.html">maybe</a></span><span class="op">(</span><span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Might be NULL</span></span>
+<span>      stats <span class="op">=</span> <span class="fu"><a href="../reference/maybe.html">maybe</a></span><span class="op">(</span><span class="fu"><a href="../reference/struct.html">struct</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="op">)</span>,</span>
 <span>    sink <span class="op">=</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
 <span>      fields <span class="op">=</span> <span class="st">"model"</span>,</span>
@@ -500,7 +500,7 @@ in memory, large stuff on disk:</p>
 <span>    <span class="op">}</span></span>
 <span>  <span class="op">}</span>,</span>
 <span>  schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span></span>
-<span>    model <span class="op">=</span> <span class="fu">maybe</span><span class="op">(</span><span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Conditional artifact</span></span>
+<span>    model <span class="op">=</span> <span class="fu"><a href="../reference/maybe.html">maybe</a></span><span class="op">(</span><span class="fu"><a href="../reference/artifact.html">artifact</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,  <span class="co"># Conditional artifact</span></span>
 <span>    stored <span class="op">=</span> <span class="fu"><a href="../reference/lgl.html">lgl</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  sink <span class="op">=</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>

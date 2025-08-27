@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -124,7 +124,7 @@ from R through simple functions.</p>
 <p>When you call <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code>, it automatically merges
 your call’s <code>resources</code> parameter with the configured
 defaults, normalizes time specifications, and drops any <code>NA</code>
-or <code>omit()</code> fields before constructing the
+or <code><a href="../reference/omit.html">omit()</a></code> fields before constructing the
 <code>#SBATCH</code> directives for your SLURM job.</p>
 </div>
 <div class="section level2">
@@ -182,7 +182,7 @@ submission.</p>
 job-specific overrides:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use defaults but override time and explicitly omit memory</span></span>
-<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"90min"</span>, mem <span class="op">=</span> <span class="fu">omit</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"90min"</span>, mem <span class="op">=</span> <span class="fu"><a href="../reference/omit.html">omit</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Submit job with these specific resources</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"analysis.R"</span>, resources <span class="op">=</span> <span class="va">resources</span><span class="op">)</span></span></code></pre></div>

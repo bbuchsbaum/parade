@@ -9,7 +9,7 @@ directory structure, file formats, and metadata handling."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,13 +56,14 @@ directory structure, file formats, and metadata handling.</p>
 <span>  <span class="va">fields</span>,</span>
 <span>  <span class="va">dir</span>,</span>
 <span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"rds"</span><span class="op">)</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"rds"</span>,</span>
+<span>  formats <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  writer <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  reader <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"skip"</span>, <span class="st">"overwrite"</span>, <span class="st">"error"</span><span class="op">)</span>,</span>
 <span>  checksum <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  sidecar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"json"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  compress <span class="op">=</span> <span class="st">"gzip"</span>,</span>
-<span>  reader <span class="op">=</span> <span class="va">readRDS</span>,</span>
 <span>  autoload <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -84,11 +85,19 @@ directory structure, file formats, and metadata handling.</p>
 
 
 <dt id="arg-format">format<a class="anchor" aria-label="anchor" href="#arg-format"></a></dt>
-<dd><p>File format (currently only "rds" supported)</p></dd>
+<dd><p>File format string or list of per-field formats</p></dd>
+
+
+<dt id="arg-formats">formats<a class="anchor" aria-label="anchor" href="#arg-formats"></a></dt>
+<dd><p>Optional named list of per-field format specifications</p></dd>
 
 
 <dt id="arg-writer">writer<a class="anchor" aria-label="anchor" href="#arg-writer"></a></dt>
 <dd><p>Optional custom writer function</p></dd>
+
+
+<dt id="arg-reader">reader<a class="anchor" aria-label="anchor" href="#arg-reader"></a></dt>
+<dd><p>Function to read persisted files</p></dd>
 
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
@@ -105,10 +114,6 @@ directory structure, file formats, and metadata handling.</p>
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
 <dd><p>Compression method for RDS files</p></dd>
-
-
-<dt id="arg-reader">reader<a class="anchor" aria-label="anchor" href="#arg-reader"></a></dt>
-<dd><p>Function to read persisted files</p></dd>
 
 
 <dt id="arg-autoload">autoload<a class="anchor" aria-label="anchor" href="#arg-autoload"></a></dt>
@@ -146,8 +151,8 @@ directory structure, file formats, and metadata handling.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     saveRDS(x, file = path, compress = compress, ...)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     invisible(path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55e32d578848&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55e32d57ece0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55cfacc09ad8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55cfacc121a0&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $overwrite</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "skip"</span>
@@ -175,7 +180,7 @@ directory structure, file formats, and metadata handling.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     else stop("bad 'file' argument")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .Internal(unserializeFromConn(con, refhook))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55e328e60b30&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55cfa8ba5b30&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:base&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $autoload</span>
@@ -207,8 +212,8 @@ directory structure, file formats, and metadata handling.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     saveRDS(x, file = path, compress = compress, ...)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     invisible(path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55e32d578848&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55e32d57ece0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55cfacc09ad8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55cfacc121a0&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $overwrite</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "skip"</span>
@@ -236,7 +241,68 @@ directory structure, file formats, and metadata handling.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     else stop("bad 'file' argument")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .Internal(unserializeFromConn(con, refhook))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55e328e60b30&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55cfa8ba5b30&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:base&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $autoload</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "parade_sink"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Using different formats per field</span></span></span>
+<span class="r-in"><span><span class="fu">sink_spec</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data"</span>, <span class="st">"model"</span><span class="op">)</span>, dir <span class="op">=</span> <span class="st">"output"</span>,</span></span>
+<span class="r-in"><span>  formats <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>data <span class="op">=</span> <span class="st">"csv"</span>, model <span class="op">=</span> <span class="st">"rds"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $fields</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "data"  "model"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $dir</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "output"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $template</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $format</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "rds"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $formats</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $formats$data</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "csv"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $formats$model</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "rds"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $writer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $overwrite</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "skip"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $checksum</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $sidecar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "json"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $compress</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "gzip"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $reader</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> function (file, refhook = NULL) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     if (is.character(file)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         con &lt;- gzfile(file, "rb")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         on.exit(close(con))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     else if (inherits(file, "connection")) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         con &lt;- if (inherits(file, "url")) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             gzcon(file)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else file</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     else stop("bad 'file' argument")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     .Internal(unserializeFromConn(con, refhook))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55cfa8ba5b30&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:base&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $autoload</span>

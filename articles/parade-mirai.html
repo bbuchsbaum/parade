@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">parade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,12 +106,12 @@ multisession backend:</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Initialize mirai with auto-detected cores</span></span>
-<span><span class="fu">mirai_init</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_init.html">mirai_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Or use the distribution interface</span></span>
 <span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"process"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span>, schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu">use_mirai_local</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/use_mirai_local.html">use_mirai_local</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>This provides instant parallelism without any configuration, and
 often with better performance than traditional backends for many small
@@ -137,7 +137,7 @@ tasks.</p>
 <tr class="odd">
 <td>Many small tasks</td>
 <td><code><a href="../reference/dist_local.html">dist_local()</a></code></td>
-<td><code>use_mirai_local()</code></td>
+<td><code><a href="../reference/use_mirai_local.html">use_mirai_local()</a></code></td>
 <td>Lower overhead, faster</td>
 </tr>
 <tr class="even">
@@ -149,13 +149,13 @@ tasks.</p>
 <tr class="odd">
 <td>Remote execution</td>
 <td>Complex setup</td>
-<td><code>use_mirai_ssh()</code></td>
+<td><code><a href="../reference/use_mirai_ssh.html">use_mirai_ssh()</a></code></td>
 <td>Built-in SSH tunneling</td>
 </tr>
 <tr class="even">
 <td>HPC clusters</td>
 <td><code><a href="../reference/dist_slurm.html">dist_slurm()</a></code></td>
-<td><code>use_mirai_slurm()</code></td>
+<td><code><a href="../reference/use_mirai_slurm.html">use_mirai_slurm()</a></code></td>
 <td>Lower latency, persistent workers</td>
 </tr>
 </tbody>
@@ -171,10 +171,10 @@ tasks.</p>
 <p>For development and single-machine workflows:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Basic local setup</span></span>
-<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu">dist_mirai</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
+<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># With explicit configuration</span></span>
-<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu">dist_mirai</span><span class="op">(</span></span>
+<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span></span>
 <span>  n <span class="op">=</span> <span class="fu">parallel</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/parallel/detectCores.html" class="external-link">detectCores</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dispatcher <span class="op">=</span> <span class="cn">TRUE</span>,  <span class="co"># Enable load balancing</span></span>
 <span>  within <span class="op">=</span> <span class="st">"mirai"</span>,   <span class="co"># Use mirai for nested parallelization</span></span>
@@ -191,7 +191,7 @@ tasks.</p>
 execution:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Configure SLURM-launched daemons</span></span>
-<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu">use_mirai_slurm</span><span class="op">(</span></span>
+<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/use_mirai_slurm.html">use_mirai_slurm</a></span><span class="op">(</span></span>
 <span>  n <span class="op">=</span> <span class="fl">16</span>,                    <span class="co"># Number of daemon jobs</span></span>
 <span>  partition <span class="op">=</span> <span class="st">"compute"</span>,     <span class="co"># SLURM partition</span></span>
 <span>  time <span class="op">=</span> <span class="st">"2:00:00"</span>,         <span class="co"># Wall time</span></span>
@@ -219,14 +219,14 @@ policies while providing low-latency task execution.</p>
 blocked:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># SSH with tunneling (for firewalled nodes)</span></span>
-<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu">use_mirai_ssh</span><span class="op">(</span></span>
+<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/use_mirai_ssh.html">use_mirai_ssh</a></span><span class="op">(</span></span>
 <span>  remotes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ssh://node1"</span>, <span class="st">"ssh://node2"</span>, <span class="st">"ssh://node3"</span><span class="op">)</span>,</span>
 <span>  tunnel <span class="op">=</span> <span class="cn">TRUE</span>,      <span class="co"># Use SSH tunneling</span></span>
 <span>  port <span class="op">=</span> <span class="fl">40491</span>       <span class="co"># Local port for tunnel</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Direct SSH (when ports are open)</span></span>
-<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu">use_mirai_ssh</span><span class="op">(</span></span>
+<span><span class="va">dist</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/use_mirai_ssh.html">use_mirai_ssh</a></span><span class="op">(</span></span>
 <span>  remotes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ssh://compute1"</span>, <span class="st">"ssh://compute2"</span><span class="op">)</span>,</span>
 <span>  tunnel <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
@@ -274,18 +274,18 @@ environments.</p>
 <p>Adjust daemon count based on workload:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Start with a few daemons</span></span>
-<span><span class="fu">mirai_init</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_init.html">mirai_init</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Scale up for intensive processing</span></span>
-<span><span class="fu">mirai_scale</span><span class="op">(</span><span class="fl">16</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_scale.html">mirai_scale</a></span><span class="op">(</span><span class="fl">16</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">heavy_flow</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Scale down when done</span></span>
-<span><span class="fu">mirai_scale</span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_scale.html">mirai_scale</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check status</span></span>
-<span><span class="fu">mirai_status</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">mirai_dispatcher_status</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/mirai_status.html">mirai_status</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_dispatcher_status.html">mirai_dispatcher_status</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="chunking-strategies">Chunking Strategies<a class="anchor" aria-label="anchor" href="#chunking-strategies"></a>
@@ -293,14 +293,14 @@ environments.</p>
 <p>Optimize task distribution with mirai’s dispatcher:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Fine-grained parallelism (many small tasks)</span></span>
-<span><span class="fu">dist_mirai</span><span class="op">(</span></span>
+<span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span></span>
 <span>  n <span class="op">=</span> <span class="fl">16</span>,</span>
 <span>  dispatcher <span class="op">=</span> <span class="cn">TRUE</span>,     <span class="co"># Essential for load balancing</span></span>
 <span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>     <span class="co"># One group per task</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Coarse-grained parallelism (fewer large tasks)</span></span>
-<span><span class="fu">dist_mirai</span><span class="op">(</span></span>
+<span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span></span>
 <span>  n <span class="op">=</span> <span class="fl">8</span>,</span>
 <span>  dispatcher <span class="op">=</span> <span class="cn">FALSE</span>,    <span class="co"># Direct task assignment</span></span>
 <span>  chunks_per_job <span class="op">=</span> <span class="fl">10</span>    <span class="co"># Bundle groups together</span></span>
@@ -334,7 +334,7 @@ environments.</p>
 <span>      ks_p <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/ks.test.html" class="external-link">ks.test</a></span><span class="op">(</span><span class="va">data</span>, <span class="st">"pgamma"</span>, <span class="va">alpha</span>, <span class="va">beta</span><span class="op">)</span><span class="op">$</span><span class="va">p.value</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">}</span>, schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>mean <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span>, var <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span>, ks_p <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu">dist_mirai</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">200</span><span class="op">)</span><span class="op">)</span>  <span class="co"># 200 workers!</span></span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">200</span><span class="op">)</span><span class="op">)</span>  <span class="co"># 200 workers!</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">fl</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -344,13 +344,13 @@ environments.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Development: test locally</span></span>
 <span><span class="va">fl_dev</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> </span>
-<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu">use_mirai_local</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/use_mirai_local.html">use_mirai_local</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">test_results</span> <span class="op">&lt;-</span> <span class="va">fl_dev</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Production: scale to cluster</span></span>
 <span><span class="va">fl_prod</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu">use_mirai_slurm</span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/use_mirai_slurm.html">use_mirai_slurm</a></span><span class="op">(</span></span>
 <span>    n <span class="op">=</span> <span class="fl">64</span>,</span>
 <span>    partition <span class="op">=</span> <span class="st">"compute"</span>,</span>
 <span>    time <span class="op">=</span> <span class="st">"12:00:00"</span>,</span>
@@ -377,14 +377,14 @@ environments.</p>
 <span><span class="va">get_distribution</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"SLURM_JOB_ID"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Running on SLURM</span></span>
-<span>    <span class="fu">use_mirai_slurm</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">32</span>, partition <span class="op">=</span> <span class="st">"compute"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/use_mirai_slurm.html">use_mirai_slurm</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">32</span>, partition <span class="op">=</span> <span class="st">"compute"</span><span class="op">)</span></span>
 <span>  <span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="st">"~/.ssh/compute_nodes"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Has SSH access to compute nodes</span></span>
 <span>    <span class="va">nodes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="st">"~/.ssh/compute_nodes"</span><span class="op">)</span></span>
-<span>    <span class="fu">use_mirai_ssh</span><span class="op">(</span>remotes <span class="op">=</span> <span class="va">nodes</span>, tunnel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/use_mirai_ssh.html">use_mirai_ssh</a></span><span class="op">(</span>remotes <span class="op">=</span> <span class="va">nodes</span>, tunnel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
 <span>    <span class="co"># Local development</span></span>
-<span>    <span class="fu">use_mirai_local</span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/use_mirai_local.html">use_mirai_local</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
 <span><span class="op">}</span></span>
 <span></span>
@@ -421,12 +421,12 @@ environments.</p>
 </tr>
 <tr class="even">
 <td>Many small tasks</td>
-<td><code>dist_mirai()</code></td>
+<td><code><a href="../reference/dist_mirai.html">dist_mirai()</a></code></td>
 <td>Lower per-task overhead</td>
 </tr>
 <tr class="odd">
 <td>&gt;125 parallel tasks</td>
-<td><code>dist_mirai()</code></td>
+<td><code><a href="../reference/dist_mirai.html">dist_mirai()</a></code></td>
 <td>Only option beyond connection limit</td>
 </tr>
 <tr class="even">
@@ -454,13 +454,13 @@ environments.</p>
 overhead:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For homogeneous tasks (similar runtime)</span></span>
-<span><span class="fu">dist_mirai</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, dispatcher <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, dispatcher <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># For heterogeneous tasks (varying runtime)</span></span>
-<span><span class="fu">dist_mirai</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, dispatcher <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, dispatcher <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># For embarrassingly parallel workflows</span></span>
-<span><span class="fu">dist_mirai</span><span class="op">(</span></span>
+<span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span></span>
 <span>  n <span class="op">=</span> <span class="fl">32</span>,</span>
 <span>  dispatcher <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  chunks_per_job <span class="op">=</span> <span class="fl">1</span>  <span class="co"># Maximum parallelism</span></span>
@@ -476,18 +476,18 @@ overhead:</p>
 <p><strong>Issue</strong>: “Cannot connect to daemons”</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check daemon status</span></span>
-<span><span class="fu">mirai_status</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_status.html">mirai_status</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Restart daemons</span></span>
-<span><span class="fu">mirai_stop</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">mirai_init</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/mirai_stop.html">mirai_stop</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_init.html">mirai_init</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Issue</strong>: “Tasks not distributing evenly”</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Ensure dispatcher is enabled</span></span>
-<span><span class="fu">dist_mirai</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, dispatcher <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, dispatcher <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check dispatcher status</span></span>
-<span><span class="fu">mirai_dispatcher_status</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/mirai_dispatcher_status.html">mirai_dispatcher_status</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Issue</strong>: “SSH connection fails”</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Test SSH manually first</span></span>
@@ -517,7 +517,7 @@ overhead:</p>
 <ol style="list-style-type: decimal">
 <li><p><strong>Always cleanup daemons</strong>: Use
 <code>stop_on_exit = TRUE</code> (default) or explicitly call
-<code>mirai_stop()</code></p></li>
+<code><a href="../reference/mirai_stop.html">mirai_stop()</a></code></p></li>
 <li>
 <p><strong>Choose appropriate daemon count</strong>:</p>
 <ul>
@@ -530,27 +530,27 @@ overhead:</p>
 <p><strong>Use TLS for production</strong>: Enable encryption for
 sensitive data</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">dist_mirai</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, tls <span class="op">=</span> <span class="cn">TRUE</span>, port <span class="op">=</span> <span class="fl">5555</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">16</span>, tls <span class="op">=</span> <span class="cn">TRUE</span>, port <span class="op">=</span> <span class="fl">5555</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li>
 <p><strong>Monitor resource usage</strong>: Track daemon
 performance</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># During execution</span></span>
-<span><span class="fu">mirai_dispatcher_status</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mirai_dispatcher_status.html">mirai_dispatcher_status</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># After completion</span></span>
-<span><span class="fu">mirai_status</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/mirai_status.html">mirai_status</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li>
 <p><strong>Test locally before scaling</strong>: Verify workflow
 correctness</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Development</span></span>
-<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu">use_mirai_local</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/use_mirai_local.html">use_mirai_local</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Production</span></span>
-<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu">use_mirai_slurm</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">64</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/submit.html">submit</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/use_mirai_slurm.html">use_mirai_slurm</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">64</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/submit.html">submit</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </li>
 </ol>
 </div>
