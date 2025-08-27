@@ -230,7 +230,7 @@ neuro_pipeline <- flow(subjects) |>
   stage("analyze",
     f = function(cleaned_brain, qc) {
       # Load the artifact
-      brain <- load_artifact(cleaned_brain)
+      brain <- readRDS(cleaned_brain$path)
       
       # Only process if QC passed
       if (qc$snr > 10) {

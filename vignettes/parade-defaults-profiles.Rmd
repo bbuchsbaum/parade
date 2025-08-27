@@ -27,15 +27,15 @@ Your research workflow likely involves many different types of computing tasks:
 ```r
 # Quick test with 5 samples - needs 30 minutes, 4 CPUs
 test_job <- submit_slurm("test.R", 
-  resources = list(partition = "debug", time = "30m", cpus = 4, mem = "8G"))
+  resources = list(partition = "debug", time = "30m", cpus_per_task = 4, mem = "8G"))
 
 # Full analysis with 1000 samples - needs 8 hours, 32 CPUs  
 prod_job <- submit_slurm("full_analysis.R",
-  resources = list(partition = "compute", time = "8h", cpus = 32, mem = "64G"))
+  resources = list(partition = "compute", time = "8h", cpus_per_task = 32, mem = "64G"))
 
 # GPU model training - needs 12 hours, 2 GPUs
 gpu_job <- submit_slurm("train_model.R",
-  resources = list(partition = "gpu", time = "12h", cpus = 16, mem = "32G", gres = "gpu:2"))
+  resources = list(partition = "gpu", time = "12h", cpus_per_task = 16, mem = "32G", gres = "gpu:2"))
 ```
 
 **This is tedious and error-prone**. You're repeating resource specifications everywhere, and it's easy to accidentally submit a big job to the debug partition or request wrong resources.
@@ -48,13 +48,13 @@ gpu_job <- submit_slurm("train_model.R",
 library(parade)
 
 # Define your resource templates once
-slurm_defaults_set(partition = "debug", time = "30m", cpus = 4, mem = "8G", 
+slurm_defaults_set(partition = "debug", time = "30m", cpus_per_task = 4, mem = "8G", 
                    profile = "testing", persist = TRUE)
 
-slurm_defaults_set(partition = "compute", time = "8h", cpus = 32, mem = "64G",
+slurm_defaults_set(partition = "compute", time = "8h", cpus_per_task = 32, mem = "64G",
                    profile = "production", persist = TRUE)
 
-slurm_defaults_set(partition = "gpu", time = "12h", cpus = 16, mem = "32G", gres = "gpu:2",
+slurm_defaults_set(partition = "gpu", time = "12h", cpus_per_task = 16, mem = "32G", gres = "gpu:2",
                    profile = "gpu_training", persist = TRUE)
 
 # Now use them anywhere with just the profile name
@@ -304,21 +304,21 @@ Start with a profile but override specific settings:
 
 ```r
 # Base profile has 8 hour time limit
-slurm_defaults_set(time = "8h", cpus = 32, profile = "standard", persist = TRUE)
+slurm_defaults_set(time = "8h", cpus_per_task = 32, profile = "standard", persist = TRUE)
 
 # Override just the time for a longer job
 long_job_resources <- slurm_resources(
   list(time = "24h"),        # Override time
   profile = "standard"       # Keep other settings from profile
 )
-# Results in: time = "24h", cpus = 32 (from profile)
+# Results in: time = "24h", cpus_per_task = 32 (from profile)
 
 # Override multiple settings
 custom_resources <- slurm_resources(
   list(time = "2h", mem = "128G"),  # Override time and memory
   profile = "standard"               # Keep cpus from profile
 )
-# Results in: time = "2h", mem = "128G", cpus = 32 (from profile)
+# Results in: time = "2h", mem = "128G", cpus_per_task = 32 (from profile)
 ```
 
 ### Programmatic Profile Selection

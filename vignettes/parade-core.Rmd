@@ -268,7 +268,9 @@ complex_flow <- flow(grid) |>
   stage(id = "load", 
         f = function(participant, condition) {
           # Load raw data
-          list(raw_data = read_data(participant, condition))
+          # In practice, replace with your actual data loading function
+          # e.g., read.csv(resolve_path(paste0("data://", participant, "_", condition, ".csv")))
+          list(raw_data = read_data(participant, condition))  # user-defined function
         },
         schema = returns(raw_data = lst())) |>
   
@@ -276,7 +278,8 @@ complex_flow <- flow(grid) |>
         needs = "load",
         f = function(load.raw_data) {
           # Clean the data
-          list(clean_data = remove_outliers(load.raw_data))
+          # Replace with your data cleaning logic
+          list(clean_data = remove_outliers(load.raw_data))  # user-defined function
         },
         schema = returns(clean_data = lst())) |>
   
@@ -292,7 +295,8 @@ complex_flow <- flow(grid) |>
         needs = "model",
         f = function(model.model) {
           # Cross-validation
-          list(cv_score = cross_validate(model.model))
+          # Replace with your validation logic, e.g., using caret or mlr3
+          list(cv_score = cross_validate(model.model))  # user-defined function
         },
         schema = returns(cv_score = dbl())) |>
   
@@ -300,7 +304,8 @@ complex_flow <- flow(grid) |>
         needs = c("model", "validate"),  # Depends on TWO stages
         f = function(model.model, validate.cv_score) {
           # Generate final report using both model and validation
-          list(summary = create_report(model.model, validate.cv_score))
+          # Replace with your reporting logic
+          list(summary = create_report(model.model, validate.cv_score))  # user-defined function
         },
         schema = returns(summary = lst()))
 ```
@@ -382,7 +387,8 @@ model_flow <- flow(grid) |>
     id = "fit_model",
     f = function(participant) {
       # Fit a complex model
-      model <- lm(y ~ x1 + x2 + x3, data = get_data(participant))
+      # Replace get_data() with your data loading logic
+      model <- lm(y ~ x1 + x2 + x3, data = get_data(participant))  # user-defined function
       
       # Return both the model object and extracted metrics
       list(
