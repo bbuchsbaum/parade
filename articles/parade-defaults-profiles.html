@@ -86,15 +86,15 @@ computing tasks:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Quick test with 5 samples - needs 30 minutes, 4 CPUs</span></span>
 <span><span class="va">test_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"test.R"</span>, </span>
-<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"debug"</span>, time <span class="op">=</span> <span class="st">"30m"</span>, cpus <span class="op">=</span> <span class="fl">4</span>, mem <span class="op">=</span> <span class="st">"8G"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"debug"</span>, time <span class="op">=</span> <span class="st">"30m"</span>, cpus_per_task <span class="op">=</span> <span class="fl">4</span>, mem <span class="op">=</span> <span class="st">"8G"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Full analysis with 1000 samples - needs 8 hours, 32 CPUs  </span></span>
 <span><span class="va">prod_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"full_analysis.R"</span>,</span>
-<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"compute"</span>, time <span class="op">=</span> <span class="st">"8h"</span>, cpus <span class="op">=</span> <span class="fl">32</span>, mem <span class="op">=</span> <span class="st">"64G"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"compute"</span>, time <span class="op">=</span> <span class="st">"8h"</span>, cpus_per_task <span class="op">=</span> <span class="fl">32</span>, mem <span class="op">=</span> <span class="st">"64G"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># GPU model training - needs 12 hours, 2 GPUs</span></span>
 <span><span class="va">gpu_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"train_model.R"</span>,</span>
-<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"gpu"</span>, time <span class="op">=</span> <span class="st">"12h"</span>, cpus <span class="op">=</span> <span class="fl">16</span>, mem <span class="op">=</span> <span class="st">"32G"</span>, gres <span class="op">=</span> <span class="st">"gpu:2"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"gpu"</span>, time <span class="op">=</span> <span class="st">"12h"</span>, cpus_per_task <span class="op">=</span> <span class="fl">16</span>, mem <span class="op">=</span> <span class="st">"32G"</span>, gres <span class="op">=</span> <span class="st">"gpu:2"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><strong>This is tedious and error-prone</strong>. You’re repeating
 resource specifications everywhere, and it’s easy to accidentally submit
 a big job to the debug partition or request wrong resources.</p>
@@ -108,13 +108,13 @@ then reference them by name:</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Define your resource templates once</span></span>
-<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"debug"</span>, time <span class="op">=</span> <span class="st">"30m"</span>, cpus <span class="op">=</span> <span class="fl">4</span>, mem <span class="op">=</span> <span class="st">"8G"</span>, </span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"debug"</span>, time <span class="op">=</span> <span class="st">"30m"</span>, cpus_per_task <span class="op">=</span> <span class="fl">4</span>, mem <span class="op">=</span> <span class="st">"8G"</span>, </span>
 <span>                   profile <span class="op">=</span> <span class="st">"testing"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"compute"</span>, time <span class="op">=</span> <span class="st">"8h"</span>, cpus <span class="op">=</span> <span class="fl">32</span>, mem <span class="op">=</span> <span class="st">"64G"</span>,</span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"compute"</span>, time <span class="op">=</span> <span class="st">"8h"</span>, cpus_per_task <span class="op">=</span> <span class="fl">32</span>, mem <span class="op">=</span> <span class="st">"64G"</span>,</span>
 <span>                   profile <span class="op">=</span> <span class="st">"production"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"gpu"</span>, time <span class="op">=</span> <span class="st">"12h"</span>, cpus <span class="op">=</span> <span class="fl">16</span>, mem <span class="op">=</span> <span class="st">"32G"</span>, gres <span class="op">=</span> <span class="st">"gpu:2"</span>,</span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition <span class="op">=</span> <span class="st">"gpu"</span>, time <span class="op">=</span> <span class="st">"12h"</span>, cpus_per_task <span class="op">=</span> <span class="fl">16</span>, mem <span class="op">=</span> <span class="st">"32G"</span>, gres <span class="op">=</span> <span class="st">"gpu:2"</span>,</span>
 <span>                   profile <span class="op">=</span> <span class="st">"gpu_training"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Now use them anywhere with just the profile name</span></span>
@@ -370,21 +370,21 @@ of samples:</p>
 <p>Start with a profile but override specific settings:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Base profile has 8 hour time limit</span></span>
-<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"8h"</span>, cpus <span class="op">=</span> <span class="fl">32</span>, profile <span class="op">=</span> <span class="st">"standard"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"8h"</span>, cpus_per_task <span class="op">=</span> <span class="fl">32</span>, profile <span class="op">=</span> <span class="st">"standard"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Override just the time for a longer job</span></span>
 <span><span class="va">long_job_resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"24h"</span><span class="op">)</span>,        <span class="co"># Override time</span></span>
 <span>  profile <span class="op">=</span> <span class="st">"standard"</span>       <span class="co"># Keep other settings from profile</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co"># Results in: time = "24h", cpus = 32 (from profile)</span></span>
+<span><span class="co"># Results in: time = "24h", cpus_per_task = 32 (from profile)</span></span>
 <span></span>
 <span><span class="co"># Override multiple settings</span></span>
 <span><span class="va">custom_resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"2h"</span>, mem <span class="op">=</span> <span class="st">"128G"</span><span class="op">)</span>,  <span class="co"># Override time and memory</span></span>
 <span>  profile <span class="op">=</span> <span class="st">"standard"</span>               <span class="co"># Keep cpus from profile</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co"># Results in: time = "2h", mem = "128G", cpus = 32 (from profile)</span></span></code></pre></div>
+<span><span class="co"># Results in: time = "2h", mem = "128G", cpus_per_task = 32 (from profile)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="programmatic-profile-selection">Programmatic Profile Selection<a class="anchor" aria-label="anchor" href="#programmatic-profile-selection"></a>

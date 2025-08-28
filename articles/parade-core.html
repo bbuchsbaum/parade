@@ -372,7 +372,9 @@ acyclic graph (DAG):</p>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"load"</span>, </span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">participant</span>, <span class="va">condition</span><span class="op">)</span> <span class="op">{</span></span>
 <span>          <span class="co"># Load raw data</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>raw_data <span class="op">=</span> <span class="fu">read_data</span><span class="op">(</span><span class="va">participant</span>, <span class="va">condition</span><span class="op">)</span><span class="op">)</span></span>
+<span>          <span class="co"># In practice, replace with your actual data loading function</span></span>
+<span>          <span class="co"># e.g., read.csv(resolve_path(paste0("data://", participant, "_", condition, ".csv")))</span></span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>raw_data <span class="op">=</span> <span class="fu">read_data</span><span class="op">(</span><span class="va">participant</span>, <span class="va">condition</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>raw_data <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
@@ -380,7 +382,8 @@ acyclic graph (DAG):</p>
 <span>        needs <span class="op">=</span> <span class="st">"load"</span>,</span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">load.raw_data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>          <span class="co"># Clean the data</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>clean_data <span class="op">=</span> <span class="fu">remove_outliers</span><span class="op">(</span><span class="va">load.raw_data</span><span class="op">)</span><span class="op">)</span></span>
+<span>          <span class="co"># Replace with your data cleaning logic</span></span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>clean_data <span class="op">=</span> <span class="fu">remove_outliers</span><span class="op">(</span><span class="va">load.raw_data</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>clean_data <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
@@ -396,7 +399,8 @@ acyclic graph (DAG):</p>
 <span>        needs <span class="op">=</span> <span class="st">"model"</span>,</span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">model.model</span><span class="op">)</span> <span class="op">{</span></span>
 <span>          <span class="co"># Cross-validation</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cv_score <span class="op">=</span> <span class="fu">cross_validate</span><span class="op">(</span><span class="va">model.model</span><span class="op">)</span><span class="op">)</span></span>
+<span>          <span class="co"># Replace with your validation logic, e.g., using caret or mlr3</span></span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cv_score <span class="op">=</span> <span class="fu">cross_validate</span><span class="op">(</span><span class="va">model.model</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>cv_score <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
@@ -404,7 +408,8 @@ acyclic graph (DAG):</p>
 <span>        needs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"validate"</span><span class="op">)</span>,  <span class="co"># Depends on TWO stages</span></span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">model.model</span>, <span class="va">validate.cv_score</span><span class="op">)</span> <span class="op">{</span></span>
 <span>          <span class="co"># Generate final report using both model and validation</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>summary <span class="op">=</span> <span class="fu">create_report</span><span class="op">(</span><span class="va">model.model</span>, <span class="va">validate.cv_score</span><span class="op">)</span><span class="op">)</span></span>
+<span>          <span class="co"># Replace with your reporting logic</span></span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>summary <span class="op">=</span> <span class="fu">create_report</span><span class="op">(</span><span class="va">model.model</span>, <span class="va">validate.cv_score</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>summary <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Parade automatically figures out the execution order based on
@@ -484,7 +489,8 @@ dependencies.</p>
 <span>    id <span class="op">=</span> <span class="st">"fit_model"</span>,</span>
 <span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">participant</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="co"># Fit a complex model</span></span>
-<span>      <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, data <span class="op">=</span> <span class="fu">get_data</span><span class="op">(</span><span class="va">participant</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="co"># Replace get_data() with your data loading logic</span></span>
+<span>      <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, data <span class="op">=</span> <span class="fu">get_data</span><span class="op">(</span><span class="va">participant</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
 <span>      </span>
 <span>      <span class="co"># Return both the model object and extracted metrics</span></span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>

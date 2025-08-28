@@ -102,9 +102,9 @@ automatically adapt to any environment:</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Same code works everywhere</span></span>
-<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"artifacts://models/brain_model.rds"</span><span class="op">)</span></span>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://models/brain_model.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">analyze_brain</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"artifacts://outputs/results.rds"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://outputs/results.rds"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>artifacts://</code> prefix is a <strong>portable
 alias</strong> that parade automatically translates:</p>
 <ul>
@@ -152,8 +152,8 @@ systems.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"/home/alice/myproject/outputs/model.rds"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># After (works everywhere):</span></span>
-<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"data://experiment.csv"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"artifacts://model.rds"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"data://experiment.csv"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://model.rds"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-3-run-the-same-code-anywhere">Step 3: Run the same code anywhere<a class="anchor" aria-label="anchor" href="#step-3-run-the-same-code-anywhere"></a>
@@ -161,12 +161,12 @@ systems.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># On your laptop</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">big_model</span>, <span class="st">"artifacts://models/final.rds"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">big_model</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://models/final.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># Saves to: /var/folders/temp/parade-artifacts/models/final.rds</span></span>
 <span></span>
 <span><span class="co"># On HPC cluster (same code!)</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">big_model</span>, <span class="st">"artifacts://models/final.rds"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">big_model</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://models/final.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># Saves to: /scratch/alice/parade-artifacts/models/final.rds</span></span></code></pre></div>
 <p>That’s it! Your code now works on any system without
 modification.</p>
@@ -184,14 +184,14 @@ data in your workflow:</p>
 (read-only)</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Your raw data, reference files, shared datasets</span></span>
-<span><span class="va">brain_atlas</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"data://references/MNI_atlas.rds"</span><span class="op">)</span></span>
-<span><span class="va">subjects</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"data://participants.csv"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">brain_atlas</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"data://references/MNI_atlas.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">subjects</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"data://participants.csv"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><strong><code>artifacts://</code></strong> - Analysis outputs (large
 files)</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Models, results, processed data - goes to fast scratch storage</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">fitted_model</span>, <span class="st">"artifacts://models/model_v2.rds"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"artifacts://results/final_results.csv"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">fitted_model</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://models/model_v2.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">results</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://results/final_results.csv"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><strong><code>project://</code></strong> - Your code and scripts</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Source files, small configuration files</span></span>
@@ -269,9 +269,9 @@ full analysis on a cluster:</p>
 <span><span class="co"># Shared analysis code (works for both!)</span></span>
 <span><span class="va">analyze_subjects</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">subjects</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">for</span> <span class="op">(</span><span class="va">subj</span> <span class="kw">in</span> <span class="va">subjects</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"data://subjects/%s.rds"</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"data://subjects/%s.rds"</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu">process_subject</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"artifacts://results/%s.rds"</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">results</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"artifacts://results/%s.rds"</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
@@ -608,6 +608,11 @@ complete pipelines</li>
 </tbody>
 </table>
 <table class="table">
+<colgroup>
+<col width="28%">
+<col width="36%">
+<col width="36%">
+</colgroup>
 <thead><tr class="header">
 <th>Alias</th>
 <th>Use For</th>
@@ -617,12 +622,12 @@ complete pipelines</li>
 <tr class="odd">
 <td><code>data://</code></td>
 <td>Input data</td>
-<td><code>read.csv("data://input.csv")</code></td>
+<td><code>read.csv(resolve_path("data://input.csv"))</code></td>
 </tr>
 <tr class="even">
 <td><code>artifacts://</code></td>
 <td>Outputs</td>
-<td><code>saveRDS(m, "artifacts://model.rds")</code></td>
+<td><code>saveRDS(m, resolve_path("artifacts://model.rds"))</code></td>
 </tr>
 <tr class="odd">
 <td><code>scratch://</code></td>

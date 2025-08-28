@@ -11,7 +11,7 @@ articles:
   parade-scripts-monitoring: parade-scripts-monitoring.html
   parade-sinks: parade-sinks.html
   parade-slurm-distribution: parade-slurm-distribution.html
-last_built: 2025-08-27T15:15Z
+last_built: 2025-08-28T00:26Z
 urls:
   reference: https://bbuchsbaum.github.io/parade/reference
   article: https://bbuchsbaum.github.io/parade/articles
