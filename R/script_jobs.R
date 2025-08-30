@@ -31,6 +31,7 @@ submit_slurm <- function(script,
                          name = NULL,
                          template = NULL,
                          resources = NULL,
+                         resources_profile = "default",
                          registry_dir = NULL,
                          env = character(),
                          lib_paths = .libPaths(),
@@ -40,8 +41,8 @@ submit_slurm <- function(script,
   if (!file.exists(script)) stop("Script not found: ", script)
   name <- name %||% tools::file_path_sans_ext(basename(script))
   run_id <- substr(digest::digest(list(script, args, Sys.time())), 1, 8)
-  # resolve defaults
-  resources <- slurm_resources(resources = resources, profile = "default")
+  # resolve defaults (allow profile override)
+  resources <- slurm_resources(resources = resources, profile = resources_profile)
   tmpl_path <- resolve_path(template %||% slurm_template_default(), create = FALSE)
   reg_dir <- normalizePath(resolve_path(registry_dir %||% file.path("registry://", paste0("script-", run_id))), mustWork = FALSE)
   dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)
@@ -63,7 +64,7 @@ submit_slurm <- function(script,
                  job_id = jt$job.id[[1]],
                  resources = resources,
                  template = tmpl_path)
-  class(handle) <- "parade_script_job"
+  class(handle) <- c("parade_script_job", "parade_job")
   # persist lightweight handle
   saveRDS(handle, file.path(reg_dir, "script_job.rds"))
   meta <- list(name=name, script=normalizePath(script), submitted=as.character(Sys.time()),

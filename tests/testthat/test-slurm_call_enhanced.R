@@ -221,6 +221,36 @@ test_that("local engine honors name_by and macros in write_result", {
   expect_equal(saved, "ok:input.csv")
 })
 
+test_that("slurm_call passes resources profile names to submit_slurm", {
+  skip_if_not_installed("batchtools")
+
+  test_dir <- withr::local_tempdir()
+
+  stub(slurm_call, "paths_init", function(...) {
+    list(registry = test_dir, artifacts = test_dir)
+  })
+  stub(slurm_call, "getOption", function(x, ...) {
+    if (x == "parade.paths") {
+      list(registry = test_dir, artifacts = test_dir)
+    } else {
+      NULL
+    }
+  })
+  stub(slurm_call, "resolve_path", function(x, ...) file.path(test_dir, sub("registry://", "", x)))
+
+  captured <- new.env(parent = emptyenv())
+  stub(slurm_call, "submit_slurm", function(script, resources = NULL, resources_profile = "default", ...) {
+    captured$resources <- resources
+    captured$profile <- resources_profile
+    structure(list(kind = "script", registry_dir = test_dir, job_id = 1L, stage_dir = dirname(script)), class = c("parade_script_job", "parade_job"))
+  })
+
+  # Character profile name should be passed via resources_profile and resources set to NULL
+  slurm_call(function(x) x, x = 1, resources = "gpu")
+  expect_null(captured$resources)
+  expect_equal(captured$profile, "gpu")
+})
+
 test_that("argument helpers work correctly", {
   # Test args_cli
   cli_args <- args_cli(input = "data.csv", output = "results.rds", verbose = TRUE, quiet = FALSE)

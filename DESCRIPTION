@@ -14,7 +14,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports: tibble, tidyr, purrr, rlang, vctrs, furrr, future, progressr, glue, jsonlite, digest
-Suggests: knitr, rmarkdown, future.batchtools, batchtools, mirai, future.mirai, nanonext, testthat
+Suggests: knitr, rmarkdown, future.batchtools, batchtools, mirai, future.mirai, nanonext, testthat, progress
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2.9000
