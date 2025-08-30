@@ -82,7 +82,35 @@ collect <- function(fl,
     }
     res <- try(.autowire_exec(st$f, a), silent = (error != "stop"))
     if (inherits(res, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' failed: %s", id, as.character(res))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res))); if (identical(error, "propagate")) next else next }
-    if (!is.null(st$sink)) { res <- try(.apply_sink(res, st$sink, row, id), silent = (error != "stop")); if (inherits(res, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' sink failed: %s", id, as.character(res))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res))); if (identical(error, "propagate")) next else next } }
+    if (!is.null(st$sink)) {
+      # Apply sink writing and wrap outputs as file references
+      res <- try(.apply_sink(res, st$sink, row, id), silent = (error != "stop"))
+      if (inherits(res, "try-error")) {
+        if (identical(error, "stop")) stop(sprintf("Stage '%s' sink failed: %s", id, as.character(res)))
+        if (identical(error, "omit")) return(NULL)
+        block <- .parade_cast_to_ptype_row(list(), st$ptype)
+        block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
+        acc <- vctrs::vec_cbind(acc, block)
+        diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res)))
+        if (identical(error, "propagate")) next else next
+      }
+      # If autoload is enabled for this stage's sink, materialize sinked
+      # fields that are not declared as list columns. For list-typed fields
+      # (e.g., lst()), keep file references in the stage output but allow
+      # downstream stages to materialize via argument preparation.
+      if (isTRUE(st$sink$autoload)) {
+        reader <- st$sink$reader %||% readRDS
+        for (nm in st$sink$fields) {
+          if (nm %in% names(res)) {
+            # Only materialize non-list_of typed fields
+            p_is_list <- try(inherits(st$ptype[[nm]], "vctrs_list_of"), silent = TRUE)
+            if (!isTRUE(p_is_list)) {
+              res[[nm]] <- .materialize(res[[nm]], reader)
+            }
+          }
+        }
+      }
+    }
     block <- try(.parade_cast_to_ptype_row(res, st$ptype), silent = (error != "stop")); if (inherits(block, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' typing failed: %s", id, as.character(block))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(block, "condition") %||% simpleError(as.character(block))); if (identical(error, "propagate")) next else next }
     # Validate flexible types if present in schema
     flex_types <- attr(st$ptype, "flex_types", exact = TRUE)

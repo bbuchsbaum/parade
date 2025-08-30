@@ -100,8 +100,30 @@
     }
   }
   
+  # Check for fields that are already list-wrapped (e.g., from sinking)
+  # These need special handling to preserve the list structure
+  for (nm in names(result)) {
+    val <- result[[nm]]
+    # Check if this is a list containing a single tibble (from sinking)
+    if (is.list(val) && length(val) == 1 && inherits(val[[1]], "tbl_df")) {
+      # This is likely from sinking - keep it wrapped
+      # Mark it so we know to preserve the structure
+      attr(result[[nm]], "preserve_list") <- TRUE
+    }
+  }
+  
   # Create tibble from result
   row <- tibble::as_tibble(result)
+  
+  # Restore list wrapping for preserved fields and track which to skip casting
+  preserve_cols <- character()
+  for (nm in names(result)) {
+    if (!is.null(attr(result[[nm]], "preserve_list"))) {
+      # This field should stay as a list column
+      row[[nm]] <- result[[nm]]
+      preserve_cols <- c(preserve_cols, nm)
+    }
+  }
   
   # Ensure single row
   if (nrow(row) != 1) {
@@ -115,6 +137,21 @@
   
   for (col in names(ptype)) {
     if (col %in% names(row)) {
+      # If this column clearly holds a file-reference (list with a tibble
+      # containing path/bytes/sha256/etc), preserve as a list column and
+      # skip casting to avoid coercing to NA.
+      if (exists(".is_file_ref", mode = "function", inherits = TRUE)) {
+        ref_like <- try(.is_file_ref(row[[col]]), silent = TRUE)
+        if (isTRUE(ref_like)) {
+          if (!is.list(row[[col]])) row[[col]] <- list(row[[col]])
+          next
+        }
+      }
+      # If this column holds a preserved file-ref list, don't cast
+      if (col %in% preserve_cols) {
+        if (!is.list(row[[col]])) row[[col]] <- list(row[[col]])
+        next
+      }
       # Skip casting for flexible type columns - they stay as-is
       if (col %in% flex_cols) {
         # Keep the value as is, just ensure it's in a list column if needed
@@ -158,6 +195,9 @@
         stop("File already exists: ", path)
       }
       
+      # Compute checksum BEFORE writing or replacing the field value
+      field_checksum <- if (sink$checksum) digest::digest(result[[field]]) else NA_character_
+      
       # Get writer for this field
       writer <- .get_field_writer(sink, field)
       
@@ -171,7 +211,7 @@
       # Write sidecar if requested
       if (sink$sidecar == "json") {
         meta <- list(
-          sha256 = if (sink$checksum) digest::digest(result[[field]]) else NA_character_,
+          sha256 = field_checksum,
           bytes = file.info(path)$size,
           written = TRUE,
           existed = file.exists(path)
@@ -183,7 +223,7 @@
       result[[field]] <- list(tibble::tibble(
         path = path,
         bytes = as.integer(file.info(path)$size),
-        sha256 = if (sink$checksum) digest::digest(result[[field]]) else NA_character_,
+        sha256 = field_checksum,
         written = TRUE,
         existed = file.exists(path)
       ))
