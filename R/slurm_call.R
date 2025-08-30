@@ -17,6 +17,9 @@
 #' @param lib_paths Character vector of library paths to use
 #' @param rscript Path to Rscript executable
 #' @param write_result Optional path to save function result (e.g., "artifacts://result.rds")
+#' @param name_by Function or string for dynamic job naming. Can be "stem", "index", 
+#'   "digest", or a function that takes the arguments and returns a string
+#' @param engine Execution engine: "slurm" (default) or "local" for debugging
 #'
 #' @return A `parade_script_job` object for monitoring the job. If `write_result`
 #'   is specified, the job object will include a `result_path` attribute with
@@ -74,6 +77,7 @@
 #' @export
 slurm_call <- function(.f, ...,
                        name = NULL,
+                       name_by = NULL,
                        packages = character(),
                        resources = NULL,
                        template = NULL,
@@ -81,13 +85,83 @@ slurm_call <- function(.f, ...,
                        env = character(),
                        lib_paths = .libPaths(),
                        rscript = file.path(R.home("bin"), "Rscript"),
-                       write_result = NULL) {
+                       write_result = NULL,
+                       engine = c("slurm", "local")) {
   
   stopifnot(is.function(.f))
+  engine <- match.arg(engine)
+  
+  # Handle local execution
+  if (engine == "local") {
+    # Derive name via name_by if provided and name not set
+    if (!is.null(name_by) && is.null(name)) {
+      args_list <- list(...)
+      if (is.character(name_by)) {
+        name <- switch(name_by,
+          stem = {
+            file_arg <- find_file_arg(args_list)
+            if (!is.null(file_arg)) tools::file_path_sans_ext(basename(file_arg)) else "local-call"
+          },
+          index = sprintf("job-%d", sample.int(99999, 1)),
+          digest = substr(digest::digest(args_list), 1, 8),
+          name_by
+        )
+      } else if (is.function(name_by)) {
+        name <- do.call(name_by, args_list)
+      }
+    }
+    result <- do.call(.f, list(...))
+    if (!is.null(write_result)) {
+      # Expand macros with derived name for parity with SLURM path
+      result_path <- expand_path_macros(write_result, list(...), name = name %||% "local-call")
+      result_path <- resolve_path(result_path, create = FALSE)
+      dir.create(dirname(result_path), recursive = TRUE, showWarnings = FALSE)
+      saveRDS(result, result_path)
+      return(structure(
+        list(
+          kind = "local",
+          function_call = TRUE,
+          result = result,
+          result_path = result_path,
+          name = name %||% "local-call"
+        ),
+        class = c("parade_local_job", "parade_job")
+      ))
+    }
+    return(structure(
+      list(
+        kind = "local",
+        function_call = TRUE,
+        result = result,
+        name = name %||% "local-call"
+      ),
+      class = c("parade_local_job", "parade_job")
+    ))
+  }
   
   # Initialize paths if not already done
   if (is.null(getOption("parade.paths"))) {
     paths_init(quiet = TRUE)
+  }
+  
+  # Generate name using name_by if provided
+  if (!is.null(name_by) && is.null(name)) {
+    args_list <- list(...)
+    if (is.character(name_by)) {
+      name <- switch(name_by,
+        stem = {
+          # Extract stem from first file-like argument
+          file_arg <- find_file_arg(args_list)
+          if (!is.null(file_arg)) tools::file_path_sans_ext(basename(file_arg))
+          else "slurm-call"
+        },
+        index = sprintf("job-%d", sample.int(99999, 1)),
+        digest = substr(digest::digest(args_list), 1, 8),
+        name_by  # Use as-is if not a special keyword
+      )
+    } else if (is.function(name_by)) {
+      name <- do.call(name_by, args_list)
+    }
   }
   
   # Create staging directory in registry
@@ -126,7 +200,9 @@ slurm_call <- function(.f, ...,
   # Add result saving if requested
   result_path <- NULL
   if (!is.null(write_result)) {
-    result_path <- resolve_path(write_result, create = FALSE)
+    # Expand path macros
+    expanded_path <- expand_path_macros(write_result, list(...), name = name)
+    result_path <- resolve_path(expanded_path, create = FALSE)
     # Ensure parent directory exists on the compute node before saving
     runner_lines <- c(
       runner_lines,
@@ -162,6 +238,11 @@ slurm_call <- function(.f, ...,
   job$stage_dir <- stage_dir
   if (!is.null(result_path)) {
     job$result_path <- result_path
+  }
+  
+  # Ensure proper class hierarchy
+  if (!inherits(job, "parade_job")) {
+    class(job) <- c(class(job), "parade_job")
   }
   
   # Save enhanced job object
