@@ -6,6 +6,12 @@
 \usage{
 completed(x)
 }
+\arguments{
+\item{x}{A parade_jobset object}
+}
+\value{
+A parade_jobset containing only completed jobs
+}
 \description{
 Select completed jobs
 }

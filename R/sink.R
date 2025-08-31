@@ -108,6 +108,7 @@ sink_spec <- function(fields, dir, template = NULL, format = "rds", formats = NU
   
   file.path(base, rel)
 }
+#' @importFrom stats runif
 .write_atomic_rds <- function(x, path, compress="gzip") { 
   dir.create(dirname(path), recursive=TRUE, showWarnings=FALSE)
   tmp <- paste0(path, ".tmp-", Sys.getpid(), "-", as.integer(runif(1)*1e9))

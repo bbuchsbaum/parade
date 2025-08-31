@@ -19,8 +19,13 @@ Collect results from deferred execution
 }
 \examples{
 \donttest{
+grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+fl <- flow(grid) |>
+  stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+  distribute(dist_local(by = "group"))
 deferred <- submit(fl)
-deferred_await(deferred)
+# Wait for completion with a finite timeout to avoid hanging
+deferred_await(deferred, timeout = 600)
 results <- deferred_collect(deferred)
 }
 }

@@ -47,13 +47,19 @@ mirai_status <- function() {
 #' }
 mirai_dispatcher_status <- function() {
   if (requireNamespace("mirai", quietly = TRUE)) {
-    tryCatch(
-      mirai::dispatcher_status(),
-      error = function(e) {
-        message("No dispatcher running")
-        NULL
+    tryCatch({
+      # Try to get dispatcher status without statically referencing it
+      if ("dispatcher_status" %in% getNamespaceExports("mirai")) {
+        getExportedValue("mirai", "dispatcher_status")()
+      } else {
+        # Fall back to status if dispatcher_status not available
+        mirai::status()
       }
-    )
+    },
+    error = function(e) {
+      message("No dispatcher running")
+      NULL
+    })
   } else {
     message("mirai package not installed")
     NULL

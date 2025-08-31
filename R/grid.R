@@ -28,10 +28,11 @@
 #'   .filter = ~ .x <= .y  # Only upper triangle
 #' )
 #' 
-#' # Use with slurm_pmap
-#' jobs <- slurm_pmap(params, function(x, y, method) {
+#' # Use with slurm_pmap (local engine for examples)
+#' jobs <- slurm_pmap(params, function(x, y, method, ...) {
 #'   # Run analysis with these parameters
-#' })
+#'   x + y
+#' }, .engine = "local")
 #' }
 #' 
 #' @export
@@ -167,6 +168,7 @@ as_function <- function(formula) {
 #' )
 #' }
 #' 
+#' @importFrom stats runif
 #' @export
 lhs_grid <- function(n, ...) {
   ranges <- list(...)

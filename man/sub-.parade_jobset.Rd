@@ -6,6 +6,11 @@
 \usage{
 \method{[}{parade_jobset}(x, i)
 }
+\arguments{
+\item{x}{A parade_jobset object}
+
+\item{i}{Index vector for subsetting}
+}
 \description{
 Extract subset of jobs
 }

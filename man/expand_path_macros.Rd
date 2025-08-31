@@ -4,7 +4,7 @@
 \alias{expand_path_macros}
 \title{Expand path macros in a string}
 \usage{
-expand_path_macros(path, args = list(), name = NULL)
+expand_path_macros(path, args = list(), name = NULL, index = NULL)
 }
 \arguments{
 \item{path}{Path string with potential macros}

@@ -6,6 +6,9 @@
 \usage{
 \method{c}{parade_jobset}(...)
 }
+\arguments{
+\item{...}{parade_jobset objects to combine}
+}
 \description{
 Combine jobsets
 }

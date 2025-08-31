@@ -6,6 +6,9 @@
 \usage{
 is_done(x)
 }
+\arguments{
+\item{x}{A parade job object (parade_job, parade_script_job, or parade_local_job)}
+}
 \description{
 Check if a job is done
 }

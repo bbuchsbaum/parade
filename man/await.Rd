@@ -2,12 +2,17 @@
 % Please edit documentation in R/jobset_class.R
 \name{await}
 \alias{await}
+\alias{await.parade_jobset}
 \title{Wait for all jobs in a jobset to complete}
 \usage{
 await(x, ...)
+
+\method{await}{parade_jobset}(x, timeout = Inf, poll = 10, .progress = NULL, ...)
 }
 \arguments{
 \item{x}{A parade_jobset object}
+
+\item{...}{Additional arguments passed to method implementations}
 
 \item{timeout}{Maximum time to wait in seconds}
 
@@ -21,3 +26,8 @@ The jobset (invisibly)
 \description{
 Wait for all jobs in a jobset to complete
 }
+\section{Methods (by class)}{
+\itemize{
+\item \code{await(parade_jobset)}: Wait for all jobs in a jobset to complete
+
+}}

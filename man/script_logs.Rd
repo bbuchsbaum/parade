@@ -17,7 +17,9 @@ Get log file paths for a SLURM job
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-logs <- script_logs(job)
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  logs <- script_logs(job)
+}
 }
 }

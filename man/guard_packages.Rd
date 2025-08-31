@@ -32,9 +32,11 @@ Can auto-detect package dependencies using codetools.
 # Check specific packages
 guard_packages(c("dplyr", "ggplot2"))
 
-# Auto-detect from function
+# Auto-detect from function (skip on CRAN checks)
+\dontrun{
 my_fn <- function(x) dplyr::filter(x, value > 0)
 guard_packages(.f = my_fn)
+}
 }
 
 }

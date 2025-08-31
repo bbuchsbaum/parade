@@ -21,7 +21,9 @@ Wait for a SLURM script job to complete
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-script_await(job, timeout = 300)  # Wait up to 5 minutes
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  script_await(job, timeout = 300)  # Wait up to 5 minutes
+}
 }
 }

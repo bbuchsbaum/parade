@@ -6,6 +6,12 @@
 \usage{
 job_status(x)
 }
+\arguments{
+\item{x}{A parade job object (parade_job, parade_script_job, or parade_local_job)}
+}
+\value{
+A tibble containing job status information
+}
 \description{
 Get job status
 }

@@ -1,3 +1,6 @@
+#' @keywords internal
+"_PACKAGE"
+
 #' Declarative parallel dataflow with Future/Furrr and SLURM utilities
 #'
 #' The parade package provides a declarative, lazy, and compositional approach
@@ -13,8 +16,6 @@
 #' - Configurable resource management with profiles
 #' - Comprehensive error handling and diagnostics
 #'
-#' @docType package
-#' @name parade
 #' @seealso
 #' Core functions: [flow()], [stage()], [collect()], [submit()]
 #' Distribution: [dist_local()], [dist_slurm()], [distribute()]
@@ -32,4 +33,3 @@
 #' @import jsonlite
 #' @import digest
 #' @importFrom purrr pmap compact map_chr map_dbl map_lgl map_int map_dfr
-NULL

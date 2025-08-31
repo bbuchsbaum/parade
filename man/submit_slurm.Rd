@@ -58,15 +58,17 @@ with configurable resources and environment. Returns a handle for monitoring
 and retrieving results.
 }
 \examples{
-\donttest{
 # Create a simple R script
 script_path <- tempfile(fileext = ".R")
-writeLines("cat('Hello from SLURM!')", script_path)
+writeLines("cat('Hello from parade!')", script_path)
 
-# Submit to SLURM
-job <- submit_slurm(script_path, resources = list(time = "5min"))
-
-# Run locally
+# Run locally (no SLURM required)
 job <- submit_slurm(script_path, engine = "local")
+
+\donttest{
+# Submit to SLURM (only if available)
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm(script_path, resources = list(time = "5min"))
+}
 }
 }

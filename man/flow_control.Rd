@@ -23,7 +23,10 @@ combined <- flow_control(
   max_in_flight(5)
 )
 
-jobs <- slurm_map(1:100, ~ .x^2, .options = combined)
+# Note: Combined policies are currently illustrative; apply individually
+# with slurm_map(), e.g.:
+# jobs <- slurm_map(1:100, ~ .x^2, .options = in_waves_of(10), .engine = "local")
+# jobs <- slurm_map(1:100, ~ .x^2, .options = max_in_flight(5), .engine = "local")
 }
 
 }

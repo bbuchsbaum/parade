@@ -51,7 +51,7 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     tmpl <- resolve_path(dist$slurm$template, create = FALSE)
     cf <- batchtools::makeClusterFunctionsSlurm(tmpl)
     reg <- batchtools::makeRegistry(file.dir = handle$registry_dir, make.default = FALSE, conf.file = NA, cluster.functions = cf)
-    batchtools::batchMap(fun = parade:::parade_run_chunk_bt, i = seq_along(chunks), more.args = list(flow_path = handle$flow_path, chunks_path = handle$chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling), reg = reg)
+    batchtools::batchMap(fun = parade_run_chunk_bt, i = seq_along(chunks), more.args = list(flow_path = handle$flow_path, chunks_path = handle$chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling), reg = reg)
     batchtools::submitJobs(resources = dist$slurm$resources, reg = reg); jt <- batchtools::getJobTable(reg = reg); handle$jobs <- jt$job.id
   } else if (identical(dist$backend, "mirai")) {
     if (!requireNamespace("mirai", quietly = TRUE) || !requireNamespace("future.mirai", quietly = TRUE)) stop("submit(): dist_mirai requires 'mirai' and 'future.mirai'.")
@@ -97,21 +97,42 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     # Create futures for chunks (same as local backend)
     fs <- list()
     for (i in seq_along(chunks)) {
-      fs[[i]] <- future::future(parade:::parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling))
+      fs[[i]] <- future::future(parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling))
     }
     handle$jobs <- fs
   } else {
     op <- future::plan(); on.exit(future::plan(op), add = TRUE); inner <- if (identical(dist$within, "multisession")) future::tweak(future::multisession, workers = dist$workers_within %||% NULL) else future::sequential
-    future::plan(list(inner)); fs <- list(); for (i in seq_along(chunks)) { fs[[i]] <- future::future(parade:::parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)) }; handle$jobs <- fs
+    future::plan(list(inner)); fs <- list(); for (i in seq_along(chunks)) { fs[[i]] <- future::future(parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)) }; handle$jobs <- fs
   }
   handle
 }
+#' Run a single distributed chunk via batchtools
+#'
+#' Internal helper invoked on SLURM workers to execute a chunk
+#' of the flow. Not intended for direct user use.
+#'
+#' @param i Chunk index (integer)
+#' @param flow_path Path to serialized flow object (RDS)
+#' @param chunks_path Path to serialized chunk index list (RDS)
+#' @param index_dir Directory to write index files when `mode = "index"`
+#' @param mode Collection mode: `"index"` or `"results"`
+#' @param seed_furrr Logical; seed handling for furrr
+#' @param scheduling Furrr scheduling parameter
+#' @return Invisibly returns a list when `mode = "index"`, otherwise a tibble
 #' @keywords internal
+#' @export
 parade_run_chunk_bt <- function(i, flow_path, chunks_path, index_dir, mode = "index", seed_furrr = TRUE, scheduling = 1) {
   fl <- readRDS(flow_path); chunks <- readRDS(chunks_path); idx_vec <- chunks[[i]]
   .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)
 }
+#' Run a single distributed chunk locally
+#'
+#' Internal helper invoked in local futures to execute a chunk
+#' of the flow. Not intended for direct user use.
+#'
+#' @inheritParams parade_run_chunk_bt
 #' @keywords internal
+#' @export
 parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = "index", seed_furrr = TRUE, scheduling = 1) {
   fl <- readRDS(flow_path); chunks <- readRDS(chunks_path); idx_vec <- chunks[[i]]
   .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)
@@ -120,7 +141,7 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
 .parade_execute_chunk <- function(fl, idx_vec, index_dir, job_id, mode = "index", seed_furrr = TRUE, scheduling = 1) {
   grid <- fl$grid; dist <- fl$dist; subrows <- unlist(idx_vec, use.names = FALSE); sub <- grid[subrows, , drop = FALSE]; order <- .toposort(fl$stages)
   op <- future::plan(); on.exit(future::plan(op), add = TRUE); inner <- if (identical(dist$within, "multisession")) future::tweak(future::multisession, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))) else future::sequential; future::plan(list(inner))
-  rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); parade:::.eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
+  rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
   rows <- purrr::compact(rows); res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
   if (identical(mode, "index")) { p <- file.path(index_dir, sprintf("index-%04d.rds", as.integer(job_id))); dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE); saveRDS(res, p, compress = "gzip"); invisible(list(ok = TRUE, n = nrow(res), index = p)) } else { res }
 }
@@ -132,6 +153,10 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
 #' @export
 #' @examples
 #' \donttest{
+#' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#' fl <- flow(grid) |>
+#'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+#'   distribute(dist_local(by = "group"))
 #' deferred <- submit(fl)
 #' status <- deferred_status(deferred)
 #' }
@@ -154,6 +179,10 @@ deferred_status <- function(d, detail = FALSE) {
 #' @export
 #' @examples
 #' \donttest{
+#' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#' fl <- flow(grid) |>
+#'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+#'   distribute(dist_local(by = "group"))
 #' deferred <- submit(fl)
 #' deferred_await(deferred, timeout = 600)
 #' }
@@ -163,7 +192,19 @@ deferred_await <- function(d, timeout = Inf, poll = 10) {
     if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
     reg <- batchtools::loadRegistry(d$registry_dir, writeable = FALSE); batchtools::waitForJobs(reg = reg, timeout = timeout, sleep = poll)
   } else {
-    if (is.infinite(timeout)) { lapply(d$jobs, future::value) } else { t0 <- Sys.time(); for (f in d$jobs) { left <- as.numeric(timeout - (Sys.time() - t0), units = "secs"); if (left <= 0) break; tryCatch(future::value(f, timeout = left), error = function(e) invisible(NULL)) } }
+    # Be tolerant of worker interruptions/errors in both branches.
+    # For infinite timeout, still guard each value() to avoid bubbling errors
+    # during example/CRAN checks where workers may be interrupted.
+    if (is.infinite(timeout)) {
+      lapply(d$jobs, function(f) tryCatch(future::value(f), error = function(e) invisible(NULL)))
+    } else {
+      t0 <- Sys.time()
+      for (f in d$jobs) {
+        left <- as.numeric(timeout - (Sys.time() - t0), units = "secs")
+        if (left <= 0) break
+        tryCatch(future::value(f, timeout = left), error = function(e) invisible(NULL))
+      }
+    }
   }
   invisible(d)
 }
@@ -175,6 +216,10 @@ deferred_await <- function(d, timeout = Inf, poll = 10) {
 #' @export
 #' @examples
 #' \donttest{
+#' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#' fl <- flow(grid) |>
+#'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+#'   distribute(dist_local(by = "group"))
 #' deferred <- submit(fl)
 #' deferred_cancel(deferred, which = "running")
 #' }
@@ -182,7 +227,7 @@ deferred_cancel <- function(d, which = c("running","all")) {
   stopifnot(inherits(d, "parade_deferred")); which <- match.arg(which)
   if (identical(d$backend, "slurm")) {
     if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
-    reg <- batchtools::loadRegistry(d$registry_dir, writeable = TRUE); ids <- if (which == "running") batchtools::findRunning(reg = reg) else batchtools::getJobIds(reg = reg); if (length(ids)) batchtools::killJobs(ids, reg = reg)
+    reg <- batchtools::loadRegistry(d$registry_dir, writeable = TRUE); ids <- if (which == "running") batchtools::findRunning(reg = reg) else batchtools::findJobs(reg = reg); if (length(ids)) batchtools::killJobs(ids, reg = reg)
   } else if (identical(d$backend, "mirai")) {
     # Stop mirai daemons if configured
     if (isTRUE(d$mirai_cleanup)) {
@@ -205,8 +250,13 @@ deferred_cancel <- function(d, which = c("running","all")) {
 #' @export
 #' @examples
 #' \donttest{
+#' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#' fl <- flow(grid) |>
+#'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+#'   distribute(dist_local(by = "group"))
 #' deferred <- submit(fl)
-#' deferred_await(deferred)
+#' # Wait for completion with a finite timeout to avoid hanging
+#' deferred_await(deferred, timeout = 600)
 #' results <- deferred_collect(deferred)
 #' }
 deferred_collect <- function(d, how = c("auto","index","results")) {

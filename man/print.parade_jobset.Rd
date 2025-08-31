@@ -6,6 +6,11 @@
 \usage{
 \method{print}{parade_jobset}(x, ...)
 }
+\arguments{
+\item{x}{A parade_jobset object to print}
+
+\item{...}{Additional arguments (unused)}
+}
 \description{
 Print method for parade_jobset
 }

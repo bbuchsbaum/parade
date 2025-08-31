@@ -24,8 +24,10 @@ for multiple SLURM jobs simultaneously.
 }
 \examples{
 \donttest{
-job1 <- submit_slurm("script1.R")
-job2 <- submit_slurm("script2.R")
-jobs_top(list(job1, job2))
+if (Sys.which("squeue") != "") {
+  job1 <- submit_slurm("script1.R")
+  job2 <- submit_slurm("script2.R")
+  jobs_top(list(job1, job2))
+}
 }
 }

@@ -275,6 +275,7 @@ simple_expand <- function(template, replacements) {
 #' results_path(experiment = "exp002", name = "model", index = 5)
 #' }
 #' 
+#' @importFrom utils modifyList
 #' @export
 path_template <- function(pattern, ...) {
   defaults <- list(...)

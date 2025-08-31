@@ -1,4 +1,8 @@
 # Diagnostics + manifest ---------------------------------------------------
+
+# Suppress R CMD check notes about NSE variables
+utils::globalVariables(c("info"))
+
 #' Extract diagnostic information from flow results
 #'
 #' Extracts and formats diagnostic information from completed flow
@@ -41,9 +45,10 @@ diagnostics <- function(out, stage = NULL) {
 #' Returns only the rows where execution failed, either overall
 #' or for a specific stage.
 #'
-#' @param out Results tibble from flow execution
+#' @param x Results tibble from flow execution
 #' @param stage Optional stage name to check for failures
 #' @return Tibble containing only failed rows
+#' @param ... Additional arguments (ignored)
 #' @export
 #' @examples
 #' # Create a sample results tibble with diagnostic info
@@ -62,9 +67,10 @@ diagnostics <- function(out, stage = NULL) {
 #' 
 #' # Get rows that failed in specific stage
 #' stage_failures <- failed(sample_out, stage = "validation")
-failed <- function(out, stage = NULL) {
-  if (is.null(stage)) return(out[!out$.ok, , drop = FALSE])
-  di <- diagnostics(out, stage = stage); bad_rows <- di$row[!di$ok & !di$skipped]; out[bad_rows, , drop = FALSE]
+#' @export
+failed.data.frame <- function(x, stage = NULL, ...) {
+  if (is.null(stage)) return(x[!x$.ok, , drop = FALSE])
+  di <- diagnostics(x, stage = stage); bad_rows <- di$row[!di$ok & !di$skipped]; x[bad_rows, , drop = FALSE]
 }
 #' Create artifact manifest from sidecar files
 #'

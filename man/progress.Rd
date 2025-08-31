@@ -2,16 +2,22 @@
 % Please edit documentation in R/jobset_class.R
 \name{progress}
 \alias{progress}
+\alias{progress.parade_jobset}
+\alias{progress.parade_job}
 \title{Show progress for jobset completion}
 \usage{
 progress(x, ...)
+
+\method{progress}{parade_jobset}(x, timeout = Inf, poll = 10, ...)
+
+\method{progress}{parade_job}(x, timeout = Inf, poll = 10, ...)
 }
 \arguments{
-\item{x}{A parade_jobset object}
+\item{x}{A parade_jobset or parade_job object}
 
-\item{...}{Additional arguments passed to await()}
+\item{...}{Additional arguments passed to methods}
 
-\item{timeout}{Maximum time to wait in seconds (default: Inf)}
+\item{timeout}{Maximum time to wait in seconds (default: Inf for no timeout)}
 
 \item{poll}{Polling interval in seconds (default: 10)}
 }

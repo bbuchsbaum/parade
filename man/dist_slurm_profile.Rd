@@ -38,7 +38,9 @@ cases.
 }
 \examples{
 # Create SLURM distribution using a profile
+\dontrun{
 dist <- dist_slurm_profile("standard", by = "group")
+}
 
 # Configuration example (no execution)
 \dontrun{

@@ -13,9 +13,10 @@ account(profile, value)
 }
 \value{
 Updated profile object
-
-Note: use res_account() to avoid naming collisions in user code.
 }
 \description{
 Set account for a resource profile
+}
+\note{
+Use res_account() to avoid naming collisions in user code.
 }

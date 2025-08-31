@@ -2,16 +2,24 @@
 % Please edit documentation in R/jobset_class.R
 \name{top}
 \alias{top}
+\alias{top.parade_jobset}
+\alias{top.parade_job}
 \title{Launch interactive monitor for jobset}
 \usage{
 top(x, ...)
+
+\method{top}{parade_jobset}(x, refresh = 2, nlog = 20, ...)
+
+\method{top}{parade_job}(x, refresh = 2, nlog = 30, ...)
 }
 \arguments{
-\item{x}{A parade_jobset object}
+\item{x}{A parade_jobset or parade_job object}
 
-\item{refresh}{Refresh interval in seconds}
+\item{...}{Additional arguments passed to methods}
 
-\item{nlog}{Number of log lines to show}
+\item{refresh}{Refresh interval in seconds (default: 2)}
+
+\item{nlog}{Number of log lines to show (default: 30)}
 }
 \value{
 NULL (invisibly)

@@ -19,15 +19,19 @@ Converts single job objects or lists of jobs into a parade_jobset,
 ensuring uniform behavior across all job types.
 }
 \examples{
-\donttest{
-# Note: These examples require a SLURM cluster environment
-# Convert single job to jobset
-job <- slurm_call(function(x) x^2, x = 10)
+# Local examples (no SLURM required)
+job <- slurm_call(function(x) x^2, x = 10, engine = "local")
 jobset <- as_jobset(job)
 
-# Already a jobset - returns unchanged
-jobs <- slurm_map(1:3, function(x) x^2)
+jobs <- slurm_map(1:3, function(x) x^2, .engine = "local")
 jobset <- as_jobset(jobs)
+
+\donttest{
+# SLURM examples (only run when SLURM is available)
+if (Sys.which("squeue") != "") {
+  job <- slurm_call(function(x) x^2, x = 10)
+  jobset <- as_jobset(job)
+}
 }
 
 }

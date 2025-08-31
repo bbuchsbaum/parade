@@ -6,6 +6,9 @@
 \usage{
 \method{length}{parade_jobset}(x)
 }
+\arguments{
+\item{x}{A parade_jobset object}
+}
 \description{
 Get length of jobset
 }

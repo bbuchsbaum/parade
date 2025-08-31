@@ -21,8 +21,8 @@ Set GPU count for a resource profile
 }
 \examples{
 \donttest{
-resources <- profile() \%>\% gpus(2)
-resources <- profile() \%>\% gpus(1, type = "v100")
+resources <- gpus(profile(), 2)
+resources <- gpus(profile(), 1, type = "v100")
 }
 
 }

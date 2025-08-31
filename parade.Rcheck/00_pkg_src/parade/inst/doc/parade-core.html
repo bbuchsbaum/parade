@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Parade core: declarative flows, types, and execution</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Parade core: declarative flows, types, and
+execution</h1>
+
+
+
+<blockquote>
+<p>Note: Code evaluation is disabled in this vignette to keep builds
+fast and cluster-agnostic. Copy code into an interactive R session to
+run locally or on your cluster.</p>
+</blockquote>
+<blockquote>
+<p>Requires <strong>parade ≥ 0.6.0</strong>
+(flow/stage/distribute/collect).</p>
+</blockquote>
+<div id="quick-start-5-minutes" class="section level2">
+<h2>Quick Start (5 minutes)</h2>
+<p>Want to see parade in action? Here’s a complete working example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co"># 1. Define what varies (3 subjects × 2 conditions = 6 analyses)</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>grid <span class="ot">&lt;-</span> <span class="fu">param_grid</span>(</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="at">subject =</span> <span class="fu">c</span>(<span class="st">&quot;s01&quot;</span>, <span class="st">&quot;s02&quot;</span>, <span class="st">&quot;s03&quot;</span>),</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="at">condition =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>)</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co"># 2. Create workflow with one analysis step</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>workflow <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid) <span class="sc">|&gt;</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>  <span class="fu">stage</span>(</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>    <span class="at">id =</span> <span class="st">&quot;analyze&quot;</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>    <span class="at">f =</span> <span class="cf">function</span>(subject, condition) {</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>      <span class="co"># Your analysis code here</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>      score <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">1</span>, <span class="at">mean =</span> <span class="dv">100</span>, <span class="at">sd =</span> <span class="dv">15</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>      <span class="fu">list</span>(<span class="at">score =</span> score)</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>    },</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>    <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">score =</span> <span class="fu">dbl</span>())</span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>  )</span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co"># 3. Run it!</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">collect</span>(workflow)</span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="fu">print</span>(results)</span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co"># A tibble: 6 × 4</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="co">#   subject condition score   .ok</span></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a><span class="co">#   &lt;chr&gt;   &lt;chr&gt;     &lt;dbl&gt; &lt;lgl&gt;</span></span>
+<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a><span class="co"># 1 s01     A          98.2  TRUE</span></span>
+<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a><span class="co"># 2 s01     B         102.4  TRUE</span></span>
+<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a><span class="co"># ... (4 more rows)</span></span></code></pre></div>
+<p>That’s it! You’ve just run 6 analyses automatically. Read on to
+understand how parade can scale from this simple example to complex,
+multi-stage pipelines on HPC clusters.</p>
+</div>
+<div id="why-parade-a-simple-research-scenario" class="section level2">
+<h2>Why parade? A simple research scenario</h2>
+<p>Imagine you’re analyzing experimental data from multiple
+participants. You need to:</p>
+<ol style="list-style-type: decimal">
+<li>Load each participant’s data file</li>
+<li>Clean and preprocess the data</li>
+<li>Run your analysis</li>
+<li>Generate summary statistics</li>
+</ol>
+<p>With 20 participants and 3 experimental conditions, that’s 60
+separate analyses. You could write nested loops, manage file paths
+manually, and hope nothing crashes halfway through. Or you could use
+<strong>parade</strong> to declare your workflow once and let it handle
+the complexity.</p>
+</div>
+<div id="what-is-parade" class="section level2">
+<h2>What is parade?</h2>
+<p><strong>parade</strong> helps you build reproducible analysis
+pipelines that can run on everything from your laptop to a computing
+cluster. Instead of writing loops and managing files manually, you:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Declare</strong> what you want to compute</li>
+<li><strong>Define</strong> the steps and their relationships</li>
+<li><strong>Execute</strong> locally or in parallel</li>
+<li><strong>Collect</strong> validated, organized results</li>
+</ol>
+<p>Let’s see how this works with a concrete example.</p>
+</div>
+<div id="your-first-parade-workflow" class="section level2">
+<h2>Your first parade workflow</h2>
+<blockquote>
+<p><strong>Reproducibility tip</strong>: When generating synthetic data
+for examples, always use <code>set.seed()</code> to ensure outputs
+remain consistent across runs. In production code, you typically
+wouldn’t set seeds unless you need reproducible randomization.</p>
+</blockquote>
+<div id="step-1-define-your-parameter-space" class="section level3">
+<h3>Step 1: Define your parameter space</h3>
+<p>Every parade workflow starts with a <strong>parameter grid</strong> -
+a table that defines all the analyses you want to run:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(progressr)  <span class="co"># For progress bars</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co"># Initialize parade&#39;s path system for managing artifacts and registries</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># This creates directories for storing intermediate results and job metadata</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co"># Define what varies in your analysis</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>grid <span class="ot">&lt;-</span> <span class="fu">param_grid</span>(</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="at">participant =</span> <span class="fu">c</span>(<span class="st">&quot;p01&quot;</span>, <span class="st">&quot;p02&quot;</span>, <span class="st">&quot;p03&quot;</span>),  <span class="co"># 3 participants</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="at">condition =</span> <span class="fu">c</span>(<span class="st">&quot;control&quot;</span>, <span class="st">&quot;treatment&quot;</span>)   <span class="co"># 2 conditions</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>)</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="fu">print</span>(grid)</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co"># A tibble: 6 × 2</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#   participant condition</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#   &lt;chr&gt;       &lt;chr&gt;    </span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co"># 1 p01         control  </span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co"># 2 p01         treatment</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co"># 3 p02         control  </span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co"># 4 p02         treatment</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co"># 5 p03         control  </span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co"># 6 p03         treatment</span></span></code></pre></div>
+<p>Each row in this grid represents one analysis we need to run. Parade
+will handle all 6 automatically.</p>
+</div>
+<div id="step-2-define-your-analysis-pipeline" class="section level3">
+<h3>Step 2: Define your analysis pipeline</h3>
+<p>Now we create a <strong>flow</strong> - a series of computational
+steps that will be applied to each row:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Create a flow from our parameter grid</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>results_flow <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid) <span class="sc">|&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  </span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="co"># First stage: Load the data</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">stage</span>(</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>    <span class="at">id =</span> <span class="st">&quot;load&quot;</span>,  <span class="co"># Give this stage a name for reference</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>    <span class="at">f =</span> <span class="cf">function</span>(participant, condition) {</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>      <span class="co"># This function receives parameters for one row of the grid</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>      <span class="co"># In production, you would typically:</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>      <span class="co"># data &lt;- read.csv(sprintf(&quot;data/%s_%s.csv&quot;, participant, condition))</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>      </span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>      <span class="co"># For this example, we simulate data</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>      <span class="co"># Use participant/condition as seed components for reproducible but varied data</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>      seed_val <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">factor</span>(participant)) <span class="sc">*</span> <span class="dv">100</span> <span class="sc">+</span> </span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>                  <span class="fu">as.numeric</span>(<span class="fu">factor</span>(condition))</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>      <span class="fu">set.seed</span>(seed_val)</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>      </span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>      n_trials <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>      <span class="co"># Simulate reaction time experiment data</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>      data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>        <span class="at">participant =</span> participant,</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>        <span class="at">condition =</span> condition,</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>        <span class="at">trial =</span> <span class="dv">1</span><span class="sc">:</span>n_trials,</span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>        <span class="at">response_time =</span> <span class="fu">rnorm</span>(n_trials, </span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>                             <span class="at">mean =</span> <span class="fu">ifelse</span>(condition <span class="sc">==</span> <span class="st">&quot;control&quot;</span>, <span class="dv">500</span>, <span class="dv">450</span>), </span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>                             <span class="at">sd =</span> <span class="dv">50</span>),</span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>        <span class="at">accuracy =</span> <span class="fu">rbinom</span>(n_trials, <span class="dv">1</span>, </span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>                         <span class="at">prob =</span> <span class="fu">ifelse</span>(condition <span class="sc">==</span> <span class="st">&quot;control&quot;</span>, <span class="fl">0.8</span>, <span class="fl">0.9</span>))</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>      )</span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>      </span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>      <span class="co"># Stages must return a list</span></span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>      <span class="fu">list</span>(<span class="at">data =</span> data)</span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>    },</span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>    <span class="co"># Tell parade what type of output to expect</span></span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>    <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">data =</span> <span class="fu">lst</span>())</span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>  )</span></code></pre></div>
+<p>Let’s break this down: - <strong><code>flow(grid)</code></strong>
+creates a workflow that will process each row of our grid -
+<strong><code>stage()</code></strong> adds a computational step to the
+workflow - <strong><code>id</code></strong> gives the stage a name so
+other stages can reference it - <strong><code>f</code></strong> is the
+function that does the actual work -
+<strong><code>schema</code></strong> tells parade what kind of data this
+stage produces</p>
+</div>
+<div id="step-3-add-analysis-stages" class="section level3">
+<h3>Step 3: Add analysis stages</h3>
+<p>Let’s add a stage that analyzes the loaded data:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>results_flow <span class="ot">&lt;-</span> results_flow <span class="sc">|&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  </span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="co"># Second stage: Analyze the data</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="fu">stage</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>    <span class="at">id =</span> <span class="st">&quot;analyze&quot;</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>    <span class="at">needs =</span> <span class="st">&quot;load&quot;</span>,  <span class="co"># This stage needs the output from &quot;load&quot;</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>    <span class="at">f =</span> <span class="cf">function</span>(load.data) {</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>      <span class="co"># Notice: load.data refers to the &#39;data&#39; output from the &#39;load&#39; stage</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>      </span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>      <span class="co"># Calculate summary statistics</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>      mean_rt <span class="ot">&lt;-</span> <span class="fu">mean</span>(load.data<span class="sc">$</span>response_time)</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>      sd_rt <span class="ot">&lt;-</span> <span class="fu">sd</span>(load.data<span class="sc">$</span>response_time)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>      accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(load.data<span class="sc">$</span>accuracy)</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>      n_trials <span class="ot">&lt;-</span> <span class="fu">nrow</span>(load.data)</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>      </span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>      <span class="fu">list</span>(</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>        <span class="at">mean_rt =</span> mean_rt,</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>        <span class="at">sd_rt =</span> sd_rt,</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>        <span class="at">accuracy =</span> accuracy,</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>        <span class="at">n_trials =</span> n_trials</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>      )</span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>    },</span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>    <span class="co"># Specify the types of our outputs</span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>    <span class="at">schema =</span> <span class="fu">returns</span>(</span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>      <span class="at">mean_rt =</span> <span class="fu">dbl</span>(),   <span class="co"># Double/numeric</span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>      <span class="at">sd_rt =</span> <span class="fu">dbl</span>(),</span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>      <span class="at">accuracy =</span> <span class="fu">dbl</span>(),</span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>      <span class="at">n_trials =</span> <span class="fu">int</span>()   <span class="co"># Integer</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>    )</span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>  )</span></code></pre></div>
+<p>Key points: - <strong><code>needs = &quot;load&quot;</code></strong> creates a
+dependency - this stage waits for “load” to complete -
+<strong><code>load.data</code></strong> is how we access the output from
+the previous stage - The naming convention is:
+<code>[stage_name].[output_field]</code></p>
+</div>
+<div id="step-4-execute-and-collect-results" class="section level3">
+<h3>Step 4: Execute and collect results</h3>
+<p>Now we run the entire workflow:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Execute the workflow</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">collect</span>(results_flow)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">print</span>(results)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co"># A tibble: 6 × 7</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#   participant condition mean_rt  sd_rt accuracy n_trials  .ok</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#   &lt;chr&gt;       &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;    &lt;int&gt; &lt;lgl&gt;</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co"># 1 p01         control      498.   48.2     0.79      100 TRUE</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co"># 2 p01         treatment    451.   51.3     0.91      100 TRUE</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co"># 3 p02         control      502.   49.8     0.81      100 TRUE</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co"># 4 p02         treatment    449.   50.1     0.88      100 TRUE</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co"># 5 p03         control      499.   52.1     0.80      100 TRUE</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co"># 6 p03         treatment    448.   47.9     0.92      100 TRUE</span></span></code></pre></div>
+<p>The results include: - Our original parameters
+(<code>participant</code>, <code>condition</code>) - The outputs from
+our analysis stage (<code>mean_rt</code>, <code>sd_rt</code>,
+<code>accuracy</code>, <code>n_trials</code>) - A <code>.ok</code>
+column indicating whether each row succeeded</p>
+</div>
+</div>
+<div id="understanding-schemas-and-types" class="section level2">
+<h2>Understanding schemas and types</h2>
+<p>You might wonder why we specify schemas. They serve three important
+purposes:</p>
+<div id="early-error-detection" class="section level3">
+<h3>1. Early error detection</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># This will fail immediately if your function returns the wrong type</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">stage</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">id =</span> <span class="st">&quot;bad_stage&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">f =</span> <span class="cf">function</span>() {</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>    <span class="fu">list</span>(<span class="at">result =</span> <span class="st">&quot;not a number&quot;</span>)  <span class="co"># Oops, returning string instead of number</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  },</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">result =</span> <span class="fu">dbl</span>())  <span class="co"># Expected a number!</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="memory-optimization" class="section level3">
+<h3>2. Memory optimization</h3>
+<p>Parade pre-allocates memory based on your schemas, making execution
+more efficient.</p>
+</div>
+<div id="documentation" class="section level3">
+<h3>3. Documentation</h3>
+<p>Schemas make your pipeline’s expectations explicit - anyone reading
+your code knows exactly what each stage produces.</p>
+</div>
+<div id="available-types" class="section level3">
+<h3>Available types</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Basic types</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">dbl</span>()    <span class="co"># Double/numeric values</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">int</span>()    <span class="co"># Integers</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="fu">chr</span>()    <span class="co"># Character strings</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">lgl</span>()    <span class="co"># Logical (TRUE/FALSE)</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co"># Container types</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="fu">lst</span>()    <span class="co"># Lists (for complex objects)</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="fu">tbl</span>()    <span class="co"># Tibbles/data frames</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co"># Special types</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="fu">artifact</span>()  <span class="co"># File references (for large data saved to disk)</span></span></code></pre></div>
+</div>
+</div>
+<div id="parallel-execution" class="section level2">
+<h2>Parallel execution</h2>
+<p>So far, our workflow runs sequentially. Let’s make it parallel:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Run with parallel workers</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>results_parallel <span class="ot">&lt;-</span> <span class="fu">collect</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  results_flow, </span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">engine =</span> <span class="st">&quot;future&quot;</span>,  <span class="co"># Use parallel execution</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">workers =</span> <span class="dv">3</span>         <span class="co"># Use 3 parallel workers</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>Parade automatically distributes the 6 analyses across the 3 workers,
+handling all the complexity of parallel execution for you.</p>
+<div id="when-to-use-parallel-execution" class="section level3">
+<h3>When to use parallel execution</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Scenario</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>&lt; 10 quick analyses</td>
+<td>Sequential (easier debugging)</td>
+</tr>
+<tr class="even">
+<td>Many independent analyses</td>
+<td>Parallel with multiple workers</td>
+</tr>
+<tr class="odd">
+<td>Memory-intensive analyses</td>
+<td>Parallel with fewer workers</td>
+</tr>
+<tr class="even">
+<td>Testing/debugging</td>
+<td>Always start sequential</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="handling-failures-gracefully" class="section level2">
+<h2>Handling failures gracefully</h2>
+<p>Real analyses sometimes fail. Parade provides several strategies:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Option 1: Keep failed rows in results (default)</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>flow_robust <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid, <span class="at">error =</span> <span class="st">&quot;keep&quot;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co"># Option 2: Stop on first error (for debugging)</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>flow_strict <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid, <span class="at">error =</span> <span class="st">&quot;stop&quot;</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co"># Option 3: Silently remove failed rows</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>flow_filter <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid, <span class="at">error =</span> <span class="st">&quot;omit&quot;</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co"># Check which rows failed</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>failed_rows <span class="ot">&lt;-</span> <span class="fu">failed</span>(results)</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co"># Get detailed error information</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="fu">diagnostics</span>(results, <span class="at">stage =</span> <span class="st">&quot;analyze&quot;</span>)</span></code></pre></div>
+</div>
+<div id="building-complex-pipelines" class="section level2">
+<h2>Building complex pipelines</h2>
+<p>Stages can depend on multiple previous stages, creating a directed
+acyclic graph (DAG):</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>complex_flow <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid) <span class="sc">|&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  </span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="at">id =</span> <span class="st">&quot;load&quot;</span>, </span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>        <span class="at">f =</span> <span class="cf">function</span>(participant, condition) {</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>          <span class="co"># Load raw data from CSV files</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>          <span class="co"># Using resolve_path() for parade&#39;s path management</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>          file_path <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">&quot;data/%s_%s.csv&quot;</span>, participant, condition)</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>          </span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>          <span class="co"># For this example, simulate loading data</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>          <span class="fu">set.seed</span>(<span class="fu">as.numeric</span>(<span class="fu">factor</span>(participant)) <span class="sc">*</span> <span class="dv">100</span> <span class="sc">+</span> </span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>                   <span class="fu">as.numeric</span>(<span class="fu">factor</span>(condition)))</span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>          </span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>          raw_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a>            <span class="at">x =</span> <span class="fu">rnorm</span>(<span class="dv">100</span>),</span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a>            <span class="at">y =</span> <span class="fu">rnorm</span>(<span class="dv">100</span>),</span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a>            <span class="at">participant =</span> participant,</span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a>            <span class="at">condition =</span> condition</span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a>          )</span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a>          </span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a>          <span class="fu">list</span>(<span class="at">raw_data =</span> raw_data)</span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a>        },</span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a>        <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">raw_data =</span> <span class="fu">lst</span>())) <span class="sc">|&gt;</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a>  </span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="at">id =</span> <span class="st">&quot;clean&quot;</span>,</span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a>        <span class="at">needs =</span> <span class="st">&quot;load&quot;</span>,</span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a>        <span class="at">f =</span> <span class="cf">function</span>(load.raw_data) {</span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a>          <span class="co"># Remove outliers: values &gt; 3 SD from mean</span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a>          clean_data <span class="ot">&lt;-</span> load.raw_data</span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a>          </span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a>          <span class="co"># Remove outliers from x variable</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a>          x_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(clean_data<span class="sc">$</span>x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a>          x_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(clean_data<span class="sc">$</span>x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a>          clean_data <span class="ot">&lt;-</span> clean_data[<span class="fu">abs</span>(clean_data<span class="sc">$</span>x <span class="sc">-</span> x_mean) <span class="sc">&lt;=</span> <span class="dv">3</span> <span class="sc">*</span> x_sd, ]</span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a>          </span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a>          <span class="co"># Remove outliers from y variable  </span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a>          y_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(clean_data<span class="sc">$</span>y, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a>          y_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(clean_data<span class="sc">$</span>y, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a>          clean_data <span class="ot">&lt;-</span> clean_data[<span class="fu">abs</span>(clean_data<span class="sc">$</span>y <span class="sc">-</span> y_mean) <span class="sc">&lt;=</span> <span class="dv">3</span> <span class="sc">*</span> y_sd, ]</span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a>          </span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a>          <span class="fu">list</span>(<span class="at">clean_data =</span> clean_data)</span>
+<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a>        },</span>
+<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a>        <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">clean_data =</span> <span class="fu">lst</span>())) <span class="sc">|&gt;</span></span>
+<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a>  </span>
+<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="at">id =</span> <span class="st">&quot;model&quot;</span>,</span>
+<span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a>        <span class="at">needs =</span> <span class="st">&quot;clean&quot;</span>,</span>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a>        <span class="at">f =</span> <span class="cf">function</span>(clean.clean_data) {</span>
+<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a>          <span class="co"># Fit a linear model</span></span>
+<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a>          model <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> x, <span class="at">data =</span> clean.clean_data)</span>
+<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a>          <span class="fu">list</span>(<span class="at">model =</span> model)</span>
+<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a>        },</span>
+<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a>        <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">model =</span> <span class="fu">lst</span>())) <span class="sc">|&gt;</span></span>
+<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a>  </span>
+<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="at">id =</span> <span class="st">&quot;validate&quot;</span>,</span>
+<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a>        <span class="at">needs =</span> <span class="st">&quot;model&quot;</span>,</span>
+<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a>        <span class="at">f =</span> <span class="cf">function</span>(model.model) {</span>
+<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a>          <span class="co"># Simple cross-validation: calculate R-squared</span></span>
+<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a>          <span class="co"># In production, use caret::train() or mlr3 for proper CV</span></span>
+<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a>          </span>
+<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a>          <span class="co"># Extract R-squared as a simple validation metric</span></span>
+<span id="cb10-60"><a href="#cb10-60" tabindex="-1"></a>          cv_score <span class="ot">&lt;-</span> <span class="fu">summary</span>(model.model)<span class="sc">$</span>r.squared</span>
+<span id="cb10-61"><a href="#cb10-61" tabindex="-1"></a>          </span>
+<span id="cb10-62"><a href="#cb10-62" tabindex="-1"></a>          <span class="fu">list</span>(<span class="at">cv_score =</span> cv_score)</span>
+<span id="cb10-63"><a href="#cb10-63" tabindex="-1"></a>        },</span>
+<span id="cb10-64"><a href="#cb10-64" tabindex="-1"></a>        <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">cv_score =</span> <span class="fu">dbl</span>())) <span class="sc">|&gt;</span></span>
+<span id="cb10-65"><a href="#cb10-65" tabindex="-1"></a>  </span>
+<span id="cb10-66"><a href="#cb10-66" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="at">id =</span> <span class="st">&quot;report&quot;</span>,</span>
+<span id="cb10-67"><a href="#cb10-67" tabindex="-1"></a>        <span class="at">needs =</span> <span class="fu">c</span>(<span class="st">&quot;model&quot;</span>, <span class="st">&quot;validate&quot;</span>),  <span class="co"># Depends on TWO stages</span></span>
+<span id="cb10-68"><a href="#cb10-68" tabindex="-1"></a>        <span class="at">f =</span> <span class="cf">function</span>(model.model, validate.cv_score) {</span>
+<span id="cb10-69"><a href="#cb10-69" tabindex="-1"></a>          <span class="co"># Generate summary report combining model and validation</span></span>
+<span id="cb10-70"><a href="#cb10-70" tabindex="-1"></a>          summary_report <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb10-71"><a href="#cb10-71" tabindex="-1"></a>            <span class="at">coefficients =</span> <span class="fu">coef</span>(model.model),</span>
+<span id="cb10-72"><a href="#cb10-72" tabindex="-1"></a>            <span class="at">r_squared =</span> cv_score,</span>
+<span id="cb10-73"><a href="#cb10-73" tabindex="-1"></a>            <span class="at">n_obs =</span> <span class="fu">length</span>(model.model<span class="sc">$</span>fitted.values),</span>
+<span id="cb10-74"><a href="#cb10-74" tabindex="-1"></a>            <span class="at">rmse =</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>(model.model<span class="sc">$</span>residuals<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb10-75"><a href="#cb10-75" tabindex="-1"></a>          )</span>
+<span id="cb10-76"><a href="#cb10-76" tabindex="-1"></a>          </span>
+<span id="cb10-77"><a href="#cb10-77" tabindex="-1"></a>          <span class="fu">list</span>(<span class="at">summary =</span> summary_report)</span>
+<span id="cb10-78"><a href="#cb10-78" tabindex="-1"></a>        },</span>
+<span id="cb10-79"><a href="#cb10-79" tabindex="-1"></a>        <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">summary =</span> <span class="fu">lst</span>()))</span></code></pre></div>
+<p>Parade automatically figures out the execution order based on
+dependencies.</p>
+</div>
+<div id="debugging-workflows" class="section level2">
+<h2>Debugging workflows</h2>
+<p>Start small and build up:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># 1. Test with just 2 rows first</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>test_results <span class="ot">&lt;-</span> <span class="fu">collect</span>(results_flow, <span class="at">limit =</span> <span class="dv">2</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co"># Check if everything worked</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">all</span>(test_results<span class="sc">$</span>.ok)) {</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Test successful! Now try full dataset.&quot;</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>  <span class="co"># Find which rows failed</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  failed_rows <span class="ot">&lt;-</span> test_results[<span class="sc">!</span>test_results<span class="sc">$</span>.ok, ]</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>  <span class="fu">print</span>(failed_rows)</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>}</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co"># 2. Run sequentially for easier debugging</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>debug_results <span class="ot">&lt;-</span> <span class="fu">collect</span>(results_flow, <span class="at">engine =</span> <span class="st">&quot;sequential&quot;</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co"># 3. Check intermediate outputs from specific stages</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>stage_outputs <span class="ot">&lt;-</span> <span class="fu">diagnostics</span>(test_results)</span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co"># Examine what the load stage produced for the first row</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="fu">print</span>(stage_outputs<span class="sc">$</span>load[[<span class="dv">1</span>]])  </span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co"># $data</span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co"># A data frame with 100 rows and 5 columns</span></span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co"># Check analyze stage output</span></span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="fu">print</span>(stage_outputs<span class="sc">$</span>analyze[[<span class="dv">1</span>]])</span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co"># $mean_rt</span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co"># [1] 498.2</span></span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co"># $sd_rt  </span></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co"># [1] 48.2</span></span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co"># ... etc</span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a></span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co"># 4. Inspect the flow structure</span></span>
+<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a><span class="fu">explain</span>(results_flow)  </span>
+<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a><span class="co"># Shows DAG with stages and dependencies:</span></span>
+<span id="cb11-35"><a href="#cb11-35" tabindex="-1"></a><span class="co"># Stage &#39;load&#39; (no dependencies)</span></span>
+<span id="cb11-36"><a href="#cb11-36" tabindex="-1"></a><span class="co"># Stage &#39;analyze&#39; (depends on: load)</span></span>
+<span id="cb11-37"><a href="#cb11-37" tabindex="-1"></a></span>
+<span id="cb11-38"><a href="#cb11-38" tabindex="-1"></a><span class="co"># 5. Debug a specific failure</span></span>
+<span id="cb11-39"><a href="#cb11-39" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span>test_results<span class="sc">$</span>.ok[<span class="dv">1</span>]) {</span>
+<span id="cb11-40"><a href="#cb11-40" tabindex="-1"></a>  <span class="co"># Get detailed error for first row</span></span>
+<span id="cb11-41"><a href="#cb11-41" tabindex="-1"></a>  error_info <span class="ot">&lt;-</span> <span class="fu">diagnostics</span>(test_results, <span class="at">row =</span> <span class="dv">1</span>)</span>
+<span id="cb11-42"><a href="#cb11-42" tabindex="-1"></a>  <span class="fu">print</span>(error_info<span class="sc">$</span>.error)  <span class="co"># See exact error message</span></span>
+<span id="cb11-43"><a href="#cb11-43" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="common-patterns-and-tips" class="section level2">
+<h2>Common patterns and tips</h2>
+<div id="pattern-1-conditional-execution" class="section level3">
+<h3>Pattern 1: Conditional execution</h3>
+<p>Skip stages based on conditions:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>flow_with_skip <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid) <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="at">id =</span> <span class="st">&quot;load&quot;</span>, ...) <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="fu">stage</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>    <span class="at">id =</span> <span class="st">&quot;optional_analysis&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>    <span class="at">needs =</span> <span class="st">&quot;load&quot;</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>    <span class="at">f =</span> <span class="cf">function</span>(load.data) {</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>      <span class="co"># Complex analysis</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>      <span class="fu">list</span>(<span class="at">result =</span> <span class="fu">complex_calculation</span>(load.data))</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>    },</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>    <span class="at">skip_when =</span> <span class="cf">function</span>(load.data) {</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>      <span class="fu">nrow</span>(load.data) <span class="sc">&lt;</span> <span class="dv">10</span>  <span class="co"># Skip if too little data</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>    },</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>    <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">result =</span> <span class="fu">dbl</span>())</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>  )</span></code></pre></div>
+</div>
+<div id="pattern-2-reproducible-randomness" class="section level3">
+<h3>Pattern 2: Reproducible randomness</h3>
+<p>Use a seed column for reproducible random operations:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Create grid with unique seeds for each analysis</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>grid_with_seeds <span class="ot">&lt;-</span> <span class="fu">param_grid</span>(</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">participant =</span> <span class="fu">c</span>(<span class="st">&quot;p01&quot;</span>, <span class="st">&quot;p02&quot;</span>),</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">replicate =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">seed =</span> <span class="dv">1000</span> <span class="sc">+</span> <span class="fu">row_number</span>())  <span class="co"># Add unique seed column</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co"># Tell flow to use the seed column</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>flow_reproducible <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid_with_seeds, <span class="at">seed_col =</span> <span class="st">&quot;seed&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>  <span class="fu">stage</span>(</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a>    <span class="at">id =</span> <span class="st">&quot;bootstrap&quot;</span>,</span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>    <span class="at">f =</span> <span class="cf">function</span>(participant, replicate) {</span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>      <span class="co"># No need to call set.seed() - parade handles it!</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a>      <span class="co"># Each row gets its designated seed automatically</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a>      </span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a>      <span class="co"># Simulate some data for this participant</span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a>      original_data <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">100</span>, <span class="at">mean =</span> <span class="dv">100</span>, <span class="at">sd =</span> <span class="dv">15</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a>      </span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a>      <span class="co"># Bootstrap sampling (will be reproducible)</span></span>
+<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a>      sample_data <span class="ot">&lt;-</span> <span class="fu">sample</span>(original_data, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a>      </span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a>      <span class="fu">list</span>(<span class="at">bootstrap_mean =</span> <span class="fu">mean</span>(sample_data))</span>
+<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a>    },</span>
+<span id="cb13-24"><a href="#cb13-24" tabindex="-1"></a>    <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">bootstrap_mean =</span> <span class="fu">dbl</span>())</span>
+<span id="cb13-25"><a href="#cb13-25" tabindex="-1"></a>  )</span>
+<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a></span>
+<span id="cb13-27"><a href="#cb13-27" tabindex="-1"></a><span class="co"># Results will be identical every time you run this</span></span>
+<span id="cb13-28"><a href="#cb13-28" tabindex="-1"></a>results1 <span class="ot">&lt;-</span> <span class="fu">collect</span>(flow_reproducible)</span>
+<span id="cb13-29"><a href="#cb13-29" tabindex="-1"></a>results2 <span class="ot">&lt;-</span> <span class="fu">collect</span>(flow_reproducible)</span>
+<span id="cb13-30"><a href="#cb13-30" tabindex="-1"></a><span class="fu">identical</span>(results1<span class="sc">$</span>bootstrap_mean, results2<span class="sc">$</span>bootstrap_mean)  <span class="co"># TRUE</span></span></code></pre></div>
+</div>
+<div id="pattern-3-working-with-complex-objects" class="section level3">
+<h3>Pattern 3: Working with complex objects</h3>
+<p>For complex objects (models, custom classes, neuroimaging data), use
+<code>lst()</code>:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>model_flow <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid) <span class="sc">|&gt;</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="fu">stage</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>    <span class="at">id =</span> <span class="st">&quot;fit_model&quot;</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>    <span class="at">f =</span> <span class="cf">function</span>(participant) {</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>      <span class="co"># Simulate loading participant data</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>      <span class="co"># In production: data &lt;- read.csv(sprintf(&quot;data/%s.csv&quot;, participant))</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>      <span class="fu">set.seed</span>(<span class="fu">as.numeric</span>(<span class="fu">factor</span>(participant)))</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>      n <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>      data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>        <span class="at">x1 =</span> <span class="fu">rnorm</span>(n),</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>        <span class="at">x2 =</span> <span class="fu">rnorm</span>(n),</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>        <span class="at">x3 =</span> <span class="fu">rnorm</span>(n),</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>        <span class="at">y =</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>      )</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>      </span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>      <span class="co"># Fit a complex model</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>      model <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> x1 <span class="sc">+</span> x2 <span class="sc">+</span> x3, <span class="at">data =</span> data)</span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a>      </span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a>      <span class="co"># Return both the model object and extracted metrics</span></span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a>      <span class="fu">list</span>(</span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a>        <span class="at">model =</span> model,                          <span class="co"># Complex object stored as list</span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a>        <span class="at">r_squared =</span> <span class="fu">summary</span>(model)<span class="sc">$</span>r.squared,   <span class="co"># Simple numeric value</span></span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a>        <span class="at">n_params =</span> <span class="fu">length</span>(<span class="fu">coef</span>(model))          <span class="co"># Simple integer value</span></span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a>      )</span>
+<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a>    },</span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a>    <span class="at">schema =</span> <span class="fu">returns</span>(</span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a>      <span class="at">model =</span> <span class="fu">lst</span>(),      <span class="co"># List column for complex object</span></span>
+<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a>      <span class="at">r_squared =</span> <span class="fu">dbl</span>(),  <span class="co"># Regular column for numeric</span></span>
+<span id="cb14-29"><a href="#cb14-29" tabindex="-1"></a>      <span class="at">n_params =</span> <span class="fu">int</span>()    <span class="co"># Regular column for integer</span></span>
+<span id="cb14-30"><a href="#cb14-30" tabindex="-1"></a>    )</span>
+<span id="cb14-31"><a href="#cb14-31" tabindex="-1"></a>  )</span></code></pre></div>
+</div>
+</div>
+<div id="troubleshooting-common-issues" class="section level2">
+<h2>Troubleshooting common issues</h2>
+<div id="schema-mismatches" class="section level3">
+<h3>Schema mismatches</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Error: Expected &lt;dbl&gt;, got &lt;int&gt;</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co"># Solution: Use the correct type or convert in your function</span></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>schema <span class="ot">=</span> <span class="fu">returns</span>(<span class="at">value =</span> <span class="fu">dbl</span>())  <span class="co"># Not int()</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co"># Or in your function: as.double(your_integer)</span></span></code></pre></div>
+</div>
+<div id="cant-find-stage-output" class="section level3">
+<h3>Can’t find stage output</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Error: Can&#39;t find prep.df</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co"># Check:</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co"># 1. Stage name: needs = &quot;prep&quot;  (must match stage id)</span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co"># 2. Output name: function(prep.df)  (format: stage.field)</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co"># 3. The prep stage must output a field called &quot;df&quot;</span></span></code></pre></div>
+</div>
+<div id="memory-issues-with-parallel-execution" class="section level3">
+<h3>Memory issues with parallel execution</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># If you run out of memory with many workers</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">collect</span>(flow, <span class="at">workers =</span> <span class="dv">2</span>)  <span class="co"># Reduce worker count</span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co"># Or process in batches</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>batch1 <span class="ot">&lt;-</span> <span class="fu">collect</span>(flow[<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, ])   <span class="co"># First 100 rows</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>batch2 <span class="ot">&lt;-</span> <span class="fu">collect</span>(flow[<span class="dv">101</span><span class="sc">:</span><span class="dv">200</span>, ]) <span class="co"># Next 100 rows</span></span></code></pre></div>
+</div>
+<div id="debugging-failed-rows" class="section level3">
+<h3>Debugging failed rows</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># Get detailed information about failures</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">collect</span>(flow, <span class="at">error =</span> <span class="st">&quot;keep&quot;</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co"># Which rows failed?</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>failed_rows <span class="ot">&lt;-</span> results[<span class="sc">!</span>results<span class="sc">$</span>.ok, ]</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co"># Why did they fail?</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>error_details <span class="ot">&lt;-</span> <span class="fu">diagnostics</span>(results)</span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="fu">print</span>(error_details<span class="sc">$</span>.error)  <span class="co"># See error messages</span></span></code></pre></div>
+</div>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next steps</h2>
+<p>Now that you understand the basics:</p>
+<ol style="list-style-type: decimal">
+<li><strong><a href="parade-paths.html">Paths System</a></strong>: Learn
+about parade’s URI-based path management system</li>
+<li><strong><a href="parade-sinks.html">Sinks and
+Artifacts</a></strong>: Save intermediate results to disk
+automatically</li>
+<li><strong><a href="parade-artifacts.html">Artifacts
+Guide</a></strong>: Practical guide to portable scratch-first
+storage</li>
+<li><strong><a href="parade-mirai.html">Parallel Execution</a></strong>:
+Scale to hundreds of workers with the mirai backend</li>
+<li><strong><a href="parade-slurm-distribution.html">SLURM
+Distribution</a></strong>: Run on HPC clusters</li>
+</ol>
+<p>Remember: start simple, test with small parameter grids, and
+gradually scale up. Parade grows with your needs - the same code that
+runs on your laptop can scale to a supercomputer with just a
+configuration change.</p>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>parade helps you: - <strong>Define once, run many</strong>: Write
+your analysis once, run it across all parameter combinations -
+<strong>Handle complexity</strong>: Automatically manage dependencies
+between analysis steps - <strong>Scale effortlessly</strong>: From
+sequential laptop execution to parallel cluster computing -
+<strong>Catch errors early</strong>: Type checking prevents silent
+failures - <strong>Stay organized</strong>: All results in a clean,
+typed tibble</p>
+<p>Start with simple sequential workflows, add types for safety, then
+scale to parallel execution when needed. Your analysis code stays the
+same - only the execution strategy changes.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

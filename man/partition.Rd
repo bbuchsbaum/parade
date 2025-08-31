@@ -13,9 +13,10 @@ partition(profile, value)
 }
 \value{
 Updated profile object
-
-Note: use res_partition() to avoid naming collisions in user code.
 }
 \description{
 Set partition for a resource profile
+}
+\note{
+Use res_partition() to avoid naming collisions in user code.
 }

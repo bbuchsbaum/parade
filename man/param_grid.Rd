@@ -38,3 +38,4 @@ params <- param_grid(params_list)
 
 grid <- param_grid(x = 1:3, method = c("A", "B"))
 }
+\keyword{internal}

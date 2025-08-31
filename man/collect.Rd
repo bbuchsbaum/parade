@@ -2,14 +2,19 @@
 % Please edit documentation in R/jobset_class.R
 \name{collect}
 \alias{collect}
+\alias{collect.parade_jobset}
 \title{Collect results from all jobs in a jobset}
 \usage{
 collect(x, ...)
+
+\method{collect}{parade_jobset}(x, simplify = TRUE, ...)
 }
 \arguments{
 \item{x}{A parade_jobset object}
 
-\item{simplify}{Try to simplify results into a vector/matrix}
+\item{...}{Additional arguments passed to method implementations}
+
+\item{simplify}{Try to simplify results into a vector/matrix (default: TRUE)}
 }
 \value{
 List or simplified structure of results

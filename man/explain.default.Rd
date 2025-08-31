@@ -5,12 +5,23 @@
 \title{Explain a job submission (default)}
 \usage{
 \method{explain}{default}(
-  .f,
+  x,
   ...,
   .resources = NULL,
   .packages = character(),
   .engine = c("slurm", "local")
 )
+}
+\arguments{
+\item{x}{Function or script to explain}
+
+\item{...}{Arguments that would be passed to the function}
+
+\item{.resources}{Resource specification for job execution}
+
+\item{.packages}{Packages to load for the job}
+
+\item{.engine}{Execution engine ("slurm" or "local")}
 }
 \description{
 Explain a job submission (default)

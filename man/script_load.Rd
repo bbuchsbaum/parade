@@ -17,6 +17,7 @@ Load a script job from its registry directory
 }
 \examples{
 \donttest{
-job <- script_load("/path/to/registry")
+# Requires an existing registry path from a prior SLURM job
+# if (dir.exists("/path/to/registry")) script_load("/path/to/registry")
 }
 }

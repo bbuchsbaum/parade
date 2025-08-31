@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Mirai backend: fast, scalable parallel execution</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Mirai backend: fast, scalable parallel
+execution</h1>
+
+
+
+<div id="why-mirai" class="section level2">
+<h2>Why mirai?</h2>
+<p>The mirai backend brings several powerful advantages to parade
+workflows:</p>
+<ul>
+<li><strong>No connection limits</strong>: Scale beyond R’s 125
+connection limit</li>
+<li><strong>Low-latency execution</strong>: Persistent daemons with
+dispatcher for minimal overhead</li>
+<li><strong>Secure remote execution</strong>: Built-in TLS and SSH
+tunneling support</li>
+<li><strong>HPC compliance</strong>: Launch daemons through SLURM while
+maintaining scheduler policies</li>
+<li><strong>Simple local development</strong>: Drop-in replacement for
+multisession with better performance</li>
+</ul>
+</div>
+<div id="quick-start" class="section level2">
+<h2>Quick Start</h2>
+<div id="local-development" class="section level3">
+<h3>Local development</h3>
+<p>The simplest way to use mirai is as a replacement for the standard
+multisession backend:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co"># Initialize mirai with auto-detected cores</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">mirai_init</span>()</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co"># Or use the distribution interface</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>fl <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid) <span class="sc">|&gt;</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="st">&quot;process&quot;</span>, <span class="cf">function</span>(x) x<span class="sc">^</span><span class="dv">2</span>, <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">y =</span> <span class="fu">dbl</span>())) <span class="sc">|&gt;</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  <span class="fu">distribute</span>(<span class="fu">use_mirai_local</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  <span class="fu">collect</span>()</span></code></pre></div>
+<p>This provides instant parallelism without any configuration, and
+often with better performance than traditional backends for many small
+tasks.</p>
+</div>
+<div id="comparison-with-other-backends" class="section level3">
+<h3>Comparison with other backends</h3>
+<table>
+<colgroup>
+<col width="24%" />
+<col width="31%" />
+<col width="19%" />
+<col width="24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Scenario</th>
+<th>Traditional</th>
+<th>Mirai</th>
+<th>Benefits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Many small tasks</td>
+<td><code>dist_local()</code></td>
+<td><code>use_mirai_local()</code></td>
+<td>Lower overhead, faster</td>
+</tr>
+<tr class="even">
+<td>&gt;125 workers</td>
+<td>Not possible</td>
+<td><code>dist_mirai(n = 200)</code></td>
+<td>No connection limits</td>
+</tr>
+<tr class="odd">
+<td>Remote execution</td>
+<td>Complex setup</td>
+<td><code>use_mirai_ssh()</code></td>
+<td>Built-in SSH tunneling</td>
+</tr>
+<tr class="even">
+<td>HPC clusters</td>
+<td><code>dist_slurm()</code></td>
+<td><code>use_mirai_slurm()</code></td>
+<td>Lower latency, persistent workers</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="distribution-patterns" class="section level2">
+<h2>Distribution Patterns</h2>
+<div id="local-daemons" class="section level3">
+<h3>1. Local Daemons</h3>
+<p>For development and single-machine workflows:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Basic local setup</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>dist <span class="ot">&lt;-</span> <span class="fu">dist_mirai</span>(<span class="at">n =</span> <span class="dv">8</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co"># With explicit configuration</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>dist <span class="ot">&lt;-</span> <span class="fu">dist_mirai</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">n =</span> parallel<span class="sc">::</span><span class="fu">detectCores</span>(),</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">dispatcher =</span> <span class="cn">TRUE</span>,  <span class="co"># Enable load balancing</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">within =</span> <span class="st">&quot;mirai&quot;</span>,   <span class="co"># Use mirai for nested parallelization</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="at">workers_within =</span> <span class="dv">4</span>  <span class="co"># Nested workers per daemon</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>)</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co"># Apply to flow</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>fl <span class="sc">|&gt;</span> <span class="fu">distribute</span>(dist) <span class="sc">|&gt;</span> <span class="fu">collect</span>()</span></code></pre></div>
+</div>
+<div id="slurm-managed-daemon-pools" class="section level3">
+<h3>2. SLURM-Managed Daemon Pools</h3>
+<p>Launch mirai daemons through SLURM for HPC-compliant distributed
+execution:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Configure SLURM-launched daemons</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>dist <span class="ot">&lt;-</span> <span class="fu">use_mirai_slurm</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">16</span>,                    <span class="co"># Number of daemon jobs</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">partition =</span> <span class="st">&quot;compute&quot;</span>,     <span class="co"># SLURM partition</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">time =</span> <span class="st">&quot;2:00:00&quot;</span>,         <span class="co"># Wall time</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="at">mem =</span> <span class="st">&quot;32G&quot;</span>,              <span class="co"># Memory per daemon</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="at">cpus =</span> <span class="dv">8</span>,                 <span class="co"># CPUs per daemon</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  <span class="at">tls =</span> <span class="cn">TRUE</span>,               <span class="co"># Use TLS encryption</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  <span class="at">port =</span> <span class="dv">5555</span>               <span class="co"># TLS port</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>)</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co"># Submit flow with SLURM daemons</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>fl <span class="sc">|&gt;</span> </span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>  <span class="fu">distribute</span>(dist) <span class="sc">|&gt;</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>  <span class="fu">submit</span>()  <span class="co"># Returns immediately</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co"># Monitor status</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="fu">deferred_status</span>(handle)</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">deferred_collect</span>(handle)</span></code></pre></div>
+<p>The daemons run as SLURM jobs, ensuring compliance with cluster
+policies while providing low-latency task execution.</p>
+</div>
+<div id="ssh-tunneling-for-firewalled-clusters" class="section level3">
+<h3>3. SSH Tunneling for Firewalled Clusters</h3>
+<p>Connect to remote nodes through SSH, even when direct connections are
+blocked:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># SSH with tunneling (for firewalled nodes)</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>dist <span class="ot">&lt;-</span> <span class="fu">use_mirai_ssh</span>(</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">remotes =</span> <span class="fu">c</span>(<span class="st">&quot;ssh://node1&quot;</span>, <span class="st">&quot;ssh://node2&quot;</span>, <span class="st">&quot;ssh://node3&quot;</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">tunnel =</span> <span class="cn">TRUE</span>,      <span class="co"># Use SSH tunneling</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">port =</span> <span class="dv">40491</span>       <span class="co"># Local port for tunnel</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co"># Direct SSH (when ports are open)</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>dist <span class="ot">&lt;-</span> <span class="fu">use_mirai_ssh</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  <span class="at">remotes =</span> <span class="fu">c</span>(<span class="st">&quot;ssh://compute1&quot;</span>, <span class="st">&quot;ssh://compute2&quot;</span>),</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="at">tunnel =</span> <span class="cn">FALSE</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>fl <span class="sc">|&gt;</span> <span class="fu">distribute</span>(dist) <span class="sc">|&gt;</span> <span class="fu">collect</span>()</span></code></pre></div>
+<p>SSH tunneling allows secure connections even in restricted network
+environments.</p>
+</div>
+</div>
+<div id="advanced-configuration" class="section level2">
+<h2>Advanced Configuration</h2>
+<div id="manual-daemon-setup" class="section level3">
+<h3>Manual Daemon Setup</h3>
+<p>For full control over the mirai configuration:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">library</span>(mirai)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">library</span>(future)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># Set up custom TLS-secured daemons</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>url <span class="ot">&lt;-</span> <span class="fu">host_url</span>(<span class="at">tls =</span> <span class="cn">TRUE</span>, <span class="at">port =</span> <span class="dv">5555</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co"># Configure SLURM submission</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>opts <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="st">&quot;#SBATCH --partition=highmem&quot;</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="st">&quot;#SBATCH --time=04:00:00&quot;</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="st">&quot;#SBATCH --mem=64G&quot;</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>  <span class="st">&quot;#SBATCH --job-name=my-analysis&quot;</span>,</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>  <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>)</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>cfg <span class="ot">&lt;-</span> <span class="fu">cluster_config</span>(<span class="at">command =</span> <span class="st">&quot;sbatch&quot;</span>, <span class="at">options =</span> opts)</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co"># Launch daemons</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="fu">daemons</span>(<span class="at">n =</span> <span class="dv">32</span>, <span class="at">url =</span> url, <span class="at">remote =</span> cfg, <span class="at">dispatcher =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co"># Use with parade via future</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="fu">plan</span>(future.mirai<span class="sc">::</span>mirai_cluster)</span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a>fl <span class="sc">|&gt;</span> <span class="fu">collect</span>()</span></code></pre></div>
+</div>
+<div id="dynamic-scaling" class="section level3">
+<h3>Dynamic Scaling</h3>
+<p>Adjust daemon count based on workload:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Start with a few daemons</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">mirai_init</span>(<span class="at">n =</span> <span class="dv">4</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co"># Scale up for intensive processing</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">mirai_scale</span>(<span class="dv">16</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">collect</span>(heavy_flow)</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co"># Scale down when done</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="fu">mirai_scale</span>(<span class="dv">4</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co"># Check status</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="fu">mirai_status</span>()</span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="fu">mirai_dispatcher_status</span>()</span></code></pre></div>
+</div>
+<div id="chunking-strategies" class="section level3">
+<h3>Chunking Strategies</h3>
+<p>Optimize task distribution with mirai’s dispatcher:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Fine-grained parallelism (many small tasks)</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">dist_mirai</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">16</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">dispatcher =</span> <span class="cn">TRUE</span>,     <span class="co"># Essential for load balancing</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="at">chunks_per_job =</span> <span class="dv">1</span>     <span class="co"># One group per task</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>)</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co"># Coarse-grained parallelism (fewer large tasks)</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="fu">dist_mirai</span>(</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">8</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>  <span class="at">dispatcher =</span> <span class="cn">FALSE</span>,    <span class="co"># Direct task assignment</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>  <span class="at">chunks_per_job =</span> <span class="dv">10</span>    <span class="co"># Bundle groups together</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="practical-examples" class="section level2">
+<h2>Practical Examples</h2>
+<div id="example-1-large-scale-simulation-on-local-machine" class="section level3">
+<h3>Example 1: Large-scale simulation on local machine</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co"># Parameter grid with 10,000 combinations</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">alpha =</span> <span class="fu">seq</span>(<span class="fl">0.1</span>, <span class="dv">1</span>, <span class="at">by =</span> <span class="fl">0.1</span>),</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  <span class="at">beta =</span> <span class="fu">seq</span>(<span class="fl">0.5</span>, <span class="dv">5</span>, <span class="at">by =</span> <span class="fl">0.5</span>),</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  <span class="at">n_sim =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>)</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co"># Use mirai to bypass connection limits</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>fl <span class="ot">&lt;-</span> <span class="fu">flow</span>(grid) <span class="sc">|&gt;</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="st">&quot;simulate&quot;</span>, <span class="cf">function</span>(alpha, beta, n_sim) {</span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>    <span class="fu">set.seed</span>(n_sim)</span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>    data <span class="ot">&lt;-</span> <span class="fu">rgamma</span>(<span class="dv">1000</span>, <span class="at">shape =</span> alpha, <span class="at">rate =</span> beta)</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>      <span class="at">mean =</span> <span class="fu">mean</span>(data),</span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>      <span class="at">var =</span> <span class="fu">var</span>(data),</span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a>      <span class="at">ks_p =</span> <span class="fu">ks.test</span>(data, <span class="st">&quot;pgamma&quot;</span>, alpha, beta)<span class="sc">$</span>p.value</span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a>    )</span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a>  }, <span class="at">schema =</span> <span class="fu">returns</span>(<span class="at">mean =</span> <span class="fu">dbl</span>(), <span class="at">var =</span> <span class="fu">dbl</span>(), <span class="at">ks_p =</span> <span class="fu">dbl</span>())) <span class="sc">|&gt;</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a>  <span class="fu">distribute</span>(<span class="fu">dist_mirai</span>(<span class="at">n =</span> <span class="dv">200</span>))  <span class="co"># 200 workers!</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">collect</span>(fl)</span></code></pre></div>
+</div>
+<div id="example-2-remote-execution-on-hpc-cluster" class="section level3">
+<h3>Example 2: Remote execution on HPC cluster</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Development: test locally</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>fl_dev <span class="ot">&lt;-</span> fl <span class="sc">|&gt;</span> </span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="fu">distribute</span>(<span class="fu">use_mirai_local</span>(<span class="at">n =</span> <span class="dv">4</span>))</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>test_results <span class="ot">&lt;-</span> fl_dev <span class="sc">|&gt;</span> <span class="fu">collect</span>(<span class="at">limit =</span> <span class="dv">100</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co"># Production: scale to cluster</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>fl_prod <span class="ot">&lt;-</span> fl <span class="sc">|&gt;</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="fu">distribute</span>(<span class="fu">use_mirai_slurm</span>(</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>    <span class="at">n =</span> <span class="dv">64</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>    <span class="at">partition =</span> <span class="st">&quot;compute&quot;</span>,</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>    <span class="at">time =</span> <span class="st">&quot;12:00:00&quot;</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>    <span class="at">mem =</span> <span class="st">&quot;256G&quot;</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>    <span class="at">account =</span> <span class="st">&quot;project-123&quot;</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>  ))</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>handle <span class="ot">&lt;-</span> <span class="fu">submit</span>(fl_prod)</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co"># Monitor progress</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="cf">while</span> (<span class="sc">!</span><span class="fu">all</span>(<span class="fu">deferred_status</span>(handle)<span class="sc">$</span>done)) {</span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a>  status <span class="ot">&lt;-</span> <span class="fu">deferred_status</span>(handle)</span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a>  <span class="fu">print</span>(status)</span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a>  <span class="fu">Sys.sleep</span>(<span class="dv">30</span>)</span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a>}</span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a>final_results <span class="ot">&lt;-</span> <span class="fu">deferred_collect</span>(handle)</span></code></pre></div>
+</div>
+<div id="example-3-cross-platform-workflow" class="section level3">
+<h3>Example 3: Cross-platform workflow</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Detect environment and choose appropriate backend</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>get_distribution <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">Sys.getenv</span>(<span class="st">&quot;SLURM_JOB_ID&quot;</span>) <span class="sc">!=</span> <span class="st">&quot;&quot;</span>) {</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>    <span class="co"># Running on SLURM</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>    <span class="fu">use_mirai_slurm</span>(<span class="at">n =</span> <span class="dv">32</span>, <span class="at">partition =</span> <span class="st">&quot;compute&quot;</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (<span class="fu">file.exists</span>(<span class="st">&quot;~/.ssh/compute_nodes&quot;</span>)) {</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>    <span class="co"># Has SSH access to compute nodes</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>    nodes <span class="ot">&lt;-</span> <span class="fu">readLines</span>(<span class="st">&quot;~/.ssh/compute_nodes&quot;</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>    <span class="fu">use_mirai_ssh</span>(<span class="at">remotes =</span> nodes, <span class="at">tunnel =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>    <span class="co"># Local development</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>    <span class="fu">use_mirai_local</span>()</span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>  }</span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a>}</span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co"># Portable workflow</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a>fl <span class="sc">|&gt;</span> </span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a>  <span class="fu">distribute</span>(<span class="fu">get_distribution</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a>  <span class="fu">collect</span>()</span></code></pre></div>
+</div>
+</div>
+<div id="performance-considerations" class="section level2">
+<h2>Performance Considerations</h2>
+<div id="when-to-use-mirai-vs-traditional-backends" class="section level3">
+<h3>When to use mirai vs traditional backends</h3>
+<table>
+<colgroup>
+<col width="30%" />
+<col width="36%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Use Case</th>
+<th>Best Choice</th>
+<th>Reasoning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Few large tasks</td>
+<td><code>dist_local()</code> or <code>dist_slurm()</code></td>
+<td>Traditional backends work well</td>
+</tr>
+<tr class="even">
+<td>Many small tasks</td>
+<td><code>dist_mirai()</code></td>
+<td>Lower per-task overhead</td>
+</tr>
+<tr class="odd">
+<td>&gt;125 parallel tasks</td>
+<td><code>dist_mirai()</code></td>
+<td>Only option beyond connection limit</td>
+</tr>
+<tr class="even">
+<td>Need load balancing</td>
+<td><code>dist_mirai(dispatcher = TRUE)</code></td>
+<td>Automatic work distribution</td>
+</tr>
+<tr class="odd">
+<td>Firewalled cluster</td>
+<td><code>use_mirai_ssh(tunnel = TRUE)</code></td>
+<td>SSH tunneling support</td>
+</tr>
+<tr class="even">
+<td>Require TLS security</td>
+<td><code>dist_mirai(tls = TRUE)</code></td>
+<td>Built-in encryption</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="optimizing-dispatcher-performance" class="section level3">
+<h3>Optimizing dispatcher performance</h3>
+<p>The dispatcher provides automatic load balancing but adds slight
+overhead:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># For homogeneous tasks (similar runtime)</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="fu">dist_mirai</span>(<span class="at">n =</span> <span class="dv">16</span>, <span class="at">dispatcher =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co"># For heterogeneous tasks (varying runtime)</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="fu">dist_mirai</span>(<span class="at">n =</span> <span class="dv">16</span>, <span class="at">dispatcher =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co"># For embarrassingly parallel workflows</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="fu">dist_mirai</span>(</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">32</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>  <span class="at">dispatcher =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  <span class="at">chunks_per_job =</span> <span class="dv">1</span>  <span class="co"># Maximum parallelism</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="troubleshooting" class="section level2">
+<h2>Troubleshooting</h2>
+<div id="common-issues-and-solutions" class="section level3">
+<h3>Common issues and solutions</h3>
+<p><strong>Issue</strong>: “Cannot connect to daemons”</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Check daemon status</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">mirai_status</span>()</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co"># Restart daemons</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="fu">mirai_stop</span>()</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="fu">mirai_init</span>()</span></code></pre></div>
+<p><strong>Issue</strong>: “Tasks not distributing evenly”</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Ensure dispatcher is enabled</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">dist_mirai</span>(<span class="at">n =</span> <span class="dv">16</span>, <span class="at">dispatcher =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co"># Check dispatcher status</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="fu">mirai_dispatcher_status</span>()</span></code></pre></div>
+<p><strong>Issue</strong>: “SSH connection fails”</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Test SSH manually first</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="fu">system</span>(<span class="st">&quot;ssh node1 echo &#39;connected&#39;&quot;</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co"># Use verbose mode for debugging</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">MIRAI_DEBUG =</span> <span class="st">&quot;TRUE&quot;</span>)</span></code></pre></div>
+<p><strong>Issue</strong>: “SLURM daemons not starting”</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Check SLURM submission manually</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>mirai<span class="sc">::</span><span class="fu">daemons</span>(</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="at">url =</span> mirai<span class="sc">::</span><span class="fu">host_url</span>(<span class="at">tls =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  <span class="at">remote =</span> mirai<span class="sc">::</span><span class="fu">cluster_config</span>(</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>    <span class="at">command =</span> <span class="st">&quot;sbatch&quot;</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>    <span class="at">options =</span> <span class="st">&quot;#SBATCH --partition=debug</span><span class="sc">\n</span><span class="st">#SBATCH --time=00:05:00&quot;</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>  )</span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a>)</span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co"># Check SLURM queue</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="fu">system</span>(<span class="st">&quot;squeue -u $USER&quot;</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="best-practices" class="section level2">
+<h2>Best Practices</h2>
+<ol style="list-style-type: decimal">
+<li><p><strong>Always cleanup daemons</strong>: Use
+<code>stop_on_exit = TRUE</code> (default) or explicitly call
+<code>mirai_stop()</code></p></li>
+<li><p><strong>Choose appropriate daemon count</strong>:</p>
+<ul>
+<li>Local: number of cores</li>
+<li>Remote: 2-4x number of physical machines</li>
+<li>SLURM: Based on partition limits</li>
+</ul></li>
+<li><p><strong>Use TLS for production</strong>: Enable encryption for
+sensitive data</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">dist_mirai</span>(<span class="at">n =</span> <span class="dv">16</span>, <span class="at">tls =</span> <span class="cn">TRUE</span>, <span class="at">port =</span> <span class="dv">5555</span>)</span></code></pre></div></li>
+<li><p><strong>Monitor resource usage</strong>: Track daemon
+performance</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># During execution</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="fu">mirai_dispatcher_status</span>()</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co"># After completion</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="fu">mirai_status</span>()</span></code></pre></div></li>
+<li><p><strong>Test locally before scaling</strong>: Verify workflow
+correctness</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># Development</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>fl <span class="sc">|&gt;</span> <span class="fu">distribute</span>(<span class="fu">use_mirai_local</span>(<span class="at">n =</span> <span class="dv">2</span>)) <span class="sc">|&gt;</span> <span class="fu">collect</span>(<span class="at">limit =</span> <span class="dv">10</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co"># Production</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>fl <span class="sc">|&gt;</span> <span class="fu">distribute</span>(<span class="fu">use_mirai_slurm</span>(<span class="at">n =</span> <span class="dv">64</span>)) <span class="sc">|&gt;</span> <span class="fu">submit</span>()</span></code></pre></div></li>
+</ol>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>The mirai backend extends parade’s capabilities with:</p>
+<ul>
+<li><strong>Unlimited parallelism</strong>: No connection limits</li>
+<li><strong>Flexible deployment</strong>: Local, SSH, or SLURM</li>
+<li><strong>Enhanced security</strong>: TLS and SSH tunneling</li>
+<li><strong>Better performance</strong>: Low-latency task execution</li>
+<li><strong>Simple interface</strong>: Drop-in replacement for existing
+backends</li>
+</ul>
+<p>Whether you’re developing locally or scaling to hundreds of nodes,
+mirai provides the performance and flexibility needed for modern
+parallel computing workflows.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

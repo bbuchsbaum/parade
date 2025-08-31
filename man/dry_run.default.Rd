@@ -5,13 +5,26 @@
 \title{Dry run for job submission (default)}
 \usage{
 \method{dry_run}{default}(
-  .f,
+  x,
   ...,
   .name = NULL,
   .resources = NULL,
   .write_result = NULL,
   .engine = "slurm"
 )
+}
+\arguments{
+\item{x}{Function or script to dry run}
+
+\item{...}{Arguments that would be passed to the function}
+
+\item{.name}{Job name (if NULL, auto-generated)}
+
+\item{.resources}{Resource specification for job execution}
+
+\item{.write_result}{Where results would be written}
+
+\item{.engine}{Execution engine ("slurm" or "local")}
 }
 \description{
 Dry run for job submission (default)

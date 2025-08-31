@@ -102,7 +102,7 @@ args_call <- function(...) {
 #' 
 #' Intelligently creates either CLI or call arguments based on context
 #' 
-#' Note: This function is exported as `args()` and will mask `base::args` when
+#' @note This function is exported as `args()` and will mask `base::args` when
 #' parade is attached. Call `base::args` explicitly if you need the base version
 #' (e.g., `base::args(lm)`).
 #' 

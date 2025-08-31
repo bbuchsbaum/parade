@@ -18,7 +18,8 @@ Result of executing the code
 Temporarily set parade options for code execution
 }
 \examples{
-with_parade_options(error = "stop", {
-  # code runs with error = "stop"
+with_parade_options(error = "stop", code = {
+  message("running with error = 'stop'")
+  1 + 1
 })
 }

@@ -6,6 +6,11 @@
 \usage{
 \method{as_tibble}{parade_jobset}(x, ...)
 }
+\arguments{
+\item{x}{A parade_jobset object}
+
+\item{...}{Additional arguments (unused)}
+}
 \description{
 Convert jobset to tibble
 }

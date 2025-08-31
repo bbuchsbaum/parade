@@ -39,6 +39,10 @@ slurm_map(
 \item{.engine}{Execution engine: "slurm" (default) or "local"}
 
 \item{.progress}{Show progress bar}
+
+\item{.options}{Flow control options (e.g., wave_policy() or concurrency_limit())}
+
+\item{.error_policy}{Error handling policy for job failures}
 }
 \value{
 A \code{parade_jobset} object containing all submitted jobs
@@ -70,23 +74,25 @@ results <- collect(local_jobs)
 
 \donttest{
 # Note: The following examples require a SLURM cluster environment
-# Map a function over files
-files <- c("data1.csv", "data2.csv")
-jobs <- slurm_map(files, ~ read.csv(.x) |> process_data(),
-                  .name_by = "stem",
-                  .write_result = "results/{stem}.rds")
+if (Sys.which("squeue") != "") {
+  # Map a function over files
+  files <- c("data1.csv", "data2.csv")
+  jobs <- slurm_map(files, ~ read.csv(.x) |> process_data(),
+                    .name_by = "stem",
+                    .write_result = "results/{stem}.rds")
 
-# Map a script with CLI arguments
-jobs <- slurm_map(files, "scripts/process.R",
-                  .args = args_cli(verbose = TRUE))
+  # Map a script with CLI arguments
+  jobs <- slurm_map(files, "scripts/process.R",
+                    .args = args_cli(verbose = TRUE))
 
-# Use formula notation with SLURM
-numbers <- 1:10
-jobs <- slurm_map(numbers, ~ .x^2 + .x,
-                  .name_by = "index")
+  # Use formula notation with SLURM
+  numbers <- 1:10
+  jobs <- slurm_map(numbers, ~ .x^2 + .x,
+                    .name_by = "index")
 
-# Wait for all jobs and collect results
-results <- jobs |> await() |> collect()
+  # Wait for all jobs and collect results
+  results <- jobs |> await() |> collect()
+}
 }
 
 }

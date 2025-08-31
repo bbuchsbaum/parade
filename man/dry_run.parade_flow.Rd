@@ -4,10 +4,12 @@
 \alias{dry_run.parade_flow}
 \title{Dry-run a flow: show plan and counts without executing}
 \usage{
-\method{dry_run}{parade_flow}(fl, ...)
+\method{dry_run}{parade_flow}(x, ...)
 }
 \arguments{
-\item{fl}{A \code{\link[=flow]{flow()}}.}
+\item{x}{A \code{\link[=flow]{flow()}} object}
+
+\item{...}{Additional arguments (unused)}
 }
 \description{
 Dry-run a flow: show plan and counts without executing

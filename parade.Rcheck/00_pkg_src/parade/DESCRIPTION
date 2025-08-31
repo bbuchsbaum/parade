@@ -1,0 +1,27 @@
+Package: parade
+Type: Package
+Title: Declarative Parallel Dataflow with Future/Furrr
+Version: 0.12.0
+Authors@R: c(person(given = "Parade", family = "Authors", role = c("aut","cre"), email = "parade@example.org"))
+Description: Declarative, lazy, compositional dataflow for R on top of 'future'/'furrr', with
+  typed schemas, artifacts, diagnostics, and HPC-friendly distribution (local, Slurm via
+  'future.batchtools'/'batchtools', and mirai for high-performance parallel execution).
+  Adds an ergonomic SLURM layer: generic script submission from R, live CPU/memory monitors,
+  multi-job dashboards, and now site/project defaults with NA-as-omit semantics and profiles.
+  Mirai backend provides unlimited parallelism, SSH tunneling, and TLS security. Configure once,
+  run everywhere.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: tibble, tidyr, dplyr, purrr, rlang, vctrs, furrr, future,
+        progressr, glue, jsonlite, digest
+Suggests: knitr, rmarkdown, future.batchtools, batchtools, mirai,
+        future.mirai, nanonext, testthat, progress
+VignetteBuilder: knitr
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2.9000
+URL: https://bbuchsbaum.github.io/parade/
+NeedsCompilation: no
+Packaged: 2025-08-31 15:02:44 UTC; bbuchsbaum
+Author: Parade Authors [aut, cre]
+Maintainer: Parade Authors <parade@example.org>

@@ -17,9 +17,11 @@
 #' # Check specific packages
 #' guard_packages(c("dplyr", "ggplot2"))
 #' 
-#' # Auto-detect from function
+#' # Auto-detect from function (skip on CRAN checks)
+#' \dontrun{
 #' my_fn <- function(x) dplyr::filter(x, value > 0)
 #' guard_packages(.f = my_fn)
+#' }
 #' }
 #' 
 #' @export
@@ -100,7 +102,8 @@ guard_packages <- function(packages = NULL, .f = NULL, load = FALSE,
 #' 
 #' # Use with slurm_map
 #' files <- glob("data/*.rds")
-#' jobs <- slurm_map(files, process_file)
+#' process_file <- function(x) x  # stub for example
+#' jobs <- slurm_map(files, process_file, .engine = "local")
 #' }
 #' 
 #' @export

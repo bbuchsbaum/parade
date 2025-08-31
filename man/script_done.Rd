@@ -17,7 +17,9 @@ Check if a SLURM job has completed
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-is_done <- script_done(job)
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  is_done <- script_done(job)
+}
 }
 }

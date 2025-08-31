@@ -23,16 +23,18 @@
 #'   or a `parade_jobset` containing the job if `.as_jobset = TRUE`.
 #' @export
 #' @examples
-#' \donttest{
 #' # Create a simple R script
 #' script_path <- tempfile(fileext = ".R")
-#' writeLines("cat('Hello from SLURM!')", script_path)
-#' 
-#' # Submit to SLURM
-#' job <- submit_slurm(script_path, resources = list(time = "5min"))
-#' 
-#' # Run locally
+#' writeLines("cat('Hello from parade!')", script_path)
+#'
+#' # Run locally (no SLURM required)
 #' job <- submit_slurm(script_path, engine = "local")
+#'
+#' \donttest{
+#' # Submit to SLURM (only if available)
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm(script_path, resources = list(time = "5min"))
+#' }
 #' }
 submit_slurm <- function(script,
                          args = character(),
@@ -93,7 +95,7 @@ submit_slurm <- function(script,
   cf <- batchtools::makeClusterFunctionsSlurm(tmpl_path)
   reg <- batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE, conf.file = NA, cluster.functions = cf)
   on.exit(try(batchtools::clearRegistry(reg = reg), silent = TRUE), add = TRUE)
-  batchtools::batchMap(fun = parade:::parade_run_script_bt, i = 1L,
+  batchtools::batchMap(fun = parade_run_script_bt, i = 1L,
                        more.args = list(script = normalizePath(script), args = args, env = env, lib_paths = lib_paths, rscript = rscript, wd = wd),
                        reg = reg)
   ids <- batchtools::submitJobs(resources = resources, reg = reg, ids = 1L, job.name = name)
@@ -139,6 +141,7 @@ submit_slurm <- function(script,
 #' @param wd Working directory
 #' @return List with ok status and exit code
 #' @keywords internal
+#' @export
 parade_run_script_bt <- function(i, script, args, env, lib_paths, rscript, wd) {
   if (length(lib_paths)) .libPaths(unique(c(lib_paths, .libPaths())))
   old <- setwd(wd); on.exit(setwd(old), add = TRUE)
@@ -170,8 +173,10 @@ print.parade_script_job <- function(x, ...) {
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' status <- script_status(job)
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   status <- script_status(job)
+#' }
 #' }
 script_status <- function(job, detail = FALSE) {
   stopifnot(inherits(job, "parade_script_job"))
@@ -188,8 +193,10 @@ script_status <- function(job, detail = FALSE) {
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' script_await(job, timeout = 300)  # Wait up to 5 minutes
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   script_await(job, timeout = 300)  # Wait up to 5 minutes
+#' }
 #' }
 script_await <- function(job, timeout = Inf, poll = 10) {
   stopifnot(inherits(job, "parade_script_job"))
@@ -205,8 +212,10 @@ script_await <- function(job, timeout = Inf, poll = 10) {
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' script_cancel(job)
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   script_cancel(job)
+#' }
 #' }
 script_cancel <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
@@ -223,7 +232,8 @@ script_cancel <- function(job) {
 #' @export
 #' @examples
 #' \donttest{
-#' job <- script_load("/path/to/registry")
+#' # Requires an existing registry path from a prior SLURM job
+#' # if (dir.exists("/path/to/registry")) script_load("/path/to/registry")
 #' }
 script_load <- function(registry_dir) {
   p <- file.path(registry_dir, "script_job.rds")
@@ -262,6 +272,7 @@ script_find_latest <- function(n = 5, pattern = NULL) {
 #' @param wd Working directory for script execution
 #' @return A parade_local_job object
 #' 
+#' @importFrom stats setNames
 #' @keywords internal
 submit_script_local <- function(script,
                                 args = character(),

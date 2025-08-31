@@ -24,24 +24,25 @@ referenced by string shorthand.
 \examples{
 \donttest{
 # Register a standard compute profile
-profile_register("standard",
-  profile() \%>\%
-    time("4:00:00") \%>\%
-    mem("8G") \%>\%
-    cpus(4)
-)
+standard <- profile()
+standard <- time(standard, "4:00:00")
+standard <- mem(standard, "8G")
+standard <- cpus(standard, 4)
+profile_register("standard", standard)
 
 # Register a GPU profile
-profile_register("gpu",
-  profile() \%>\%
-    time("12:00:00") \%>\%
-    mem("32G") \%>\%
-    cpus(8) \%>\%
-    gpus(1)
-)
+gpu <- profile()
+gpu <- time(gpu, "12:00:00")
+gpu <- mem(gpu, "32G")
+gpu <- cpus(gpu, 8)
+gpu <- gpus(gpu, 1)
+profile_register("gpu", gpu)
 
-# Use registered profiles
-job <- slurm_call(my_function, x = 1, resources = "gpu")
+# Use registered profiles (SLURM only; skip if not available)
+if (Sys.which("squeue") != "") {
+  my_function <- function(x) x + 1
+  job <- slurm_call(my_function, x = 1, resources = "gpu")
+}
 }
 
 }

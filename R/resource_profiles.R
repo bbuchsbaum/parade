@@ -13,22 +13,22 @@
 #' 
 #' @examples
 #' \donttest{
-#' # Basic profile with chaining
-#' resources <- profile() %>%
-#'   time("4:00:00") %>%
-#'   mem("16G") %>%
-#'   cpus(8)
-#'   
+#' # Basic profile without pipes
+#' resources <- profile()
+#' resources <- time(resources, "4:00:00")
+#' resources <- mem(resources, "16G")
+#' resources <- cpus(resources, 8)
+#'
 #' # Named profile for reuse
-#' gpu_profile <- profile("gpu_analysis") %>%
-#'   time("12:00:00") %>%
-#'   mem("64G") %>%
-#'   cpus(16) %>%
-#'   gpus(2)
-#'   
-#' # Inherit from existing profile
-#' extended <- profile(base = gpu_profile) %>%
-#'   time("24:00:00")  # Override time only
+#' gpu_profile <- profile("gpu_analysis")
+#' gpu_profile <- time(gpu_profile, "12:00:00")
+#' gpu_profile <- mem(gpu_profile, "64G")
+#' gpu_profile <- cpus(gpu_profile, 16)
+#' gpu_profile <- gpus(gpu_profile, 2)
+#'
+#' # Inherit from existing profile and override time only
+#' extended <- profile(base = gpu_profile)
+#' extended <- time(extended, "24:00:00")
 #' }
 #' 
 #' @export
@@ -67,10 +67,10 @@ profile <- function(name = NULL, base = NULL) {
 #' 
 #' @examples
 #' \donttest{
-#' resources <- profile() %>% time("8:00:00")
+#' resources <- time(profile(), "8:00:00")
 #' }
 #' 
-#' Note: masks stats::time when parade is attached; use res_time() to avoid masking.
+#' @note masks stats::time when parade is attached; use res_time() to avoid masking.
 #' @export
 time <- function(profile, value) {
   UseMethod("time")
@@ -90,10 +90,10 @@ time.parade_profile <- function(profile, value) {
 #' 
 #' @examples
 #' \donttest{
-#' resources <- profile() %>% mem("32G")
+#' resources <- mem(profile(), "32G")
 #' }
 #' 
-#' Note: use res_mem() to avoid naming collisions in user code.
+#' @note Use res_mem() to avoid naming collisions in user code.
 #' @export
 mem <- function(profile, value) {
   UseMethod("mem")
@@ -113,10 +113,10 @@ mem.parade_profile <- function(profile, value) {
 #' 
 #' @examples
 #' \donttest{
-#' resources <- profile() %>% cpus(16)
+#' resources <- cpus(profile(), 16)
 #' }
 #' 
-#' Note: use res_cpus() to avoid naming collisions in user code.
+#' @note Use res_cpus() to avoid naming collisions in user code.
 #' @export
 cpus <- function(profile, value) {
   UseMethod("cpus")
@@ -137,8 +137,8 @@ cpus.parade_profile <- function(profile, value) {
 #' 
 #' @examples
 #' \donttest{
-#' resources <- profile() %>% gpus(2)
-#' resources <- profile() %>% gpus(1, type = "v100")
+#' resources <- gpus(profile(), 2)
+#' resources <- gpus(profile(), 1, type = "v100")
 #' }
 #' 
 #' @export
@@ -161,7 +161,7 @@ gpus.parade_profile <- function(profile, value, type = NULL) {
 #' @param value Partition name
 #' @return Updated profile object
 #' 
-#' Note: use res_partition() to avoid naming collisions in user code.
+#' @note Use res_partition() to avoid naming collisions in user code.
 #' @export
 partition <- function(profile, value) {
   UseMethod("partition")
@@ -179,7 +179,7 @@ partition.parade_profile <- function(profile, value) {
 #' @param value Account name
 #' @return Updated profile object
 #' 
-#' Note: use res_account() to avoid naming collisions in user code.
+#' @note Use res_account() to avoid naming collisions in user code.
 #' @export
 account <- function(profile, value) {
   UseMethod("account")
@@ -285,24 +285,25 @@ print.parade_profile <- function(x, ...) {
 #' @examples
 #' \donttest{
 #' # Register a standard compute profile
-#' profile_register("standard",
-#'   profile() %>%
-#'     time("4:00:00") %>%
-#'     mem("8G") %>%
-#'     cpus(4)
-#' )
-#' 
+#' standard <- profile()
+#' standard <- time(standard, "4:00:00")
+#' standard <- mem(standard, "8G")
+#' standard <- cpus(standard, 4)
+#' profile_register("standard", standard)
+#'
 #' # Register a GPU profile
-#' profile_register("gpu",
-#'   profile() %>%
-#'     time("12:00:00") %>%
-#'     mem("32G") %>%
-#'     cpus(8) %>%
-#'     gpus(1)
-#' )
+#' gpu <- profile()
+#' gpu <- time(gpu, "12:00:00")
+#' gpu <- mem(gpu, "32G")
+#' gpu <- cpus(gpu, 8)
+#' gpu <- gpus(gpu, 1)
+#' profile_register("gpu", gpu)
 #' 
-#' # Use registered profiles
-#' job <- slurm_call(my_function, x = 1, resources = "gpu")
+#' # Use registered profiles (SLURM only; skip if not available)
+#' if (Sys.which("squeue") != "") {
+#'   my_function <- function(x) x + 1
+#'   job <- slurm_call(my_function, x = 1, resources = "gpu")
+#' }
 #' }
 #' 
 #' @export
@@ -382,8 +383,8 @@ profile_list <- function(details = FALSE) {
 #' gpu_profile <- profile_get("gpu")
 #' 
 #' # Use as base for new profile
-#' extended <- profile(base = gpu_profile) %>%
-#'   time("24:00:00")
+#' extended <- profile(base = gpu_profile)
+#' extended <- time(extended, "24:00:00")
 #' }
 #' 
 #' @export

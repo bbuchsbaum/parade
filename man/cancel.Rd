@@ -8,6 +8,8 @@ cancel(x, ...)
 }
 \arguments{
 \item{x}{A parade_jobset object}
+
+\item{...}{Additional arguments passed to method implementations}
 }
 \value{
 The jobset (invisibly)

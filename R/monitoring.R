@@ -6,8 +6,7 @@
 #' Quickly open job log files in the system editor or viewer.
 #' 
 #' @param job A parade job object
-#' @param which Which log to open: "out", "err", or "both"
-#' @param viewer Function to use for viewing (default: file.edit)
+#' @param ... Additional arguments passed to methods
 #' @return Invisible NULL
 #' 
 #' @examples
@@ -56,6 +55,12 @@ open_logs.parade_job <- function(job, which = c("both", "out", "err"),
 
 #' Fallback log opener for list-like job objects
 #' 
+#' @param job A job object (list-like structure with job metadata)
+#' @param which Which log to open: "both", "out", or "err" (default: "both")
+#' @param viewer Function to use for viewing log files (default: utils::file.edit)
+#' @param ... Additional arguments (unused)
+#' @return Invisible NULL
+#' 
 #' @export
 open_logs.default <- function(job, which = c("both", "out", "err"), 
                               viewer = utils::file.edit, ...) {
@@ -91,6 +96,7 @@ open_logs.default <- function(job, which = c("both", "out", "err"),
 #' @param ... Additional arguments (unused)
 #' @return Invisible NULL
 #' 
+#' @importFrom utils head
 #' @export
 open_logs.parade_jobset <- function(job, which = c("both", "out", "err"),
                                     viewer = utils::file.edit,
@@ -140,11 +146,8 @@ open_logs.parade_jobset <- function(job, which = c("both", "out", "err"),
 #' actually submitting the job. Useful for debugging and understanding
 #' job configurations.
 #' 
-#' @param .f Function or script to explain
-#' @param ... Arguments that would be passed
-#' @param .resources Resource specification
-#' @param .packages Packages to load
-#' @param .engine Execution engine
+#' @param x Function, script, or flow object to explain
+#' @param ... Additional arguments passed to methods
 #' @return Invisible list with job details
 #' 
 #' @examples
@@ -164,24 +167,29 @@ open_logs.parade_jobset <- function(job, which = c("both", "out", "err"),
 #' )
 #' }
 #' 
-#' Generic explain; methods exist for flows and defaults
+#' @description Generic explain; methods exist for flows and defaults
 #' @export
 explain <- function(x, ...) UseMethod("explain")
 
 #' Explain a job submission (default)
+#' @param x Function or script to explain
+#' @param ... Arguments that would be passed to the function
+#' @param .resources Resource specification for job execution
+#' @param .packages Packages to load for the job
+#' @param .engine Execution engine ("slurm" or "local") 
 #' @export
-explain.default <- function(.f, ..., .resources = NULL, .packages = character(), 
+explain.default <- function(x, ..., .resources = NULL, .packages = character(), 
                             .engine = c("slurm", "local")) {
   .engine <- match.arg(.engine)
   
   cat("=== Job Submission Explanation ===\n\n")
   
   # Determine job type
-  is_script <- is.character(.f) && length(.f) == 1
+  is_script <- is.character(x) && length(x) == 1
   
   if (is_script) {
     cat("Type: Script submission\n")
-    cat("Script: ", .f, "\n")
+    cat("Script: ", x, "\n")
     
     # Show arguments
     args <- list(...)
@@ -196,11 +204,11 @@ explain.default <- function(.f, ..., .resources = NULL, .packages = character(),
     cat("Type: Function submission\n")
     
     # Show function
-    if (inherits(.f, "formula")) {
-      cat("Function: Formula ~ ", deparse(.f[[2]]), "\n")
+    if (inherits(x, "formula")) {
+      cat("Function: Formula ~ ", deparse(x[[2]]), "\n")
     } else {
       cat("Function:\n")
-      print(.f)
+      print(x)
     }
     
     # Show arguments
@@ -255,7 +263,7 @@ explain.default <- function(.f, ..., .resources = NULL, .packages = character(),
   # Build but don't submit
   details <- list(
     type = if (is_script) "script" else "function",
-    target = .f,
+    target = x,
     args = list(...),
     resources = .resources,
     packages = .packages,
@@ -271,12 +279,8 @@ explain.default <- function(.f, ..., .resources = NULL, .packages = character(),
 #' Simulate job submission without actually submitting. Shows what
 #' would be created and where files would be written.
 #' 
-#' @param .f Function or script
-#' @param ... Arguments
-#' @param .name Job name
-#' @param .resources Resources
-#' @param .write_result Where results would be written
-#' @param .engine Engine
+#' @param x Function, script, or flow object to dry run
+#' @param ... Additional arguments passed to methods
 #' @return Dry run results
 #' 
 #' @examples
@@ -290,13 +294,19 @@ explain.default <- function(.f, ..., .resources = NULL, .packages = character(),
 #' )
 #' }
 #' 
-#' Generic dry_run; methods exist for flows and defaults
+#' @description Generic dry_run; methods exist for flows and defaults
 #' @export
 dry_run <- function(x, ...) UseMethod("dry_run")
 
 #' Dry run for job submission (default)
+#' @param x Function or script to dry run
+#' @param ... Arguments that would be passed to the function
+#' @param .name Job name (if NULL, auto-generated)
+#' @param .resources Resource specification for job execution  
+#' @param .write_result Where results would be written
+#' @param .engine Execution engine ("slurm" or "local")
 #' @export
-dry_run.default <- function(.f, ..., .name = NULL, .resources = NULL, 
+dry_run.default <- function(x, ..., .name = NULL, .resources = NULL, 
                             .write_result = NULL, .engine = "slurm") {
   
   cat("=== Dry Run Mode ===\n")

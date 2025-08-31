@@ -11,15 +11,19 @@
 #' @return A parade_jobset object
 #' 
 #' @examples
-#' \donttest{
-#' # Note: These examples require a SLURM cluster environment
-#' # Convert single job to jobset
-#' job <- slurm_call(function(x) x^2, x = 10)
+#' # Local examples (no SLURM required)
+#' job <- slurm_call(function(x) x^2, x = 10, engine = "local")
 #' jobset <- as_jobset(job)
-#' 
-#' # Already a jobset - returns unchanged
-#' jobs <- slurm_map(1:3, function(x) x^2)
+#'
+#' jobs <- slurm_map(1:3, function(x) x^2, .engine = "local")
 #' jobset <- as_jobset(jobs)
+#'
+#' \donttest{
+#' # SLURM examples (only run when SLURM is available)
+#' if (Sys.which("squeue") != "") {
+#'   job <- slurm_call(function(x) x^2, x = 10)
+#'   jobset <- as_jobset(job)
+#' }
 #' }
 #' 
 #' @export
@@ -94,6 +98,10 @@ as_jobset.default <- function(x, ...) {
 }
 
 #' Print method for parade_jobset
+#' 
+#' @param x A parade_jobset object to print
+#' @param ... Additional arguments (unused)
+#' @importFrom utils head
 #' @export
 print.parade_jobset <- function(x, ...) {
   n <- length(x)
@@ -141,15 +149,17 @@ print.parade_jobset <- function(x, ...) {
 #' Wait for all jobs in a jobset to complete
 #' 
 #' @param x A parade_jobset object
-#' @param timeout Maximum time to wait in seconds
-#' @param poll Polling interval in seconds
-#' @param .progress Show progress bar
+#' @param ... Additional arguments passed to method implementations
 #' @return The jobset (invisibly)
 #' @export
 await <- function(x, ...) {
   UseMethod("await")
 }
 
+#' @describeIn await Wait for all jobs in a jobset to complete
+#' @param timeout Maximum time to wait in seconds
+#' @param poll Polling interval in seconds
+#' @param .progress Show progress bar
 #' @export
 await.parade_jobset <- function(x, timeout = Inf, poll = 10, .progress = NULL, ...) {
   if (length(x) == 0) return(invisible(x))
@@ -209,10 +219,8 @@ await.parade_jobset <- function(x, timeout = Inf, poll = 10, .progress = NULL, .
 #' Displays a progress bar showing job completion status. This is a convenience
 #' wrapper around `await()` with progress enabled.
 #' 
-#' @param x A parade_jobset object
-#' @param timeout Maximum time to wait in seconds (default: Inf)
-#' @param poll Polling interval in seconds (default: 10)
-#' @param ... Additional arguments passed to await()
+#' @param x A parade_jobset or parade_job object
+#' @param ... Additional arguments passed to methods
 #' @return The jobset (invisibly)
 #' 
 #' @examples
@@ -227,11 +235,17 @@ progress <- function(x, ...) {
   UseMethod("progress")
 }
 
+#' @rdname progress
+#' @param timeout Maximum time to wait in seconds (default: Inf for no timeout)
+#' @param poll Polling interval in seconds (default: 10)
 #' @export
 progress.parade_jobset <- function(x, timeout = Inf, poll = 10, ...) {
   await(x, timeout = timeout, poll = poll, .progress = TRUE, ...)
 }
 
+#' @rdname progress
+#' @param timeout Maximum time to wait in seconds (default: Inf for no timeout)
+#' @param poll Polling interval in seconds (default: 10)
 #' @export
 progress.parade_job <- function(x, timeout = Inf, poll = 10, ...) {
   # For single jobs, just wait with a simple message
@@ -257,6 +271,7 @@ await.parade_job <- function(x, timeout = Inf, poll = 10, ...) {
 #' Get status of all jobs in a jobset
 #' 
 #' @param x A parade_jobset object
+#' @param ... Additional arguments passed to method implementations
 #' @return A tibble with job status information
 #' @export
 status <- function(x, ...) {
@@ -289,13 +304,15 @@ status.parade_jobset <- function(x, ...) {
 #' Collect results from all jobs in a jobset
 #' 
 #' @param x A parade_jobset object
-#' @param simplify Try to simplify results into a vector/matrix
+#' @param ... Additional arguments passed to method implementations
 #' @return List or simplified structure of results
 #' @export
 collect <- function(x, ...) {
   UseMethod("collect")
 }
 
+#' @rdname collect
+#' @param simplify Try to simplify results into a vector/matrix (default: TRUE)
 #' @export
 collect.parade_jobset <- function(x, simplify = TRUE, ...) {
   if (length(x) == 0) return(list())
@@ -331,6 +348,7 @@ collect.parade_job <- function(x, ...) {
 #' Cancel all jobs in a jobset
 #' 
 #' @param x A parade_jobset object
+#' @param ... Additional arguments passed to method implementations
 #' @return The jobset (invisibly)
 #' @export
 cancel <- function(x, ...) {
@@ -392,15 +410,17 @@ tail.parade_jobset <- function(x, n = 50, ...) {
 
 #' Launch interactive monitor for jobset
 #' 
-#' @param x A parade_jobset object
-#' @param refresh Refresh interval in seconds
-#' @param nlog Number of log lines to show
+#' @param x A parade_jobset or parade_job object
+#' @param ... Additional arguments passed to methods
 #' @return NULL (invisibly)
 #' @export
 top <- function(x, ...) {
   UseMethod("top")
 }
 
+#' @rdname top
+#' @param refresh Refresh interval in seconds (default: 2)
+#' @param nlog Number of log lines to show (default: 20)
 #' @export
 top.parade_jobset <- function(x, refresh = 2, nlog = 20, ...) {
   if (length(x) == 0) {
@@ -423,6 +443,9 @@ top.parade_jobset <- function(x, refresh = 2, nlog = 20, ...) {
   invisible(NULL)
 }
 
+#' @rdname top
+#' @param refresh Refresh interval in seconds (default: 2)
+#' @param nlog Number of log lines to show (default: 30)
 #' @export
 top.parade_job <- function(x, refresh = 2, nlog = 30, ...) {
   if (inherits(x, "parade_script_job")) {
@@ -434,6 +457,9 @@ top.parade_job <- function(x, refresh = 2, nlog = 30, ...) {
 }
 
 #' Extract subset of jobs
+#' 
+#' @param x A parade_jobset object
+#' @param i Index vector for subsetting
 #' @export
 `[.parade_jobset` <- function(x, i) {
   structure(
@@ -445,6 +471,8 @@ top.parade_job <- function(x, refresh = 2, nlog = 30, ...) {
 }
 
 #' Combine jobsets
+#' 
+#' @param ... parade_jobset objects to combine
 #' @export
 c.parade_jobset <- function(...) {
   jobs <- NextMethod("c")
@@ -456,12 +484,18 @@ c.parade_jobset <- function(...) {
 }
 
 #' Get length of jobset
+#' 
+#' @param x A parade_jobset object
 #' @export
 length.parade_jobset <- function(x) {
   NextMethod("length")
 }
 
 #' Convert jobset to tibble
+#' 
+#' @param x A parade_jobset object
+#' @param ... Additional arguments (unused)
+#' @importFrom tibble as_tibble
 #' @export
 as_tibble.parade_jobset <- function(x, ...) {
   if (length(x) == 0) {
@@ -479,18 +513,24 @@ as_tibble.parade_jobset <- function(x, ...) {
 # Helper selectors for filtering jobs
 
 #' Select failed jobs
+#' @param x A parade_jobset object
+#' @param stage Optional stage filter (ignored for jobsets)
+#' @param ... Additional arguments (ignored)
 #' @export
-failed <- function(x) {
+failed <- function(x, stage = NULL, ...) {
   UseMethod("failed")
 }
 
 #' @export
-failed.parade_jobset <- function(x) {
+failed.parade_jobset <- function(x, stage = NULL, ...) {
   states <- status(x)$state
   x[states == "FAILED"]
 }
 
 #' Select completed jobs
+#' 
+#' @param x A parade_jobset object
+#' @return A parade_jobset containing only completed jobs
 #' @export
 completed <- function(x) {
   UseMethod("completed")
@@ -503,6 +543,9 @@ completed.parade_jobset <- function(x) {
 }
 
 #' Select running jobs
+#' 
+#' @param x A parade_jobset object
+#' @return A parade_jobset containing only running jobs
 #' @export
 running <- function(x) {
   UseMethod("running")
@@ -515,6 +558,9 @@ running.parade_jobset <- function(x) {
 }
 
 #' Select pending jobs
+#' 
+#' @param x A parade_jobset object
+#' @return A parade_jobset containing only pending jobs
 #' @export
 pending <- function(x) {
   UseMethod("pending")

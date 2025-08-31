@@ -16,6 +16,8 @@
 #' @param .write_result Path template for saving results (supports macros)
 #' @param .engine Execution engine: "slurm" (default) or "local"
 #' @param .progress Show progress bar
+#' @param .options Flow control options (e.g., wave_policy() or concurrency_limit())
+#' @param .error_policy Error handling policy for job failures
 #' 
 #' @return A \code{parade_jobset} object containing all submitted jobs
 #' 
@@ -41,23 +43,25 @@
 #' 
 #' \donttest{
 #' # Note: The following examples require a SLURM cluster environment
-#' # Map a function over files
-#' files <- c("data1.csv", "data2.csv")
-#' jobs <- slurm_map(files, ~ read.csv(.x) |> process_data(),
-#'                   .name_by = "stem",
-#'                   .write_result = "results/{stem}.rds")
-#' 
-#' # Map a script with CLI arguments
-#' jobs <- slurm_map(files, "scripts/process.R",
-#'                   .args = args_cli(verbose = TRUE))
-#' 
-#' # Use formula notation with SLURM
-#' numbers <- 1:10
-#' jobs <- slurm_map(numbers, ~ .x^2 + .x,
-#'                   .name_by = "index")
-#' 
-#' # Wait for all jobs and collect results
-#' results <- jobs |> await() |> collect()
+#' if (Sys.which("squeue") != "") {
+#'   # Map a function over files
+#'   files <- c("data1.csv", "data2.csv")
+#'   jobs <- slurm_map(files, ~ read.csv(.x) |> process_data(),
+#'                     .name_by = "stem",
+#'                     .write_result = "results/{stem}.rds")
+#'
+#'   # Map a script with CLI arguments
+#'   jobs <- slurm_map(files, "scripts/process.R",
+#'                     .args = args_cli(verbose = TRUE))
+#'
+#'   # Use formula notation with SLURM
+#'   numbers <- 1:10
+#'   jobs <- slurm_map(numbers, ~ .x^2 + .x,
+#'                     .name_by = "index")
+#'
+#'   # Wait for all jobs and collect results
+#'   results <- jobs |> await() |> collect()
+#' }
 #' }
 #' 
 #' @export

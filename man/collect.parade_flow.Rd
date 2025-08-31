@@ -5,7 +5,7 @@
 \title{Execute a parade flow and collect results}
 \usage{
 \method{collect}{parade_flow}(
-  fl,
+  x,
   engine = c("future", "sequential"),
   workers = NULL,
   scheduling = 1,
@@ -17,7 +17,7 @@
 )
 }
 \arguments{
-\item{fl}{A \code{parade_flow} object with stages to execute}
+\item{x}{A \code{parade_flow} object with stages to execute}
 
 \item{engine}{Execution engine: "future" (default) or "sequential"}
 
@@ -33,7 +33,7 @@
 
 \item{validate}{Validation mode for flexible types: "light" (default) or "full"}
 
-\item{...}{Additional arguments (unused)}
+\item{...}{Additional arguments passed to the execution function}
 }
 \value{
 A tibble containing results from all executed stages

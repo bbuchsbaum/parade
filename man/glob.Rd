@@ -28,7 +28,8 @@ scripts <- glob("scripts/*.R")
 
 # Use with slurm_map
 files <- glob("data/*.rds")
-jobs <- slurm_map(files, process_file)
+process_file <- function(x) x  # stub for example
+jobs <- slurm_map(files, process_file, .engine = "local")
 }
 
 }

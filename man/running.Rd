@@ -6,6 +6,12 @@
 \usage{
 running(x)
 }
+\arguments{
+\item{x}{A parade_jobset object}
+}
+\value{
+A parade_jobset containing only running jobs
+}
 \description{
 Select running jobs
 }

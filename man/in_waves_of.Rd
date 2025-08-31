@@ -7,28 +7,39 @@
 in_waves_of(size, wait = TRUE, delay = 0)
 }
 \arguments{
-\item{size}{Number of jobs per wave}
+\item{size}{Number of jobs per wave (positive integer)}
 
-\item{wait}{Whether to wait for wave completion before next wave}
+\item{wait}{Whether to wait for the current wave to complete before starting
+the next wave (\code{TRUE} = barrier between waves)}
 
-\item{delay}{Delay in seconds between waves (if wait = FALSE)}
+\item{delay}{Delay in seconds between waves when \code{wait = FALSE}}
 }
 \value{
-A wave controller function
+A flow-control policy object of class \code{parade_wave_policy} that can
+be passed to \code{.options} in \code{\link[=slurm_map]{slurm_map()}} / \code{\link[=slurm_pmap]{slurm_pmap()}}.
 }
 \description{
-Wraps job submission functions to submit jobs in controlled batches,
-useful for managing cluster load and resource availability.
+Create a flow-control policy that submits work in batches ("waves") of a
+fixed size. Use this policy via the \code{.options} argument to \code{\link[=slurm_map]{slurm_map()}} or
+\code{\link[=slurm_pmap]{slurm_pmap()}} to throttle how many jobs are submitted at once. This is
+useful for managing cluster load and external resource availability (e.g.,
+licenses, GPUs).
 }
 \examples{
 \donttest{
 # Submit 100 jobs in waves of 10
 jobs <- slurm_map(1:100, ~ .x^2, 
-                  .options = in_waves_of(10))
+                  .options = in_waves_of(10),
+                  .engine = "local")
 
 # With delay between waves
 jobs <- slurm_map(1:100, ~ .x^2,
-                  .options = in_waves_of(10, wait = FALSE, delay = 60))
+                  .options = in_waves_of(10, wait = FALSE, delay = 60),
+                  .engine = "local")
 }
 
+}
+\seealso{
+\code{\link[=max_in_flight]{max_in_flight()}} for concurrency limits, \code{\link[=flow_control]{flow_control()}} to
+combine policies, \code{\link[=apply_waves]{apply_waves()}} for the internal implementation.
 }

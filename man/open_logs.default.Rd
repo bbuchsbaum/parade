@@ -6,6 +6,18 @@
 \usage{
 \method{open_logs}{default}(job, which = c("both", "out", "err"), viewer = utils::file.edit, ...)
 }
+\arguments{
+\item{job}{A job object (list-like structure with job metadata)}
+
+\item{which}{Which log to open: "both", "out", or "err" (default: "both")}
+
+\item{viewer}{Function to use for viewing log files (default: utils::file.edit)}
+
+\item{...}{Additional arguments (unused)}
+}
+\value{
+Invisible NULL
+}
 \description{
 Fallback log opener for list-like job objects
 }

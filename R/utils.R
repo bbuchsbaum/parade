@@ -6,11 +6,14 @@
 #' right-hand side. This operator is re-exported from the rlang package
 #' for convenience.
 #'
-#' @param a Left-hand side value to check
-#' @param b Right-hand side value to use if `a` is NULL
-#' @return Returns `a` if it is not NULL, otherwise returns `b`
+#' @name null-coalesce
+#' @rdname null-coalesce
+#' @param x Left-hand side value to check
+#' @param y Right-hand side value to use if `x` is NULL
+#' @return Returns `x` if it is not NULL, otherwise returns `y`
 #' @importFrom rlang %||%
-#' #' @examples
+#' @export
+#' @examples
 #' # Returns the non-NULL value
 #' 5 %||% 10        # Returns 5
 #' NULL %||% 10     # Returns 10

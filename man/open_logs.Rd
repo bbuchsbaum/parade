@@ -9,9 +9,7 @@ open_logs(job, ...)
 \arguments{
 \item{job}{A parade job object}
 
-\item{which}{Which log to open: "out", "err", or "both"}
-
-\item{viewer}{Function to use for viewing (default: file.edit)}
+\item{...}{Additional arguments passed to methods}
 }
 \value{
 Invisible NULL

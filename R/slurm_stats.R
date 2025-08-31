@@ -68,9 +68,11 @@
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' metrics <- script_metrics(job)
-#' # Returns list with: cpu_pct, ave_rss, max_rss, elapsed, state, etc.
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   metrics <- script_metrics(job)
+#'   # Returns list with: cpu_pct, ave_rss, max_rss, elapsed, state, etc.
+#' }
 #' }
 script_metrics <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
@@ -95,8 +97,10 @@ script_metrics <- function(job) {
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' script_tail(job, n = 50)
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   script_tail(job, n = 50)
+#' }
 #' }
 script_tail <- function(job, n = 200) {
   lg <- script_logs(job)
@@ -115,8 +119,10 @@ script_tail <- function(job, n = 200) {
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' logs <- script_logs(job)
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   logs <- script_logs(job)
+#' }
 #' }
 script_logs <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
@@ -133,8 +139,10 @@ script_logs <- function(job) {
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' is_done <- script_done(job)
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   is_done <- script_done(job)
+#' }
 #' }
 script_done <- function(job) {
   if (!requireNamespace("batchtools", quietly = TRUE)) return(FALSE)

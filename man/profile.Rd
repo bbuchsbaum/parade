@@ -21,22 +21,22 @@ complex resource requirements in a readable way.
 }
 \examples{
 \donttest{
-# Basic profile with chaining
-resources <- profile() \%>\%
-  time("4:00:00") \%>\%
-  mem("16G") \%>\%
-  cpus(8)
-  
+# Basic profile without pipes
+resources <- profile()
+resources <- time(resources, "4:00:00")
+resources <- mem(resources, "16G")
+resources <- cpus(resources, 8)
+
 # Named profile for reuse
-gpu_profile <- profile("gpu_analysis") \%>\%
-  time("12:00:00") \%>\%
-  mem("64G") \%>\%
-  cpus(16) \%>\%
-  gpus(2)
-  
-# Inherit from existing profile
-extended <- profile(base = gpu_profile) \%>\%
-  time("24:00:00")  # Override time only
+gpu_profile <- profile("gpu_analysis")
+gpu_profile <- time(gpu_profile, "12:00:00")
+gpu_profile <- mem(gpu_profile, "64G")
+gpu_profile <- cpus(gpu_profile, 16)
+gpu_profile <- gpus(gpu_profile, 2)
+
+# Inherit from existing profile and override time only
+extended <- profile(base = gpu_profile)
+extended <- time(extended, "24:00:00")
 }
 
 }

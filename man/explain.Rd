@@ -7,15 +7,9 @@
 explain(x, ...)
 }
 \arguments{
-\item{...}{Arguments that would be passed}
+\item{x}{Function, script, or flow object to explain}
 
-\item{.f}{Function or script to explain}
-
-\item{.resources}{Resource specification}
-
-\item{.packages}{Packages to load}
-
-\item{.engine}{Execution engine}
+\item{...}{Additional arguments passed to methods}
 }
 \value{
 Invisible list with job details
@@ -24,6 +18,8 @@ Invisible list with job details
 Show detailed information about what will be submitted without
 actually submitting the job. Useful for debugging and understanding
 job configurations.
+
+Generic explain; methods exist for flows and defaults
 }
 \examples{
 \donttest{
@@ -42,5 +38,4 @@ explain(
 )
 }
 
-Generic explain; methods exist for flows and defaults
 }

@@ -21,8 +21,8 @@ Get a registered resource profile
 gpu_profile <- profile_get("gpu")
 
 # Use as base for new profile
-extended <- profile(base = gpu_profile) \%>\%
-  time("24:00:00")
+extended <- profile(base = gpu_profile)
+extended <- time(extended, "24:00:00")
 }
 
 }

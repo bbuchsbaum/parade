@@ -1,29 +1,48 @@
 # Wave execution for controlled job submission ------------------------
 
 #' Submit jobs in waves with controlled parallelism
-#' 
+#'
 #' @description
-#' Wraps job submission functions to submit jobs in controlled batches,
-#' useful for managing cluster load and resource availability.
-#' 
-#' @param size Number of jobs per wave
-#' @param wait Whether to wait for wave completion before next wave
-#' @param delay Delay in seconds between waves (if wait = FALSE)
-#' @return A wave controller function
+#' Create a flow-control policy that submits work in batches ("waves") of a
+#' fixed size. Use this policy via the `.options` argument to [slurm_map()] or
+#' [slurm_pmap()] to throttle how many jobs are submitted at once. This is
+#' useful for managing cluster load and external resource availability (e.g.,
+#' licenses, GPUs).
+#'
+#' @param size Number of jobs per wave (positive integer)
+#' @param wait Whether to wait for the current wave to complete before starting
+#'   the next wave (`TRUE` = barrier between waves)
+#' @param delay Delay in seconds between waves when `wait = FALSE`
+#' @return A flow-control policy object of class `parade_wave_policy` that can
+#'   be passed to `.options` in [slurm_map()] / [slurm_pmap()].
+#' @seealso [max_in_flight()] for concurrency limits, [flow_control()] to
+#'   combine policies, [apply_waves()] for the internal implementation.
 #' 
 #' @examples
 #' \donttest{
 #' # Submit 100 jobs in waves of 10
 #' jobs <- slurm_map(1:100, ~ .x^2, 
-#'                   .options = in_waves_of(10))
+#'                   .options = in_waves_of(10),
+#'                   .engine = "local")
 #' 
 #' # With delay between waves
 #' jobs <- slurm_map(1:100, ~ .x^2,
-#'                   .options = in_waves_of(10, wait = FALSE, delay = 60))
+#'                   .options = in_waves_of(10, wait = FALSE, delay = 60),
+#'                   .engine = "local")
 #' }
 #' 
 #' @export
 in_waves_of <- function(size, wait = TRUE, delay = 0) {
+  # Basic validation for more helpful errors
+  if (!is.numeric(size) || length(size) != 1L || is.na(size) || size < 1) {
+    stop("`size` must be a positive integer")
+  }
+  if (!is.logical(wait) || length(wait) != 1L || is.na(wait)) {
+    stop("`wait` must be TRUE or FALSE")
+  }
+  if (!is.numeric(delay) || length(delay) != 1L || is.na(delay) || delay < 0) {
+    stop("`delay` must be a non-negative number of seconds")
+  }
   structure(
     list(
       type = "waves",
@@ -49,7 +68,8 @@ in_waves_of <- function(size, wait = TRUE, delay = 0) {
 #' \donttest{
 #' # Allow at most 5 jobs running simultaneously
 #' jobs <- slurm_map(1:100, ~ .x^2,
-#'                   .options = max_in_flight(5))
+#'                   .options = max_in_flight(5),
+#'                   .engine = "local")
 #' }
 #' 
 #' @export
@@ -75,6 +95,7 @@ max_in_flight <- function(n, poll = 30) {
 #' @param progress Whether to show progress
 #' @return List of submitted jobs
 #' 
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @keywords internal
 apply_waves <- function(jobs, submit_fn, wave_policy, progress = TRUE) {
   n_jobs <- length(jobs)
@@ -136,6 +157,7 @@ apply_waves <- function(jobs, submit_fn, wave_policy, progress = TRUE) {
 #' @param progress Whether to show progress
 #' @return List of submitted jobs
 #' 
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @keywords internal
 apply_concurrency_limit <- function(jobs, submit_fn, concurrency_policy, 
                                     progress = TRUE) {
@@ -212,7 +234,10 @@ get_running <- function(jobs) {
 #'   max_in_flight(5)
 #' )
 #' 
-#' jobs <- slurm_map(1:100, ~ .x^2, .options = combined)
+#' # Note: Combined policies are currently illustrative; apply individually
+#' # with slurm_map(), e.g.:
+#' # jobs <- slurm_map(1:100, ~ .x^2, .options = in_waves_of(10), .engine = "local")
+#' # jobs <- slurm_map(1:100, ~ .x^2, .options = max_in_flight(5), .engine = "local")
 #' }
 #' 
 #' @export

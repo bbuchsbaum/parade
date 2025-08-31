@@ -8,6 +8,8 @@
 #' Register a format writer/reader pair for use with sinks. Formats can be
 #' referenced by name in sink_spec(), sink_quick(), and other sink functions.
 #'
+#' @importFrom utils write.csv read.csv write.table read.table
+#'
 #' @param name Character string naming the format (e.g., "rds", "csv", "parquet")
 #' @param writer Function to write data: function(x, path, ...) returning path(s)
 #' @param reader Function to read data: function(path, ...) returning object
@@ -228,6 +230,7 @@ has_sink_format <- function(name) {
 #' @param path Target file path
 #' @param ... Additional arguments passed to writer_fn
 #' @return Path to written file (invisibly)
+#' @importFrom stats runif
 #' @keywords internal
 .write_atomic_generic <- function(writer_fn, x, path, ...) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)

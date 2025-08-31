@@ -17,7 +17,9 @@ Cancel a running SLURM script job
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-script_cancel(job)
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  script_cancel(job)
+}
 }
 }

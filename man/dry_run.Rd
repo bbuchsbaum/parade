@@ -7,17 +7,9 @@
 dry_run(x, ...)
 }
 \arguments{
-\item{...}{Arguments}
+\item{x}{Function, script, or flow object to dry run}
 
-\item{.f}{Function or script}
-
-\item{.name}{Job name}
-
-\item{.resources}{Resources}
-
-\item{.write_result}{Where results would be written}
-
-\item{.engine}{Engine}
+\item{...}{Additional arguments passed to methods}
 }
 \value{
 Dry run results
@@ -25,6 +17,8 @@ Dry run results
 \description{
 Simulate job submission without actually submitting. Shows what
 would be created and where files would be written.
+
+Generic dry_run; methods exist for flows and defaults
 }
 \examples{
 \donttest{
@@ -37,5 +31,4 @@ dry_run(
 )
 }
 
-Generic dry_run; methods exist for flows and defaults
 }

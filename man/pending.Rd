@@ -6,6 +6,12 @@
 \usage{
 pending(x)
 }
+\arguments{
+\item{x}{A parade_jobset object}
+}
+\value{
+A parade_jobset containing only pending jobs
+}
 \description{
 Select pending jobs
 }

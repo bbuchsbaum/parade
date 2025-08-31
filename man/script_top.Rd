@@ -24,7 +24,9 @@ SLURM job in a continuously updating text interface.
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-script_top(job, refresh = 5)
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  script_top(job, refresh = 5)
+}
 }
 }

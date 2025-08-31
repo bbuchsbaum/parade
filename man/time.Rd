@@ -17,10 +17,12 @@ Updated profile object
 \description{
 Set time limit for a resource profile
 }
+\note{
+masks stats::time when parade is attached; use res_time() to avoid masking.
+}
 \examples{
 \donttest{
-resources <- profile() \%>\% time("8:00:00")
+resources <- time(profile(), "8:00:00")
 }
 
-Note: masks stats::time when parade is attached; use res_time() to avoid masking.
 }

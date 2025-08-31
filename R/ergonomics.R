@@ -23,8 +23,9 @@ parade_options <- function(error = NULL, scheduling = NULL, seed_furrr = NULL, p
 #' @return Result of executing the code
 #' @export
 #' @examples
-#' with_parade_options(error = "stop", {
-#'   # code runs with error = "stop"
+#' with_parade_options(error = "stop", code = {
+#'   message("running with error = 'stop'")
+#'   1 + 1
 #' })
 with_parade_options <- function(..., code) {
   old <- getOption("parade.opts", NULL); on.exit(options("parade.opts" = old), add = TRUE)
@@ -32,38 +33,40 @@ with_parade_options <- function(..., code) {
 }
 
 #' Explain a flow: DAG + distribution + sinks
-#' @param fl A [flow()].
+#' @param x A [flow()].
+#' @param ... Additional arguments passed to methods (unused).
 #' @return A tibble summarizing stages.
 #' @export
-explain.parade_flow <- function(fl, ...) {
-  stopifnot(inherits(fl, "parade_flow"))
+explain.parade_flow <- function(x, ...) {
+  stopifnot(inherits(x, "parade_flow"))
   tibble::tibble(
-    stage   = vapply(fl$stages, function(s) s$id, ""),
-    needs   = vapply(fl$stages, function(s) paste(s$needs %||% character(), collapse = ","), ""),
-    fields  = vapply(fl$stages, function(s) paste(names(s$ptype), collapse=","), ""),
-    sink    = vapply(fl$stages, function(s) if (is.null(s$sink)) "" else paste(s$sink$fields, collapse=","), ""),
-    prefix  = vapply(fl$stages, function(s) as.character(isTRUE(s$prefix)), ""),
-    hoist   = vapply(fl$stages, function(s) as.character(isTRUE(s$hoist_struct)), "")
+    stage   = vapply(x$stages, function(s) s$id, ""),
+    needs   = vapply(x$stages, function(s) paste(s$needs %||% character(), collapse = ","), ""),
+    fields  = vapply(x$stages, function(s) paste(names(s$ptype), collapse=","), ""),
+    sink    = vapply(x$stages, function(s) if (is.null(s$sink)) "" else paste(s$sink$fields, collapse=","), ""),
+    prefix  = vapply(x$stages, function(s) as.character(isTRUE(s$prefix)), ""),
+    hoist   = vapply(x$stages, function(s) as.character(isTRUE(s$hoist_struct)), "")
   )
 }
 
 #' Dry-run a flow: show plan and counts without executing
-#' @param fl A [flow()].
+#' @param x A [flow()] object
+#' @param ... Additional arguments (unused)
 #' @export
-dry_run.parade_flow <- function(fl, ...) {
-  stopifnot(inherits(fl, "parade_flow"))
-  cat("Plan\n----\n"); print(explain(fl)); cat("\n")
-  grid <- fl$grid; cat("Grid rows: ", nrow(grid), "\n", sep="")
-  if (!is.null(fl$dist) && length(fl$dist$by)) {
-    key <- tibble::as_tibble(grid[fl$dist$by]); grp_id <- interaction(key, drop=TRUE, lex.order=TRUE); groups <- split(seq_len(nrow(grid)), grp_id)
-    chunks_per_job <- max(1L, fl$dist$chunks_per_job %||% 1L); chunks <- split(groups, ceiling(seq_along(groups)/chunks_per_job))
-    cat("Distribution: ", fl$dist$backend, " by ", paste(fl$dist$by, collapse=","),
+dry_run.parade_flow <- function(x, ...) {
+  stopifnot(inherits(x, "parade_flow"))
+  cat("Plan\n----\n"); print(explain(x)); cat("\n")
+  grid <- x$grid; cat("Grid rows: ", nrow(grid), "\n", sep="")
+  if (!is.null(x$dist) && length(x$dist$by)) {
+    key <- tibble::as_tibble(grid[x$dist$by]); grp_id <- interaction(key, drop=TRUE, lex.order=TRUE); groups <- split(seq_len(nrow(grid)), grp_id)
+    chunks_per_job <- max(1L, x$dist$chunks_per_job %||% 1L); chunks <- split(groups, ceiling(seq_along(groups)/chunks_per_job))
+    cat("Distribution: ", x$dist$backend, " by ", paste(x$dist$by, collapse=","),
         "; groups=", length(groups), "; chunks=", length(chunks),
-        "; within=", fl$dist$within, " workers=", fl$dist$workers_within %||% NA_integer_, "\n", sep="")
+        "; within=", x$dist$within, " workers=", x$dist$workers_within %||% NA_integer_, "\n", sep="")
   } else {
     cat("Distribution: row-wise (by = NULL) or single process if not distributed.\n")
   }
-  sinks <- vapply(fl$stages, function(s) if (is.null(s$sink)) NA_character_ else s$sink$dir, NA_character_)
+  sinks <- vapply(x$stages, function(s) if (is.null(s$sink)) NA_character_ else s$sink$dir, NA_character_)
   sinks <- sinks[!is.na(sinks)]
   if (length(sinks)) {
     cat("Sinks:\n")
@@ -71,7 +74,7 @@ dry_run.parade_flow <- function(fl, ...) {
   } else {
     cat("Sinks: none\n")
   }
-  invisible(fl)
+  invisible(x)
 }
 
 #' Preflight checks for a flow

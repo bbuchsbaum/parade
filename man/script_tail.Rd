@@ -19,7 +19,9 @@ Display recent log output from a SLURM job
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-script_tail(job, n = 50)
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  script_tail(job, n = 50)
+}
 }
 }

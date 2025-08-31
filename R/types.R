@@ -62,6 +62,7 @@ tbl <- function(...) {
 #' @param .contract Optional contract for validation
 #' @return A tibble prototype defining the expected return structure
 #' @export  
+#' @importFrom stats setNames
 #' @examples
 #' returns(result = dbl(), status = chr())
 #' returns(data = lst(), valid = lgl())
@@ -152,7 +153,7 @@ ctr_field <- function(name, class = NULL, length = 1L, predicate = NULL, min = N
 #'
 #' @param ... Named vectors or lists to cross
 #' @return A tibble with all parameter combinations
-#' @export
+#' @keywords internal
 #' @examples
 #' grid <- param_grid(x = 1:3, method = c("A", "B"))
 param_grid <- function(...) tidyr::crossing(...)

@@ -19,7 +19,9 @@ Get status of a SLURM script job
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-status <- script_status(job)
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  status <- script_status(job)
+}
 }
 }

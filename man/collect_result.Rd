@@ -6,6 +6,9 @@
 \usage{
 collect_result(x)
 }
+\arguments{
+\item{x}{A parade job object (parade_local_job or parade_script_job)}
+}
 \description{
 Collect results from a job
 }

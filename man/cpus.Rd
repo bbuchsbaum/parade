@@ -17,10 +17,12 @@ Updated profile object
 \description{
 Set CPU count for a resource profile
 }
+\note{
+Use res_cpus() to avoid naming collisions in user code.
+}
 \examples{
 \donttest{
-resources <- profile() \%>\% cpus(16)
+resources <- cpus(profile(), 16)
 }
 
-Note: use res_cpus() to avoid naming collisions in user code.
 }

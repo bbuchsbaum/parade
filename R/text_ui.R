@@ -16,8 +16,10 @@
 #' @export
 #' @examples
 #' \donttest{
-#' job <- submit_slurm("script.R")
-#' script_top(job, refresh = 5)
+#' if (Sys.which("squeue") != "") {
+#'   job <- submit_slurm("script.R")
+#'   script_top(job, refresh = 5)
+#' }
 #' }
 script_top <- function(job, refresh = 2, nlog = 30, clear = TRUE) {
   stopifnot(inherits(job, "parade_script_job"))
@@ -67,9 +69,11 @@ script_top <- function(job, refresh = 2, nlog = 30, clear = TRUE) {
 #' @export
 #' @examples
 #' \donttest{
-#' job1 <- submit_slurm("script1.R")
-#' job2 <- submit_slurm("script2.R")
-#' jobs_top(list(job1, job2))
+#' if (Sys.which("squeue") != "") {
+#'   job1 <- submit_slurm("script1.R")
+#'   job2 <- submit_slurm("script2.R")
+#'   jobs_top(list(job1, job2))
+#' }
 #' }
 jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   J <- .coerce_jobs(jobs)

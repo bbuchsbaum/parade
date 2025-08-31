@@ -19,12 +19,13 @@ from file paths for use as job names.
 \examples{
 \donttest{
 files <- c("data/file1.csv", "data/file2.csv")
-jobs <- slurm_map(files, process_file, .name_by = stem())
+process_file <- function(x) x  # stub for example
+jobs <- slurm_map(files, process_file, .name_by = stem(), .engine = "local")
 # Job names will be: "file1", "file2"
 
 # With pattern extraction
 files <- c("sample_001_raw.txt", "sample_002_raw.txt")
-jobs <- slurm_map(files, process_file, .name_by = stem("sample_(\\\\d+)"))
+jobs <- slurm_map(files, process_file, .name_by = stem("sample_(\\\\d+)"), .engine = "local")
 # Job names will be: "001", "002"
 }
 

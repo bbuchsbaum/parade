@@ -17,10 +17,12 @@ Updated profile object
 \description{
 Set memory limit for a resource profile
 }
+\note{
+Use res_mem() to avoid naming collisions in user code.
+}
 \examples{
 \donttest{
-resources <- profile() \%>\% mem("32G")
+resources <- mem(profile(), "32G")
 }
 
-Note: use res_mem() to avoid naming collisions in user code.
 }

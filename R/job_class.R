@@ -49,6 +49,8 @@ print.parade_local_job <- function(x, ...) {
 }
 
 #' Check if a job is done
+#' 
+#' @param x A parade job object (parade_job, parade_script_job, or parade_local_job)
 #' @export
 is_done <- function(x) {
   UseMethod("is_done")
@@ -79,6 +81,9 @@ is_done.parade_job <- function(x) {
 }
 
 #' Get job status
+#' 
+#' @param x A parade job object (parade_job, parade_script_job, or parade_local_job)
+#' @return A tibble containing job status information
 #' @export
 job_status <- function(x) {
   UseMethod("job_status")
@@ -113,6 +118,7 @@ job_status.parade_script_job <- function(x) {
 }
 
 #' Collect results from a job
+#' @param x A parade job object (parade_local_job or parade_script_job)
 #' @export
 collect_result <- function(x) {
   UseMethod("collect_result")

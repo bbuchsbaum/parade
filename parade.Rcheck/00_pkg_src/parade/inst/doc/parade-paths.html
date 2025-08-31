@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Smart Path Management: Write Once, Run Anywhere</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Smart Path Management: Write Once, Run
+Anywhere</h1>
+
+
+
+<div id="the-problem-hardcoded-paths-break-your-code" class="section level2">
+<h2>The Problem: Hardcoded Paths Break Your Code</h2>
+<p>Imagine you’re developing a neuroimaging analysis on your laptop.
+Your code might look like this:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Works on your laptop</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">&quot;/Users/alice/projects/brain_study/models/brain_model.rds&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">analyze_brain</span>(model)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">saveRDS</span>(results, <span class="st">&quot;/Users/alice/projects/brain_study/outputs/results.rds&quot;</span>)</span></code></pre></div>
+<p>But when you or a collaborator runs this code on an HPC cluster, it
+breaks immediately:</p>
+<ul>
+<li><code>/Users/alice/</code> doesn’t exist on Linux clusters</li>
+<li>Different clusters have completely different filesystem layouts</li>
+<li>Writing large files to home directories often violates cluster
+policies</li>
+<li>Your collaborator Bob can’t run your code without rewriting all the
+paths</li>
+</ul>
+</div>
+<div id="the-solution-portable-path-aliases" class="section level2">
+<h2>The Solution: Portable Path Aliases</h2>
+<p><strong>parade</strong> solves this with smart path aliases that
+automatically adapt to any environment:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co"># Same code works everywhere</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://models/brain_model.rds&quot;</span>))</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">analyze_brain</span>(model)</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="fu">saveRDS</span>(results, <span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://outputs/results.rds&quot;</span>))</span></code></pre></div>
+<p>The <code>artifacts://</code> prefix is a <strong>portable
+alias</strong> that parade automatically translates:</p>
+<ul>
+<li><strong>On your laptop</strong>: →
+<code>/var/folders/.../parade-artifacts/</code></li>
+<li><strong>On SLURM cluster</strong>: →
+<code>/scratch/$USER/parade-artifacts/</code></li>
+<li><strong>On your collaborator’s machine</strong>: → whatever their
+appropriate storage location is</li>
+</ul>
+<p>No more broken paths. No more rewriting code for different
+systems.</p>
+</div>
+<div id="quick-start-your-first-portable-analysis" class="section level2">
+<h2>Quick Start: Your First Portable Analysis</h2>
+<p>Let’s make a simple analysis portable in three steps:</p>
+<div id="step-1-initialize-parades-path-system" class="section level3">
+<h3>Step 1: Initialize parade’s path system</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Auto-detect your environment and set up paths</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co"># See where your aliases point</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="fu">paths_get</span>()</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; project:   /home/alice/myproject</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; data:      /home/alice/myproject/data</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; artifacts: /tmp/RtmpXYZ/parade-artifacts</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; registry:  /tmp/RtmpXYZ/parade-registry</span></span></code></pre></div>
+</div>
+<div id="step-2-use-aliases-instead-of-hardcoded-paths" class="section level3">
+<h3>Step 2: Use aliases instead of hardcoded paths</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Before (breaks on different systems):</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;/home/alice/myproject/data/experiment.csv&quot;</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">saveRDS</span>(model, <span class="st">&quot;/home/alice/myproject/outputs/model.rds&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co"># After (works everywhere):</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">resolve_path</span>(<span class="st">&quot;data://experiment.csv&quot;</span>))</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="fu">saveRDS</span>(model, <span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://model.rds&quot;</span>))</span></code></pre></div>
+</div>
+<div id="step-3-run-the-same-code-anywhere" class="section level3">
+<h3>Step 3: Run the same code anywhere</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># On your laptop</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">saveRDS</span>(big_model, <span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://models/final.rds&quot;</span>))</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># Saves to: /var/folders/temp/parade-artifacts/models/final.rds</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co"># On HPC cluster (same code!)</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="fu">saveRDS</span>(big_model, <span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://models/final.rds&quot;</span>))</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co"># Saves to: /scratch/alice/parade-artifacts/models/final.rds</span></span></code></pre></div>
+<p>That’s it! Your code now works on any system without
+modification.</p>
+</div>
+</div>
+<div id="understanding-the-seven-path-aliases" class="section level2">
+<h2>Understanding the Seven Path Aliases</h2>
+<p>parade provides seven aliases, each designed for a specific type of
+data in your workflow:</p>
+<div id="core-data-aliases" class="section level3">
+<h3>Core Data Aliases</h3>
+<p><strong><code>data://</code></strong> - Input datasets
+(read-only)</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Your raw data, reference files, shared datasets</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>brain_atlas <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">resolve_path</span>(<span class="st">&quot;data://references/MNI_atlas.rds&quot;</span>))</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>subjects <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">resolve_path</span>(<span class="st">&quot;data://participants.csv&quot;</span>))</span></code></pre></div>
+<p><strong><code>artifacts://</code></strong> - Analysis outputs (large
+files)</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Models, results, processed data - goes to fast scratch storage</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">saveRDS</span>(fitted_model, <span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://models/model_v2.rds&quot;</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">write.csv</span>(results, <span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://results/final_results.csv&quot;</span>))</span></code></pre></div>
+<p><strong><code>project://</code></strong> - Your code and scripts</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Source files, small configuration files</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;project://R/analysis_functions.R&quot;</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>params <span class="ot">&lt;-</span> yaml<span class="sc">::</span><span class="fu">read_yaml</span>(<span class="st">&quot;project://config/params.yaml&quot;</span>)</span></code></pre></div>
+</div>
+<div id="system-aliases" class="section level3">
+<h3>System Aliases</h3>
+<p><strong><code>scratch://</code></strong> - Temporary files (deleted
+after jobs)</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Intermediate files, working data</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>temp_file <span class="ot">&lt;-</span> <span class="st">&quot;scratch://temp_processing.rds&quot;</span></span></code></pre></div>
+<p><strong><code>registry://</code></strong> - Job management files</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># SLURM templates, job scripts (managed by parade)</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>template <span class="ot">&lt;-</span> <span class="st">&quot;registry://templates/my_slurm.tmpl&quot;</span></span></code></pre></div>
+<p><strong><code>config://</code></strong> - parade configuration</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Settings, profiles (usually automatic)</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="st">&quot;config://profiles/production.json&quot;</span></span></code></pre></div>
+<p><strong><code>cache://</code></strong> - Downloaded/cached data</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Reusable downloads, package data</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="st">&quot;cache://downloaded/large_dataset.tar.gz&quot;</span></span></code></pre></div>
+</div>
+</div>
+<div id="common-scenarios" class="section level2">
+<h2>Common Scenarios</h2>
+<div id="scenario-1-laptop-development-hpc-production" class="section level3">
+<h3>Scenario 1: Laptop Development → HPC Production</h3>
+<p>You’re developing on your laptop with small test data, then running
+full analysis on a cluster:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># During development (laptop)</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="fu">paths_set</span>(</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">data =</span> <span class="st">&quot;~/projects/test_data&quot;</span>,      <span class="co"># Small test dataset</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">artifacts =</span> <span class="st">&quot;~/projects/outputs&quot;</span>     <span class="co"># Local outputs</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>)</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co"># Your analysis code (unchanged!)</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>run_analysis <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>  data <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">&quot;data://brain_scans.rds&quot;</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">fit_model</span>(data)</span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>  <span class="fu">saveRDS</span>(model, <span class="st">&quot;artifacts://fitted_model.rds&quot;</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>}</span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co"># In production (HPC cluster) </span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="fu">paths_set</span>(</span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a>  <span class="at">data =</span> <span class="st">&quot;/shared/datasets/full_data&quot;</span>,     <span class="co"># Full dataset</span></span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a>  <span class="at">artifacts =</span> <span class="st">&quot;/scratch/$USER/outputs&quot;</span>     <span class="co"># Fast scratch storage</span></span>
+<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a>)</span>
+<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a><span class="co"># Same analysis code still works!</span></span>
+<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a><span class="fu">run_analysis</span>()</span></code></pre></div>
+</div>
+<div id="scenario-2-collaboration-with-different-systems" class="section level3">
+<h3>Scenario 2: Collaboration with Different Systems</h3>
+<p>Alice and Bob are collaborating but have different setups:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Alice&#39;s setup (Mac laptop)</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt; artifacts: /var/folders/abc/temp/parade-artifacts</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co"># Bob&#39;s setup (Linux workstation) </span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; artifacts: /tmp/bob/parade-artifacts</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co"># Shared analysis code (works for both!)</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>analyze_subjects <span class="ot">&lt;-</span> <span class="cf">function</span>(subjects) {</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>  <span class="cf">for</span> (subj <span class="cf">in</span> subjects) {</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>    data <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">resolve_path</span>(<span class="fu">sprintf</span>(<span class="st">&quot;data://subjects/%s.rds&quot;</span>, subj)))</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>    results <span class="ot">&lt;-</span> <span class="fu">process_subject</span>(data)</span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>    <span class="fu">saveRDS</span>(results, <span class="fu">resolve_path</span>(<span class="fu">sprintf</span>(<span class="st">&quot;artifacts://results/%s.rds&quot;</span>, subj)))</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>  }</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="scenario-3-multi-stage-pipeline-with-different-storage-needs" class="section level3">
+<h3>Scenario 3: Multi-stage Pipeline with Different Storage Needs</h3>
+<p>Different stages of your pipeline need different storage
+strategies:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co"># Configure storage for each data type</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="fu">paths_set</span>(</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="at">data =</span> <span class="st">&quot;/shared/readonly/inputs&quot;</span>,       <span class="co"># Shared input data</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>  <span class="at">scratch =</span> <span class="fu">Sys.getenv</span>(<span class="st">&quot;SLURM_TMPDIR&quot;</span>),  <span class="co"># Fast local SSD</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>  <span class="at">artifacts =</span> <span class="st">&quot;/scratch/$USER/outputs&quot;</span>    <span class="co"># Persistent scratch</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a>)</span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co"># Pipeline uses appropriate storage for each stage</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="fu">flow</span>(subjects) <span class="sc">|&gt;</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a>  </span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a>  <span class="co"># Stage 1: Load from shared storage</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="st">&quot;load&quot;</span>, <span class="cf">function</span>(subject) {</span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a>    <span class="fu">readRDS</span>(<span class="fu">sprintf</span>(<span class="st">&quot;data://raw/%s.rds&quot;</span>, subject))</span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a>  }) <span class="sc">|&gt;</span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a>  </span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a>  <span class="co"># Stage 2: Process using fast local storage</span></span>
+<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="st">&quot;process&quot;</span>, <span class="cf">function</span>(data) {</span>
+<span id="cb15-21"><a href="#cb15-21" tabindex="-1"></a>    temp_file <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">&quot;scratch://processing_%s.rds&quot;</span>, data<span class="sc">$</span>id)</span>
+<span id="cb15-22"><a href="#cb15-22" tabindex="-1"></a>    <span class="co"># ... heavy processing using temp_file ...</span></span>
+<span id="cb15-23"><a href="#cb15-23" tabindex="-1"></a>  }) <span class="sc">|&gt;</span></span>
+<span id="cb15-24"><a href="#cb15-24" tabindex="-1"></a>  </span>
+<span id="cb15-25"><a href="#cb15-25" tabindex="-1"></a>  <span class="co"># Stage 3: Save results to scratch</span></span>
+<span id="cb15-26"><a href="#cb15-26" tabindex="-1"></a>  <span class="fu">stage</span>(<span class="st">&quot;save&quot;</span>, <span class="cf">function</span>(results) {</span>
+<span id="cb15-27"><a href="#cb15-27" tabindex="-1"></a>    <span class="fu">saveRDS</span>(results, <span class="fu">sprintf</span>(<span class="st">&quot;artifacts://final/%s.rds&quot;</span>, results<span class="sc">$</span>id))</span>
+<span id="cb15-28"><a href="#cb15-28" tabindex="-1"></a>  })</span></code></pre></div>
+</div>
+</div>
+<div id="configuring-for-your-hpc-system" class="section level2">
+<h2>Configuring for Your HPC System</h2>
+<div id="automatic-detection" class="section level3">
+<h3>Automatic Detection</h3>
+<p>parade automatically detects common HPC environments:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Auto-detects SLURM</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co"># Automatically uses $SLURM_TMPDIR for scratch</span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co"># Auto-detects PBS</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="fu">paths_init</span>()  </span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co"># Automatically uses $PBS_O_WORKDIR</span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co"># Auto-detects SGE</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="fu">paths_init</span>()</span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co"># Automatically uses $TMPDIR</span></span></code></pre></div>
+</div>
+<div id="manual-configuration" class="section level3">
+<h3>Manual Configuration</h3>
+<p>For custom HPC setups, explicitly set your paths:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># Configure once for your HPC system</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="fu">paths_set</span>(</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  <span class="at">scratch =</span> <span class="st">&quot;/fast/local/$USER&quot;</span>,           <span class="co"># Fast local SSD</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>  <span class="at">artifacts =</span> <span class="st">&quot;/lustre/$USER/outputs&quot;</span>,     <span class="co"># Parallel filesystem</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>  <span class="at">registry =</span> <span class="st">&quot;/lustre/$USER/jobs&quot;</span>,         <span class="co"># Shared job storage</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>  <span class="at">data =</span> <span class="st">&quot;/projects/shared/datasets&quot;</span>       <span class="co"># Readonly shared data</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>)</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co"># Save configuration for future sessions</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="fu">paths_set</span>(..., <span class="at">persist =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div id="environment-variables" class="section level3">
+<h3>Environment Variables</h3>
+<p>Set system-wide defaults via environment variables:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># In ~/.bashrc or job scripts</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_SCRATCH</span><span class="op">=</span><span class="st">&quot;/fast/scratch/</span><span class="va">$USER</span><span class="st">&quot;</span></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_ARTIFACTS</span><span class="op">=</span><span class="st">&quot;/fast/scratch/</span><span class="va">$USER</span><span class="st">/outputs&quot;</span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="bu">export</span> <span class="va">PARADE_DATA</span><span class="op">=</span><span class="st">&quot;/projects/shared/data&quot;</span></span></code></pre></div>
+</div>
+</div>
+<div id="advanced-patterns" class="section level2">
+<h2>Advanced Patterns</h2>
+<div id="pattern-1-dynamic-environment-switching" class="section level3">
+<h3>Pattern 1: Dynamic Environment Switching</h3>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># Detect and configure based on environment</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>setup_paths <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">interactive</span>()) {</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>    <span class="co"># Development settings</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>    <span class="fu">paths_set</span>(<span class="at">artifacts =</span> <span class="st">&quot;~/temp/dev_outputs&quot;</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;Using development paths&quot;</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a>    </span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (<span class="fu">Sys.getenv</span>(<span class="st">&quot;SLURM_JOB_ID&quot;</span>) <span class="sc">!=</span> <span class="st">&quot;&quot;</span>) {</span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>    <span class="co"># Production SLURM settings</span></span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a>    <span class="fu">paths_set</span>(</span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a>      <span class="at">scratch =</span> <span class="fu">Sys.getenv</span>(<span class="st">&quot;SLURM_TMPDIR&quot;</span>),</span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a>      <span class="at">artifacts =</span> <span class="fu">sprintf</span>(<span class="st">&quot;/scratch/%s/prod_outputs&quot;</span>, <span class="fu">Sys.getenv</span>(<span class="st">&quot;USER&quot;</span>))</span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a>    )</span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;Using SLURM production paths&quot;</span>)</span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a>    </span>
+<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a>    <span class="co"># Default settings</span></span>
+<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a>    <span class="fu">paths_init</span>()</span>
+<span id="cb19-19"><a href="#cb19-19" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;Using default paths&quot;</span>)</span>
+<span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a>  }</span>
+<span id="cb19-21"><a href="#cb19-21" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="pattern-2-project-specific-organization" class="section level3">
+<h3>Pattern 2: Project-Specific Organization</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># Organize outputs by analysis phase</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="fu">paths_set</span>(</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="at">artifacts =</span> <span class="st">&quot;/scratch/$USER/project_X&quot;</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>)</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co"># Create structured output directories</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>save_results <span class="ot">&lt;-</span> <span class="cf">function</span>(phase, name, object) {</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>  path <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">&quot;artifacts://%s/%s.rds&quot;</span>, phase, name)</span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>  <span class="fu">saveRDS</span>(object, path)</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>}</span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="co"># Usage</span></span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a><span class="fu">save_results</span>(<span class="st">&quot;preprocessing&quot;</span>, <span class="st">&quot;cleaned_data&quot;</span>, cleaned)</span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a><span class="fu">save_results</span>(<span class="st">&quot;modeling&quot;</span>, <span class="st">&quot;final_model&quot;</span>, model)</span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a><span class="fu">save_results</span>(<span class="st">&quot;validation&quot;</span>, <span class="st">&quot;cv_results&quot;</span>, cv)</span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="co"># Results in:</span></span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a><span class="co"># /scratch/$USER/project_X/preprocessing/cleaned_data.rds</span></span>
+<span id="cb20-19"><a href="#cb20-19" tabindex="-1"></a><span class="co"># /scratch/$USER/project_X/modeling/final_model.rds</span></span>
+<span id="cb20-20"><a href="#cb20-20" tabindex="-1"></a><span class="co"># /scratch/$USER/project_X/validation/cv_results.rds</span></span></code></pre></div>
+</div>
+<div id="pattern-3-integration-with-sinks" class="section level3">
+<h3>Pattern 3: Integration with Sinks</h3>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># Sinks automatically use path aliases</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="fu">sink_spec</span>(</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">fields =</span> <span class="fu">c</span>(<span class="st">&quot;model&quot;</span>, <span class="st">&quot;predictions&quot;</span>),</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>  <span class="at">dir =</span> <span class="st">&quot;artifacts://models&quot;</span>,  <span class="co"># Portable path</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>  <span class="at">template =</span> <span class="st">&quot;{subject}/{session}_{task}.rds&quot;</span></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a>)</span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a><span class="co"># Different storage for different output types</span></span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a>model_sink <span class="ot">&lt;-</span> <span class="fu">sink_spec</span>(</span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>  <span class="at">fields =</span> <span class="st">&quot;model&quot;</span>,</span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a>  <span class="at">dir =</span> <span class="st">&quot;artifacts://large_models&quot;</span>,  <span class="co"># Goes to scratch</span></span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a>  <span class="at">format =</span> <span class="st">&quot;rds&quot;</span></span>
+<span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a>)</span>
+<span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a></span>
+<span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a>config_sink <span class="ot">&lt;-</span> <span class="fu">sink_spec</span>(</span>
+<span id="cb21-16"><a href="#cb21-16" tabindex="-1"></a>  <span class="at">fields =</span> <span class="st">&quot;params&quot;</span>,</span>
+<span id="cb21-17"><a href="#cb21-17" tabindex="-1"></a>  <span class="at">dir =</span> <span class="st">&quot;project://configs&quot;</span>,  <span class="co"># Stays with code</span></span>
+<span id="cb21-18"><a href="#cb21-18" tabindex="-1"></a>  <span class="at">format =</span> <span class="st">&quot;json&quot;</span></span>
+<span id="cb21-19"><a href="#cb21-19" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="path-resolution-functions" class="section level2">
+<h2>Path Resolution Functions</h2>
+<div id="resolve_path---convert-aliases-to-absolute-paths" class="section level3">
+<h3><code>resolve_path()</code> - Convert aliases to absolute paths</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="co"># Resolve any path with an alias</span></span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a><span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://model.rds&quot;</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a><span class="co">#&gt; &quot;/scratch/alice/parade-artifacts/model.rds&quot;</span></span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="fu">resolve_path</span>(<span class="st">&quot;data://raw/scan.nii&quot;</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="co">#&gt; &quot;/shared/datasets/raw/scan.nii&quot;</span></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a><span class="co"># Works with regular paths too</span></span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a><span class="fu">resolve_path</span>(<span class="st">&quot;/absolute/path.txt&quot;</span>)   <span class="co"># Already absolute</span></span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="fu">resolve_path</span>(<span class="st">&quot;relative/path.txt&quot;</span>)    <span class="co"># Made absolute</span></span></code></pre></div>
+</div>
+<div id="path_here---build-paths-from-components" class="section level3">
+<h3><code>path_here()</code> - Build paths from components</h3>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co"># Construct paths programmatically</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>model_dir <span class="ot">&lt;-</span> <span class="fu">path_here</span>(<span class="st">&quot;artifacts&quot;</span>, <span class="st">&quot;models&quot;</span>, <span class="st">&quot;v2&quot;</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co">#&gt; &quot;/scratch/alice/parade-artifacts/models/v2&quot;</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="co"># Automatically creates directories</span></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>output_dir <span class="ot">&lt;-</span> <span class="fu">path_here</span>(<span class="st">&quot;artifacts&quot;</span>, <span class="st">&quot;results&quot;</span>, <span class="at">create =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="co"># Skip auto-creation if needed</span></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>temp_path <span class="ot">&lt;-</span> <span class="fu">path_here</span>(<span class="st">&quot;scratch&quot;</span>, <span class="st">&quot;temp&quot;</span>, <span class="at">create =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="troubleshooting" class="section level2">
+<h2>Troubleshooting</h2>
+<div id="issue-cannot-find-path-alias" class="section level3">
+<h3>Issue: “Cannot find path alias”</h3>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="co"># Check your current configuration</span></span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="fu">paths_get</span>()</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a><span class="co"># Re-initialize if needed</span></span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="fu">paths_init</span>()</span></code></pre></div>
+</div>
+<div id="issue-permission-denied-when-writing" class="section level3">
+<h3>Issue: “Permission denied” when writing</h3>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="co"># Check that your aliases point to writable locations</span></span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a><span class="fu">paths_get</span>()</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="co"># Update to writable directory</span></span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a><span class="fu">paths_set</span>(<span class="at">artifacts =</span> <span class="st">&quot;/tmp/my_outputs&quot;</span>)</span></code></pre></div>
+</div>
+<div id="issue-different-paths-on-different-nodes" class="section level3">
+<h3>Issue: Different paths on different nodes</h3>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="co"># Use node-local storage for better performance</span></span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a><span class="fu">paths_set</span>(</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>  <span class="at">scratch =</span> <span class="fu">ifelse</span>(</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>    <span class="fu">Sys.getenv</span>(<span class="st">&quot;SLURM_TMPDIR&quot;</span>) <span class="sc">!=</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>    <span class="fu">Sys.getenv</span>(<span class="st">&quot;SLURM_TMPDIR&quot;</span>),  <span class="co"># Node-local on SLURM</span></span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>    <span class="st">&quot;/tmp&quot;</span>                          <span class="co"># Fallback</span></span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a>  )</span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="best-practices" class="section level2">
+<h2>Best Practices</h2>
+<ol style="list-style-type: decimal">
+<li><p><strong>Initialize paths at the start of every
+script</strong></p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">library</span>(parade)</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a><span class="fu">paths_init</span>()</span></code></pre></div></li>
+<li><p><strong>Use appropriate aliases for different data
+types</strong></p>
+<ul>
+<li><code>data://</code> for inputs (read-only)</li>
+<li><code>artifacts://</code> for outputs (large files)</li>
+<li><code>scratch://</code> for temporary files</li>
+</ul></li>
+<li><p><strong>Never hardcode absolute paths</strong></p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="co"># Bad</span></span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a><span class="fu">saveRDS</span>(model, <span class="st">&quot;/home/alice/outputs/model.rds&quot;</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="co"># Good</span></span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a><span class="fu">saveRDS</span>(model, <span class="fu">resolve_path</span>(<span class="st">&quot;artifacts://model.rds&quot;</span>))</span></code></pre></div></li>
+<li><p><strong>Document your path configuration</strong></p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="co"># Show configuration in logs</span></span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a><span class="fu">message</span>(<span class="st">&quot;Parade paths configured:&quot;</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paths_get</span>())</span></code></pre></div></li>
+</ol>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next Steps</h2>
+<p>Now that you understand portable paths, learn about:</p>
+<ul>
+<li><a href="parade-artifacts.html">Using Artifacts and Sinks</a> for
+automatic data management</li>
+<li><a href="parade-slurm-distribution.html">SLURM Integration</a> for
+cluster computing</li>
+<li><a href="parade-core.html">Core Workflow Concepts</a> for building
+complete pipelines</li>
+</ul>
+</div>
+<div id="quick-reference" class="section level2">
+<h2>Quick Reference</h2>
+<table>
+<colgroup>
+<col width="35%" />
+<col width="32%" />
+<col width="32%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>paths_init()</code></td>
+<td>Auto-configure paths</td>
+<td><code>paths_init()</code></td>
+</tr>
+<tr class="even">
+<td><code>paths_get()</code></td>
+<td>Show current paths</td>
+<td><code>paths_get()</code></td>
+</tr>
+<tr class="odd">
+<td><code>paths_set()</code></td>
+<td>Set custom paths</td>
+<td><code>paths_set(artifacts = &quot;/scratch&quot;)</code></td>
+</tr>
+<tr class="even">
+<td><code>resolve_path()</code></td>
+<td>Convert alias to absolute</td>
+<td><code>resolve_path(&quot;data://file.csv&quot;)</code></td>
+</tr>
+<tr class="odd">
+<td><code>path_here()</code></td>
+<td>Build path from parts</td>
+<td><code>path_here(&quot;artifacts&quot;, &quot;models&quot;)</code></td>
+</tr>
+</tbody>
+</table>
+<table>
+<colgroup>
+<col width="28%" />
+<col width="36%" />
+<col width="36%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Alias</th>
+<th>Use For</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>data://</code></td>
+<td>Input data</td>
+<td><code>read.csv(resolve_path(&quot;data://input.csv&quot;))</code></td>
+</tr>
+<tr class="even">
+<td><code>artifacts://</code></td>
+<td>Outputs</td>
+<td><code>saveRDS(m, resolve_path(&quot;artifacts://model.rds&quot;))</code></td>
+</tr>
+<tr class="odd">
+<td><code>scratch://</code></td>
+<td>Temp files</td>
+<td><code>&quot;scratch://temp.rds&quot;</code></td>
+</tr>
+<tr class="even">
+<td><code>project://</code></td>
+<td>Code/config</td>
+<td><code>source(&quot;project://R/utils.R&quot;)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

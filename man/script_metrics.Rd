@@ -51,8 +51,10 @@ This function queries SLURM's accounting system to retrieve job metrics:
 }
 \examples{
 \donttest{
-job <- submit_slurm("script.R")
-metrics <- script_metrics(job)
-# Returns list with: cpu_pct, ave_rss, max_rss, elapsed, state, etc.
+if (Sys.which("squeue") != "") {
+  job <- submit_slurm("script.R")
+  metrics <- script_metrics(job)
+  # Returns list with: cpu_pct, ave_rss, max_rss, elapsed, state, etc.
+}
 }
 }

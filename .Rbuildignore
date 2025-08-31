@@ -4,3 +4,6 @@
 ^\.github$
 ^doc$
 ^Meta$
+^.claude
+IMPLEMENTATION_PLAN.md
+examples

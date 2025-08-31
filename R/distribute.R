@@ -71,7 +71,9 @@ dist_slurm <- function(by = NULL, within = c("multisession","sequential"), worke
 #' @export
 #' @examples
 #' # Create SLURM distribution using a profile
+#' \dontrun{
 #' dist <- dist_slurm_profile("standard", by = "group")
+#' }
 #' 
 #' # Configuration example (no execution)
 #' \dontrun{

@@ -17,8 +17,8 @@ Character vector or named list depending on context
 \description{
 Intelligently creates either CLI or call arguments based on context
 }
-\details{
-Note: This function is exported as \code{args()} and will mask \code{base::args} when
+\note{
+This function is exported as \code{args()} and will mask \code{base::args} when
 parade is attached. Call \code{base::args} explicitly if you need the base version
 (e.g., \code{base::args(lm)}).
 }

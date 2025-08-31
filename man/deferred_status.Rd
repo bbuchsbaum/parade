@@ -19,6 +19,10 @@ Get status of a deferred execution
 }
 \examples{
 \donttest{
+grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+fl <- flow(grid) |>
+  stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+  distribute(dist_local(by = "group"))
 deferred <- submit(fl)
 status <- deferred_status(deferred)
 }

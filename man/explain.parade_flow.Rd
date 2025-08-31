@@ -4,10 +4,12 @@
 \alias{explain.parade_flow}
 \title{Explain a flow: DAG + distribution + sinks}
 \usage{
-\method{explain}{parade_flow}(fl, ...)
+\method{explain}{parade_flow}(x, ...)
 }
 \arguments{
-\item{fl}{A \code{\link[=flow]{flow()}}.}
+\item{x}{A \code{\link[=flow]{flow()}}.}
+
+\item{...}{Additional arguments passed to methods (unused).}
 }
 \value{
 A tibble summarizing stages.

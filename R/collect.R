@@ -5,7 +5,8 @@
 #' according to the flow's distribution settings. Returns a tibble with
 #' results from all stages.
 #'
-#' @param fl A `parade_flow` object with stages to execute
+#' @importFrom utils head
+#' @param x A `parade_flow` object with stages to execute
 #' @param engine Execution engine: "future" (default) or "sequential"
 #' @param workers Number of workers for parallel execution
 #' @param scheduling Furrr scheduling parameter (0 < value <= 1 or chunk size)
@@ -13,7 +14,7 @@
 #' @param .progress Whether to display progress bars (default: interactive())
 #' @param limit Optional limit on number of grid rows to process
 #' @param validate Validation mode for flexible types: "light" (default) or "full"
-#' @param ... Additional arguments (unused)
+#' @param ... Additional arguments passed to the execution function
 #' @return A tibble containing results from all executed stages
 #' @method collect parade_flow
 #' @export
@@ -24,7 +25,7 @@
 #'   stage("double", function(x) x * 2, schema = returns(result = dbl()))
 #' results <- collect(fl)
 #' }
-collect.parade_flow <- function(fl,
+collect.parade_flow <- function(x,
                     engine    = c("future","sequential"),
                     workers   = NULL,
                     scheduling = 1,
@@ -33,22 +34,22 @@ collect.parade_flow <- function(fl,
                     limit     = NULL,
                     validate  = c("light", "full"),
                     ...) {
-  stopifnot(inherits(fl, "parade_flow"))
+  stopifnot(inherits(x, "parade_flow"))
   engine <- match.arg(engine)
   validate <- match.arg(validate)
-  grid <- fl$grid; if (!is.null(limit)) grid <- head(grid, limit)
-  dist <- fl$dist
+  grid <- x$grid; if (!is.null(limit)) grid <- head(grid, limit)
+  dist <- x$dist
   if (is.null(dist) || length(dist$by) == 0L) {
     mapper <- if (engine == "future") { function(.l, .f) furrr::future_pmap(.l, .f, .options=furrr::furrr_options(seed=seed_furrr, scheduling=scheduling), .progress=.progress) } else { function(.l, .f) purrr::pmap(.l, .f) }
-    run <- function() { order <- .toposort(fl$stages); rows <- mapper(grid, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order, validate = validate) }); rows <- purrr::compact(rows); if (!length(rows)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!rows)) }
+    run <- function() { order <- .toposort(x$stages); rows <- mapper(grid, function(...) { row <- rlang::list2(...); .eval_row_flow(row, x$stages, seed_col = x$options$seed_col, error = x$options$error, order = order, validate = validate) }); rows <- purrr::compact(rows); if (!length(rows)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!rows)) }
     return(if (.progress) progressr::with_progress(run()) else run())
   }
   key <- tibble::as_tibble(grid[dist$by]); grp_id <- interaction(key, drop=TRUE, lex.order=TRUE); groups <- split(seq_len(nrow(grid)), grp_id)
   chunks_per_job <- max(1L, dist$chunks_per_job %||% 1L); chunks <- split(groups, ceiling(seq_along(groups)/chunks_per_job))
   run_chunk <- function(idx_vec) {
-    order <- .toposort(fl$stages); out <- list(); subrows <- unlist(idx_vec, use.names = FALSE)
+    order <- .toposort(x$stages); out <- list(); subrows <- unlist(idx_vec, use.names = FALSE)
     sub <- grid[subrows, , drop = FALSE]
-    rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order, validate = validate) }, .options=furrr::furrr_options(seed=seed_furrr, scheduling=scheduling), .progress=FALSE)
+    rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, x$stages, seed_col = x$options$seed_col, error = x$options$error, order = order, validate = validate) }, .options=furrr::furrr_options(seed=seed_furrr, scheduling=scheduling), .progress=FALSE)
     rows <- purrr::compact(rows); if (length(rows)) out <- append(out, list(vctrs::vec_rbind(!!!rows)))
     if (!length(out)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!out))
   }
@@ -61,6 +62,7 @@ collect.parade_flow <- function(fl,
 
 # Core row evaluation ------------------------------------------------------
 #' @keywords internal
+#' @export
 .eval_row_flow <- function(row, stages, seed_col, error, order, validate = "light") {
   if (!is.null(seed_col) && !is.null(row[[seed_col]])) set.seed(as.integer(row[[seed_col]]))
   acc <- tibble::as_tibble(row)[, names(row), drop = FALSE]; acc$row_id <- digest::digest(row, algo="sha1")
@@ -140,6 +142,7 @@ collect.parade_flow <- function(fl,
   }
   acc$.diag <- list(diag); acc$.ok <- all(vapply(diag, function(d) isTRUE(d$ok) || isTRUE(d$skipped), logical(1))); acc
 }
+#' @importFrom stats setNames
 #' @keywords internal
 .prefix_block <- function(block, id, prefix, hoist) {
   cols <- names(block); names(block)[match(cols, names(block))] <- if (isTRUE(prefix)) paste0(id, ".", cols) else cols

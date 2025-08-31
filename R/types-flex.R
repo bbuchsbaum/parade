@@ -199,7 +199,8 @@ neurovol <- function(class = NULL, dims = NULL) {
     dim_check <- pred(
       function(x) {
         if (requireNamespace("neuroim2", quietly = TRUE)) {
-          actual_dims <- neuroim2::dim(x)
+          # Use base dim() function which works for neuroim2 objects
+          actual_dims <- dim(x)
           identical(actual_dims, dims)
         } else {
           TRUE  # Can't check without neuroim2
