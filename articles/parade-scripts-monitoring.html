@@ -42,6 +42,7 @@
     <li><a class="dropdown-item" href="../articles/parade-scripts-monitoring.html">SLURM script submission and monitoring from R</a></li>
     <li><a class="dropdown-item" href="../articles/parade-sinks.html">Artifacts: format-agnostic sinks, atomic writes, and manifests</a></li>
     <li><a class="dropdown-item" href="../articles/parade-slurm-distribution.html">Distribution: local and SLURM (barriers, throttling, chunking)</a></li>
+    <li><a class="dropdown-item" href="../articles/parade-unified-api.html">Unified API: Functions and Scripts, One Surface</a></li>
   </ul>
 </li>
       </ul>
@@ -73,6 +74,11 @@
     
 <blockquote>
 <p>Requires <strong>parade ≥ 0.11.0</strong>.</p>
+</blockquote>
+<blockquote>
+<p>Note: Code evaluation is disabled to keep builds fast and avoid
+interacting with live cluster resources during checks. Copy code into an
+interactive session with SLURM access to run.</p>
 </blockquote>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
@@ -119,8 +125,21 @@ and error diagnostics</li>
 <span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition<span class="op">=</span><span class="st">"general"</span>, time<span class="op">=</span><span class="st">"2h"</span>, cpus_per_task<span class="op">=</span><span class="fl">16</span>, mem<span class="op">=</span><span class="cn">NA</span>, persist<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/slurm_template_set.html">slurm_template_set</a></span><span class="op">(</span><span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Submit a job</span></span>
+<span><span class="co"># Submit a script file</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"scripts/train.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--fold"</span>, <span class="st">"1"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Or submit a function directly (new in 0.12.0)</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">fold</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Your training code here</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Training fold "</span>, <span class="va">fold</span><span class="op">)</span></span>
+<span>    <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">train_model</span><span class="op">(</span><span class="va">fold</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  fold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"train-fold-1"</span>,</span>
+<span>  write_result <span class="op">=</span> <span class="st">"artifacts://models/fold1.rds"</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Quick status check</span></span>
 <span><span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
@@ -132,6 +151,47 @@ and error diagnostics</li>
 <span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span>, refresh <span class="op">=</span> <span class="fl">2</span>, nlog <span class="op">=</span> <span class="fl">40</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="uniform-verbs-with-function-submissions">Uniform verbs with function submissions<a class="anchor" aria-label="anchor" href="#uniform-verbs-with-function-submissions"></a>
+</h2>
+<p>You can submit a single function call and still use the full jobset
+verb surface by wrapping the result as a jobset. Use the
+<code>.as_jobset = TRUE</code> flag on <code>slurm_call()</code> to opt
+in to this style:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Submit a single function job, returned as a one‑element jobset</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Pretend to do useful work</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Processing "</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="op">]</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  file <span class="op">=</span> <span class="st">"data/example.csv"</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"proc-example"</span>,</span>
+<span>  write_result <span class="op">=</span> <span class="va">path</span><span class="op">$</span><span class="fu">artifacts</span><span class="op">(</span><span class="st">"results/{run}/{stem}.rds"</span><span class="op">)</span>,</span>
+<span>  .as_jobset <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Same verbs you use for slurm_map() work here too</span></span>
+<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://progressr.futureverse.org/reference/progress.html" class="external-link">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Open logs if needed (no‑ops for local engine)</span></span>
+<span><span class="fu">open_logs</span><span class="op">(</span><span class="va">jobs</span>, selection <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></code></pre></div>
+<p>And for multiple inputs the pattern is identical with
+<code>slurm_map()</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu">glob</span><span class="op">(</span><span class="st">"data/*.csv"</span><span class="op">)</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span></span>
+<span>  <span class="va">files</span>,</span>
+<span>  <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="op">]</span>,</span>
+<span>  .name_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  .write_result <span class="op">=</span> <span class="va">path</span><span class="op">$</span><span class="fu">artifacts</span><span class="op">(</span><span class="st">"results/{run}/{stem}.rds"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Advertise the progress() convenience explicitly</span></span>
+<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://progressr.futureverse.org/reference/progress.html" class="external-link">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="core-monitoring-functions">Core monitoring functions<a class="anchor" aria-label="anchor" href="#core-monitoring-functions"></a>
 </h2>
 <div class="section level3">
@@ -139,7 +199,7 @@ and error diagnostics</li>
 </h3>
 <p>The <code><a href="../reference/script_top.html">script_top()</a></code> function provides a real-time,
 interactive dashboard for monitoring a single SLURM job:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"analysis.R"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span>, refresh <span class="op">=</span> <span class="fl">2</span>, nlog <span class="op">=</span> <span class="fl">30</span>, clear <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Features displayed:</strong> - <strong>Job
@@ -162,7 +222,7 @@ smoother display (default: TRUE)</p>
 </h3>
 <p>Monitor multiple jobs simultaneously with a tabular overview plus
 detailed logs from running jobs:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Submit multiple jobs</span></span>
 <span><span class="va">job1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"preprocess.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--dataset"</span>, <span class="st">"A"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">job2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"preprocess.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--dataset"</span>, <span class="st">"B"</span><span class="op">)</span><span class="op">)</span></span>
@@ -176,7 +236,7 @@ table</strong>: Compact view with name, job ID, state, CPU%, allocated
 CPUs, max memory, elapsed time, node - <strong>Live log tail</strong>:
 Recent output from the first running job</p>
 <p><strong>Flexible input formats:</strong></p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List of job objects</span></span>
 <span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">job1</span>, <span class="va">job2</span>, <span class="va">job3</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -195,7 +255,7 @@ Recent output from the first running job</p>
 <h3 id="status-checking-script_status">Status checking: <code>script_status()</code><a class="anchor" aria-label="anchor" href="#status-checking-script_status"></a>
 </h3>
 <p>Get current job state without launching a full monitor:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span></span>
 <span><span class="co"># # A tibble: 1 × 5</span></span>
@@ -210,7 +270,7 @@ Recent output from the first running job</p>
 <h3 id="log-viewing-script_tail">Log viewing: <code>script_tail()</code><a class="anchor" aria-label="anchor" href="#log-viewing-script_tail"></a>
 </h3>
 <p>Display recent log output from a job:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Show last 50 lines</span></span>
 <span><span class="fu"><a href="../reference/script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span>, n <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span></span>
@@ -221,7 +281,7 @@ Recent output from the first running job</p>
 <h3 id="resource-metrics-script_metrics">Resource metrics: <code>script_metrics()</code><a class="anchor" aria-label="anchor" href="#resource-metrics-script_metrics"></a>
 </h3>
 <p>Get detailed resource usage statistics:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">metrics</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_metrics.html">script_metrics</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">metrics</span><span class="op">)</span></span>
 <span><span class="co"># $job_id</span></span>
@@ -240,7 +300,7 @@ Recent output from the first running job</p>
 <h3 id="job-completion-script_done">Job completion: <code>script_done()</code><a class="anchor" aria-label="anchor" href="#job-completion-script_done"></a>
 </h3>
 <p>Check if a job has finished (successfully or with errors):</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/script_done.html">script_done</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Job completed!\n"</span><span class="op">)</span></span>
 <span>  <span class="co"># Process results...</span></span>
@@ -256,7 +316,7 @@ Recent output from the first running job</p>
 <h3 id="waiting-for-completion-script_await">Waiting for completion: <code>script_await()</code><a class="anchor" aria-label="anchor" href="#waiting-for-completion-script_await"></a>
 </h3>
 <p>Block execution until job completes:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Wait indefinitely</span></span>
 <span><span class="fu"><a href="../reference/script_await.html">script_await</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
 <span></span>
@@ -270,7 +330,7 @@ Recent output from the first running job</p>
 <h3 id="canceling-jobs-script_cancel">Canceling jobs: <code>script_cancel()</code><a class="anchor" aria-label="anchor" href="#canceling-jobs-script_cancel"></a>
 </h3>
 <p>Stop running jobs:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/script_cancel.html">script_cancel</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -278,7 +338,7 @@ Recent output from the first running job</p>
 </h3>
 <p>Locate recently submitted jobs when you don’t have the job
 object:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Find 5 most recent jobs</span></span>
 <span><span class="va">recent</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_find_latest.html">script_find_latest</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">recent</span><span class="op">)</span></span>
@@ -288,12 +348,195 @@ object:</p>
 </div>
 </div>
 <div class="section level2">
+<h2 id="function-submission-with-slurm_call">Function submission with slurm_call()<a class="anchor" aria-label="anchor" href="#function-submission-with-slurm_call"></a>
+</h2>
+<p>New in parade 0.12.0, <code>slurm_call()</code> allows you to submit
+R functions directly to SLURM without creating script files. This is
+ideal for interactive development, parameter sweeps, and functional
+programming workflows.</p>
+<div class="section level3">
+<h3 id="basic-function-submission">Basic function submission<a class="anchor" aria-label="anchor" href="#basic-function-submission"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Submit a simple function</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">y</span><span class="op">^</span><span class="fl">2</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Computed: "</span>, <span class="va">result</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  x <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  y <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"pythagorean"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Monitor just like any other job</span></span>
+<span><span class="fu"><a href="../reference/script_top.html">script_top</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="resource-profiles">Resource profiles<a class="anchor" aria-label="anchor" href="#resource-profiles"></a>
+</h3>
+<p>Parade 0.12.0 introduces resource profiles for easier resource
+management:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Use built-in profiles</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"gpu"</span><span class="op">)</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"highmem"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create custom profiles with chaining</span></span>
+<span><span class="va">my_profile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/profile.html" class="external-link">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">time</a></span><span class="op">(</span><span class="st">"8:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu">mem</span><span class="op">(</span><span class="st">"32G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu">cpus</span><span class="op">(</span><span class="fl">16</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu">partition</span><span class="op">(</span><span class="st">"compute"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="va">my_profile</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Register profiles for reuse</span></span>
+<span><span class="fu">profile_register</span><span class="op">(</span><span class="st">"ml_training"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/profile.html" class="external-link">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">time</a></span><span class="op">(</span><span class="st">"24:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu">mem</span><span class="op">(</span><span class="st">"64G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu">cpus</span><span class="op">(</span><span class="fl">32</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu">gpus</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Use registered profile by name</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">train_model</span>, data <span class="op">=</span> <span class="va">data</span>, resources <span class="op">=</span> <span class="st">"ml_training"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="working-with-packages">Working with packages<a class="anchor" aria-label="anchor" href="#working-with-packages"></a>
+</h3>
+<p>Specify packages to load on the compute node:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">n</span>, <span class="va">mu</span>, <span class="va">sigma</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Packages are loaded before function execution</span></span>
+<span>    <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, mean <span class="op">=</span> <span class="va">mu</span>, sd <span class="op">=</span> <span class="va">sigma</span><span class="op">)</span></span>
+<span>    <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">data</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  n <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  mu <span class="op">=</span> <span class="fl">100</span>, </span>
+<span>  sigma <span class="op">=</span> <span class="fl">15</span>,</span>
+<span>  packages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stats"</span><span class="op">)</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"linear-model"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="saving-results-to-artifacts">Saving results to artifacts<a class="anchor" aria-label="anchor" href="#saving-results-to-artifacts"></a>
+</h3>
+<p>Use <code>write_result</code> to persist function output:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Results are automatically saved to the specified path</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">size</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">size</span> <span class="op">*</span> <span class="va">size</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="va">size</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  size <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  write_result <span class="op">=</span> <span class="st">"artifacts://matrices/random_1000.rds"</span>,</span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="st">"8G"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># After job completes, load the result</span></span>
+<span><span class="fu"><a href="../reference/script_await.html">script_await</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">job</span><span class="op">$</span><span class="va">result_path</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">job</span><span class="op">$</span><span class="va">result_path</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">mat</span><span class="op">)</span>  <span class="co"># [1] 1000 1000</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="parameter-sweeps">Parameter sweeps<a class="anchor" aria-label="anchor" href="#parameter-sweeps"></a>
+</h3>
+<p>Combine with lapply for parallel parameter exploration:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Submit multiple function calls with different parameters</span></span>
+<span><span class="va">parameters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span></span>
+<span>  alpha <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">0.1</span>, <span class="fl">1.0</span><span class="op">)</span>,</span>
+<span>  beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>    <span class="kw">function</span><span class="op">(</span><span class="va">alpha</span>, <span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="co"># Your model fitting code here</span></span>
+<span>      <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">fit_model</span><span class="op">(</span><span class="va">alpha</span>, <span class="va">beta</span><span class="op">)</span></span>
+<span>      <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="va">alpha</span>, beta <span class="op">=</span> <span class="va">beta</span>, score <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">score</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span>,</span>
+<span>    alpha <span class="op">=</span> <span class="va">a</span>,</span>
+<span>    beta <span class="op">=</span> <span class="va">b</span>,</span>
+<span>    name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"model-a%.2f-b%.2f"</span>, <span class="va">a</span>, <span class="va">b</span><span class="op">)</span>,</span>
+<span>    write_result <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"artifacts://models/fit_a%.2f_b%.2f.rds"</span>, <span class="va">a</span>, <span class="va">b</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="va">parameters</span><span class="op">$</span><span class="va">alpha</span>, <span class="va">parameters</span><span class="op">$</span><span class="va">beta</span>, SIMPLIFY <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Monitor all parameter sweep jobs</span></span>
+<span><span class="fu"><a href="../reference/jobs_top.html">jobs_top</a></span><span class="op">(</span><span class="va">jobs</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="closures-and-captured-variables">Closures and captured variables<a class="anchor" aria-label="anchor" href="#closures-and-captured-variables"></a>
+</h3>
+<p><code>slurm_call()</code> serializes the function’s environment, so
+closures work naturally:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Configuration captured in closure</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  iterations <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  tolerance <span class="op">=</span> <span class="fl">1e-6</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"newton"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">optimizer</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="co"># config is available here</span></span>
+<span>  <span class="fu">optimize_with_config</span><span class="op">(</span><span class="va">data</span>, <span class="va">config</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="va">optimizer</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">my_dataset</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"optimization"</span>,</span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"4:00:00"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="important-considerations">Important considerations<a class="anchor" aria-label="anchor" href="#important-considerations"></a>
+</h3>
+<ol style="list-style-type: decimal">
+<li><p><strong>Serialization size</strong>: The function and its
+environment are serialized with <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>. Large captured
+objects increase overhead.</p></li>
+<li>
+<p><strong>Working directory</strong>: Functions execute in a
+temporary staging directory. Use parade’s path system for data
+access:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"data://input.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">process</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">result</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://output.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</li>
+<li>
+<p><strong>Comparison with submit_slurm()</strong>:</p>
+<ul>
+<li>Use <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code> for: existing scripts, complex
+workflows, shell integration</li>
+<li>Use <code>slurm_call()</code> for: interactive development,
+parameter sweeps, functional pipelines</li>
+</ul>
+</li>
+</ol>
+</div>
+</div>
+<div class="section level2">
 <h2 id="practical-monitoring-scenarios">Practical monitoring scenarios<a class="anchor" aria-label="anchor" href="#practical-monitoring-scenarios"></a>
 </h2>
 <div class="section level3">
 <h3 id="scenario-1-long-running-training-job">Scenario 1: Long-running training job<a class="anchor" aria-label="anchor" href="#scenario-1-long-running-training-job"></a>
 </h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Submit training job with generous time limit</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"train_model.R"</span>, </span>
 <span>                    resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"24:00:00"</span>, mem <span class="op">=</span> <span class="st">"32G"</span><span class="op">)</span><span class="op">)</span></span>
@@ -312,7 +555,7 @@ object:</p>
 <div class="section level3">
 <h3 id="scenario-2-batch-processing-pipeline">Scenario 2: Batch processing pipeline<a class="anchor" aria-label="anchor" href="#scenario-2-batch-processing-pipeline"></a>
 </h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Submit preprocessing jobs for multiple datasets</span></span>
 <span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dataset_A"</span>, <span class="st">"dataset_B"</span>, <span class="st">"dataset_C"</span><span class="op">)</span></span>
 <span><span class="va">prep_jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">datasets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
@@ -332,7 +575,7 @@ object:</p>
 <div class="section level3">
 <h3 id="scenario-3-troubleshooting-failed-jobs">Scenario 3: Troubleshooting failed jobs<a class="anchor" aria-label="anchor" href="#scenario-3-troubleshooting-failed-jobs"></a>
 </h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"problematic_script.R"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check if job completed</span></span>
@@ -429,12 +672,12 @@ raw data</p>
 <h3 id="recovery-strategies">Recovery strategies<a class="anchor" aria-label="anchor" href="#recovery-strategies"></a>
 </h3>
 <p><strong>Lost job objects:</strong></p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Find recent jobs</span></span>
 <span><span class="va">recent</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_find_latest.html">script_find_latest</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="st">"train"</span><span class="op">)</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_load.html">script_load</a></span><span class="op">(</span><span class="va">recent</span><span class="op">$</span><span class="va">registry</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Monitor jobs from different R sessions:</strong></p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Jobs persist across R sessions via registry</span></span>
 <span><span class="va">job_path</span> <span class="op">&lt;-</span> <span class="st">"registry://script-abc123"</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_load.html">script_load</a></span><span class="op">(</span><span class="va">job_path</span><span class="op">)</span></span>
