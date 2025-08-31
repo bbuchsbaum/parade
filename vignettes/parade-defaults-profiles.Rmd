@@ -10,9 +10,12 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  eval = FALSE
 )
 ```
+
+> Note: Code evaluation is disabled to keep builds fast and cluster-agnostic. Use these snippets in an interactive session configured for your site.
 
 ## Prerequisites
 
@@ -58,6 +61,7 @@ slurm_defaults_set(partition = "gpu", time = "12h", cpus_per_task = 16, mem = "3
                    profile = "gpu_training", persist = TRUE)
 
 # Now use them anywhere with just the profile name
+# Note: slurm_resources() uses named parameters: resources and profile
 test_job <- submit_slurm("test.R", resources = slurm_resources(profile = "testing"))
 prod_job <- submit_slurm("full_analysis.R", resources = slurm_resources(profile = "production"))
 gpu_job <- submit_slurm("train_model.R", resources = slurm_resources(profile = "gpu_training"))
@@ -71,7 +75,7 @@ Much cleaner! And if you need to adjust resources, you change them in one place.
 
 ```r
 library(parade)
-paths_init()  # Initialize parade's path system
+paths_init()  # Initialize parade's path system for artifact and registry management
 ```
 
 ### Step 2: Define profiles for your common job types
@@ -114,24 +118,27 @@ slurm_defaults_set(
 # Quick test run
 test_results <- flow(small_grid) |>
   stage("analyze", analyze_function) |>
-  distribute(resources = slurm_resources(profile = "quick"))
+  distribute(dist_slurm(resources = slurm_resources(profile = "quick")))
 
 # Production run
 production_results <- flow(full_grid) |>
   stage("analyze", analyze_function) |>
-  distribute(resources = slurm_resources(profile = "heavy"))
+  distribute(dist_slurm(resources = slurm_resources(profile = "heavy")))
 ```
 
 ## Understanding Profiles vs. Defaults
 
 Think of the relationship this way:
 
-- **Defaults**: A single set of SLURM parameters (the "default" profile)
-- **Profiles**: Multiple named sets of SLURM parameters
+- **Defaults**: When you use `slurm_defaults_set()` without a `profile` parameter, you're setting the "default" profile
+- **Profiles**: Named sets of SLURM parameters that you can switch between
+
+In reality, "defaults" and "profiles" use the same underlying mechanism - defaults are just the profile named "default".
 
 ```r
-# This creates the "default" profile
+# These are equivalent - both set the "default" profile
 slurm_defaults_set(partition = "compute", time = "2h")
+slurm_defaults_set(partition = "compute", time = "2h", profile = "default")
 
 # These create named profiles
 slurm_defaults_set(partition = "debug", time = "30m", profile = "testing")
@@ -139,6 +146,7 @@ slurm_defaults_set(partition = "gpu", time = "8h", profile = "gpu")
 
 # When you don't specify a profile, you get "default"
 slurm_resources()                    # Uses "default" profile
+slurm_resources(profile = "default") # Explicitly uses "default" profile (same as above)
 slurm_resources(profile = "testing") # Uses "testing" profile
 ```
 
@@ -184,7 +192,7 @@ run_analysis <- function(samples, profile_name) {
   flow(samples) |>
     stage("process", process_sample) |>
     stage("analyze", analyze_results) |>
-    distribute(resources = slurm_resources(profile = profile_name))
+    distribute(dist_slurm(resources = slurm_resources(profile = profile_name)))
 }
 
 # Progress through phases
@@ -266,7 +274,7 @@ slurm_defaults_set(
 
 # National supercomputer - uses QOS instead of partitions
 slurm_defaults_set(
-  partition = NA,          # No partition specification
+  partition = omit(),      # Explicitly omit partition flag (NA also works)
   qos = "normal",          # Use QOS instead
   time = "4h",
   cpus_per_task = 16,
@@ -275,6 +283,8 @@ slurm_defaults_set(
   profile = "supercomputer",
   persist = TRUE
 )
+# Note: Use omit() or NA to prevent a SLURM flag from being set
+# This is useful when your cluster uses different resource specifications
 
 # Cloud HPC - different resource limits
 slurm_defaults_set(
@@ -307,16 +317,17 @@ Start with a profile but override specific settings:
 slurm_defaults_set(time = "8h", cpus_per_task = 32, profile = "standard", persist = TRUE)
 
 # Override just the time for a longer job
+# Note: slurm_resources() takes 'resources' as first parameter, 'profile' as second
 long_job_resources <- slurm_resources(
-  list(time = "24h"),        # Override time
-  profile = "standard"       # Keep other settings from profile
+  resources = list(time = "24h"),   # Override time
+  profile = "standard"              # Keep other settings from profile
 )
 # Results in: time = "24h", cpus_per_task = 32 (from profile)
 
 # Override multiple settings
 custom_resources <- slurm_resources(
-  list(time = "2h", mem = "128G"),  # Override time and memory
-  profile = "standard"               # Keep cpus from profile
+  resources = list(time = "2h", mem = "128G"),  # Override time and memory
+  profile = "standard"                            # Keep cpus from profile
 )
 # Results in: time = "2h", mem = "128G", cpus_per_task = 32 (from profile)
 ```
