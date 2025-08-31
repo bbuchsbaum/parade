@@ -31,7 +31,6 @@ submit_slurm <- function(script,
                          name = NULL,
                          template = NULL,
                          resources = NULL,
-                         resources_profile = "default",
                          registry_dir = NULL,
                          env = character(),
                          lib_paths = .libPaths(),
@@ -41,8 +40,8 @@ submit_slurm <- function(script,
   if (!file.exists(script)) stop("Script not found: ", script)
   name <- name %||% tools::file_path_sans_ext(basename(script))
   run_id <- substr(digest::digest(list(script, args, Sys.time())), 1, 8)
-  # resolve defaults (allow profile override)
-  resources <- slurm_resources(resources = resources, profile = resources_profile)
+  # resolve defaults and normalize resources
+  resources <- slurm_resources(resources = resources, profile = "default")
   tmpl_path <- resolve_path(template %||% slurm_template_default(), create = FALSE)
   reg_dir <- normalizePath(resolve_path(registry_dir %||% file.path("registry://", paste0("script-", run_id))), mustWork = FALSE)
   dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)

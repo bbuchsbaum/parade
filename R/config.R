@@ -156,9 +156,37 @@ slurm_template_set <- function(path, persist = TRUE) {
 #' @examples
 #' slurm_resources(list(time = "2h"), profile = "default")
 slurm_resources <- function(resources = NULL, profile = "default") {
+  # Resolve flexible inputs (profile names, profile objects, lists, legacy strings)
+  if (!is.null(resources) && exists("resolve_resources", mode = "function")) {
+    resolved <- resolve_resources(resources)
+    if (!is.null(resolved)) resources <- resolved
+  }
+
   defaults <- slurm_defaults_get(profile = profile)
-  # Let explicit user values override defaults
   merged <- utils::modifyList(defaults, resources %||% list())
-  # Build through batch_resources() to normalize & drop NA/omit
-  do.call(batch_resources, merged)
+
+  # Map generic keys to batch_resources formal arguments
+  if (!is.null(merged$memory)) {
+    merged$mem <- merged$memory
+    merged$memory <- NULL
+  }
+  if (!is.null(merged$cpus) && is.null(merged$cpus_per_task) && is.null(merged$ncpus)) {
+    merged$cpus_per_task <- merged$cpus
+    merged$cpus <- NULL
+  }
+
+  # Recognized batch_resources arguments
+  recognized <- c("partition","time","nodes","ntasks","ntasks_per_node",
+                  "cpus_per_task","ncpus","mem","account","qos","modules",
+                  "omp_num_threads")
+  batch_args <- merged[intersect(names(merged), recognized)]
+
+  # Normalize via batch_resources
+  normalized <- do.call(batch_resources, batch_args)
+
+  # Pass through any additional resource hints (e.g., gpus, gpu_type) not
+  # handled by batch_resources, so templates may consume them.
+  passthrough_names <- setdiff(names(merged), recognized)
+  passthrough <- merged[paste0(passthrough_names)]
+  utils::modifyList(normalized, passthrough)
 }

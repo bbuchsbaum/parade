@@ -1,0 +1,541 @@
+# Resource profiles and management for SLURM jobs ------------------------
+
+#' Create a resource profile for SLURM jobs
+#' 
+#' @description
+#' Create a fluent interface for building SLURM resource specifications.
+#' Resource profiles can be chained with modifier functions to build
+#' complex resource requirements in a readable way.
+#' 
+#' @param name Optional name for the profile (for registry)
+#' @param base Base profile to inherit from (name or profile object)
+#' @return A resource profile object with chaining methods
+#' 
+#' @examples
+#' \donttest{
+#' # Basic profile with chaining
+#' resources <- profile() %>%
+#'   time("4:00:00") %>%
+#'   mem("16G") %>%
+#'   cpus(8)
+#'   
+#' # Named profile for reuse
+#' gpu_profile <- profile("gpu_analysis") %>%
+#'   time("12:00:00") %>%
+#'   mem("64G") %>%
+#'   cpus(16) %>%
+#'   gpus(2)
+#'   
+#' # Inherit from existing profile
+#' extended <- profile(base = gpu_profile) %>%
+#'   time("24:00:00")  # Override time only
+#' }
+#' 
+#' @export
+profile <- function(name = NULL, base = NULL) {
+  # Start with base profile or empty list
+  if (!is.null(base)) {
+    if (is.character(base)) {
+      resources <- profile_get(base)
+      if (is.null(resources)) {
+        stop("Profile '", base, "' not found in registry")
+      }
+      resources <- resources$resources
+    } else if (inherits(base, "parade_profile")) {
+      resources <- base$resources
+    } else {
+      stop("base must be a profile name or profile object")
+    }
+  } else {
+    resources <- list()
+  }
+  
+  structure(
+    list(
+      name = name,
+      resources = resources
+    ),
+    class = c("parade_profile", "list")
+  )
+}
+
+#' Set time limit for a resource profile
+#' 
+#' @param profile A resource profile object
+#' @param value Time limit (e.g., "4:00:00", "2-00:00:00")
+#' @return Updated profile object
+#' 
+#' @examples
+#' \donttest{
+#' resources <- profile() %>% time("8:00:00")
+#' }
+#' 
+#' Note: masks stats::time when parade is attached; use res_time() to avoid masking.
+#' @export
+time <- function(profile, value) {
+  UseMethod("time")
+}
+
+#' @export
+time.parade_profile <- function(profile, value) {
+  profile$resources$time <- value
+  profile
+}
+
+#' Set memory limit for a resource profile
+#' 
+#' @param profile A resource profile object
+#' @param value Memory limit (e.g., "16G", "32000M")
+#' @return Updated profile object
+#' 
+#' @examples
+#' \donttest{
+#' resources <- profile() %>% mem("32G")
+#' }
+#' 
+#' Note: use res_mem() to avoid naming collisions in user code.
+#' @export
+mem <- function(profile, value) {
+  UseMethod("mem")
+}
+
+#' @export
+mem.parade_profile <- function(profile, value) {
+  profile$resources$memory <- value
+  profile
+}
+
+#' Set CPU count for a resource profile
+#' 
+#' @param profile A resource profile object
+#' @param value Number of CPUs
+#' @return Updated profile object
+#' 
+#' @examples
+#' \donttest{
+#' resources <- profile() %>% cpus(16)
+#' }
+#' 
+#' Note: use res_cpus() to avoid naming collisions in user code.
+#' @export
+cpus <- function(profile, value) {
+  UseMethod("cpus")
+}
+
+#' @export
+cpus.parade_profile <- function(profile, value) {
+  profile$resources$cpus <- as.integer(value)
+  profile
+}
+
+#' Set GPU count for a resource profile
+#' 
+#' @param profile A resource profile object
+#' @param value Number of GPUs
+#' @param type Optional GPU type constraint
+#' @return Updated profile object
+#' 
+#' @examples
+#' \donttest{
+#' resources <- profile() %>% gpus(2)
+#' resources <- profile() %>% gpus(1, type = "v100")
+#' }
+#' 
+#' @export
+gpus <- function(profile, value, type = NULL) {
+  UseMethod("gpus")
+}
+
+#' @export
+gpus.parade_profile <- function(profile, value, type = NULL) {
+  profile$resources$gpus <- as.integer(value)
+  if (!is.null(type)) {
+    profile$resources$gpu_type <- type
+  }
+  profile
+}
+
+#' Set partition for a resource profile
+#' 
+#' @param profile A resource profile object
+#' @param value Partition name
+#' @return Updated profile object
+#' 
+#' Note: use res_partition() to avoid naming collisions in user code.
+#' @export
+partition <- function(profile, value) {
+  UseMethod("partition")
+}
+
+#' @export
+partition.parade_profile <- function(profile, value) {
+  profile$resources$partition <- value
+  profile
+}
+
+#' Set account for a resource profile
+#' 
+#' @param profile A resource profile object
+#' @param value Account name
+#' @return Updated profile object
+#' 
+#' Note: use res_account() to avoid naming collisions in user code.
+#' @export
+account <- function(profile, value) {
+  UseMethod("account")
+}
+
+# Aliases that avoid masking -------------------------------------------------
+
+#' Alias for time() that avoids masking stats::time
+#'
+#' @inheritParams time
+#' @return Updated profile
+#' @export
+res_time <- function(profile, value) time(profile, value)
+
+#' Alias for mem()
+#'
+#' @inheritParams mem
+#' @return Updated profile
+#' @export
+res_mem <- function(profile, value) mem(profile, value)
+
+#' Alias for cpus()
+#'
+#' @inheritParams cpus
+#' @return Updated profile
+#' @export
+res_cpus <- function(profile, value) cpus(profile, value)
+
+#' Alias for partition()
+#'
+#' @inheritParams partition
+#' @return Updated profile
+#' @export
+res_partition <- function(profile, value) partition(profile, value)
+
+#' Alias for account()
+#'
+#' @inheritParams account
+#' @return Updated profile
+#' @export
+res_account <- function(profile, value) account(profile, value)
+
+#' @export
+account.parade_profile <- function(profile, value) {
+  profile$resources$account <- value
+  profile
+}
+
+#' Convert profile to list for slurm_resources()
+#' 
+#' @param x A resource profile object
+#' @param ... Additional arguments (unused)
+#' @return List of resources
+#' 
+#' @export
+as.list.parade_profile <- function(x, ...) {
+  x$resources
+}
+
+#' Print method for resource profiles
+#' 
+#' @param x A resource profile object
+#' @param ... Additional arguments (unused)
+#' @return Invisible x
+#' 
+#' @export
+print.parade_profile <- function(x, ...) {
+  cat("Parade Resource Profile")
+  if (!is.null(x$name)) {
+    cat(" '", x$name, "'", sep = "")
+  }
+  cat("\n")
+  
+  if (length(x$resources) > 0) {
+    cat("Resources:\n")
+    for (key in names(x$resources)) {
+      cat("  ", key, ": ", format(x$resources[[key]]), "\n", sep = "")
+    }
+  } else {
+    cat("  (no resources specified)\n")
+  }
+  
+  invisible(x)
+}
+
+# Profile Registry ---------------------------------------------------------
+
+# Internal environment to store profiles
+.profile_registry <- new.env(parent = emptyenv())
+
+#' Register a named resource profile
+#' 
+#' @description
+#' Store a resource profile in the registry for reuse across jobs.
+#' Profiles can be retrieved by name and used as base profiles or
+#' referenced by string shorthand.
+#' 
+#' @param name Name for the profile
+#' @param profile Resource profile object or list
+#' @param overwrite Whether to overwrite existing profile
+#' @return Invisible NULL
+#' 
+#' @examples
+#' \donttest{
+#' # Register a standard compute profile
+#' profile_register("standard",
+#'   profile() %>%
+#'     time("4:00:00") %>%
+#'     mem("8G") %>%
+#'     cpus(4)
+#' )
+#' 
+#' # Register a GPU profile
+#' profile_register("gpu",
+#'   profile() %>%
+#'     time("12:00:00") %>%
+#'     mem("32G") %>%
+#'     cpus(8) %>%
+#'     gpus(1)
+#' )
+#' 
+#' # Use registered profiles
+#' job <- slurm_call(my_function, x = 1, resources = "gpu")
+#' }
+#' 
+#' @export
+profile_register <- function(name, profile, overwrite = FALSE) {
+  if (!overwrite && exists(name, envir = .profile_registry)) {
+    stop("Profile '", name, "' already exists. Use overwrite = TRUE to replace.")
+  }
+  
+  # Convert to profile if it's a list
+  if (is.list(profile) && !inherits(profile, "parade_profile")) {
+    p <- profile()
+    p$resources <- profile
+    profile <- p
+  }
+  
+  .profile_registry[[name]] <- profile
+  invisible(NULL)
+}
+
+#' List all registered resource profiles
+#' 
+#' @param details If TRUE, show profile details
+#' @return Character vector of profile names, or data frame if details = TRUE
+#' 
+#' @examples
+#' \donttest{
+#' # List profile names
+#' profile_list()
+#' 
+#' # Show details
+#' profile_list(details = TRUE)
+#' }
+#' 
+#' @export
+profile_list <- function(details = FALSE) {
+  names <- ls(envir = .profile_registry)
+  
+  if (!details) {
+    return(names)
+  }
+  
+  if (length(names) == 0) {
+    return(data.frame(
+      name = character(),
+      time = character(),
+      memory = character(),
+      cpus = integer(),
+      gpus = integer(),
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Build details data frame
+  details_list <- lapply(names, function(n) {
+    p <- .profile_registry[[n]]
+    data.frame(
+      name = n,
+      time = p$resources$time %||% NA_character_,
+      memory = p$resources$memory %||% NA_character_,
+      cpus = p$resources$cpus %||% NA_integer_,
+      gpus = p$resources$gpus %||% NA_integer_,
+      stringsAsFactors = FALSE
+    )
+  })
+  
+  do.call(rbind, details_list)
+}
+
+#' Get a registered resource profile
+#' 
+#' @param name Name of the profile
+#' @return Resource profile object, or NULL if not found
+#' 
+#' @examples
+#' \donttest{
+#' # Get a registered profile
+#' gpu_profile <- profile_get("gpu")
+#' 
+#' # Use as base for new profile
+#' extended <- profile(base = gpu_profile) %>%
+#'   time("24:00:00")
+#' }
+#' 
+#' @export
+profile_get <- function(name) {
+  if (exists(name, envir = .profile_registry)) {
+    .profile_registry[[name]]
+  } else {
+    NULL
+  }
+}
+
+#' Remove a registered resource profile
+#' 
+#' @param name Name of the profile to remove
+#' @return Invisible TRUE if removed, FALSE if not found
+#' 
+#' @export
+profile_remove <- function(name) {
+  if (exists(name, envir = .profile_registry)) {
+    rm(list = name, envir = .profile_registry)
+    invisible(TRUE)
+  } else {
+    invisible(FALSE)
+  }
+}
+
+#' Clear all registered profiles
+#' 
+#' @return Invisible NULL
+#' 
+#' @export
+profile_clear <- function() {
+  rm(list = ls(envir = .profile_registry), envir = .profile_registry)
+  invisible(NULL)
+}
+
+#' Initialize default resource profiles
+#' 
+#' @description
+#' Set up commonly used resource profiles. This function is called
+#' automatically when the package is loaded but can be called manually
+#' to reset profiles.
+#' 
+#' @param overwrite Whether to overwrite existing profiles
+#' @return Invisible NULL
+#' 
+#' @examples
+#' \donttest{
+#' # Reset to default profiles
+#' profile_init_defaults(overwrite = TRUE)
+#' }
+#' 
+#' @export
+profile_init_defaults <- function(overwrite = FALSE) {
+  # Quick test profile
+  profile_register("test",
+    profile() %>%
+      time("0:30:00") %>%
+      mem("4G") %>%
+      cpus(2),
+    overwrite = overwrite
+  )
+  
+  # Standard compute profile
+  profile_register("standard",
+    profile() %>%
+      time("4:00:00") %>%
+      mem("8G") %>%
+      cpus(4),
+    overwrite = overwrite
+  )
+  
+  # High memory profile
+  profile_register("highmem",
+    profile() %>%
+      time("8:00:00") %>%
+      mem("64G") %>%
+      cpus(8),
+    overwrite = overwrite
+  )
+  
+  # GPU profile
+  profile_register("gpu",
+    profile() %>%
+      time("12:00:00") %>%
+      mem("32G") %>%
+      cpus(8) %>%
+      gpus(1),
+    overwrite = overwrite
+  )
+  
+  # Long running profile
+  profile_register("long",
+    profile() %>%
+      time("2-00:00:00") %>%
+      mem("16G") %>%
+      cpus(4),
+    overwrite = overwrite
+  )
+  
+  invisible(NULL)
+}
+
+#' Resolve resource specification from various inputs
+#' 
+#' @description
+#' Internal function to resolve resources from profile names, profile objects,
+#' or resource lists. Handles string shortcuts like "gpu", "highmem", etc.
+#' 
+#' @param resources Resource specification (string, profile, or list)
+#' @return List of resources for slurm_resources()
+#' 
+#' @keywords internal
+#' @export
+resolve_resources <- function(resources = NULL) {
+  if (is.null(resources)) {
+    return(NULL)
+  }
+  
+  # String shorthand - look up in registry
+  if (is.character(resources) && length(resources) == 1) {
+    profile <- profile_get(resources)
+    if (!is.null(profile)) {
+      return(as.list(profile))
+    }
+    # If not found, might be a legacy string format
+    # Parse simple patterns like "cpu8", "mem32G", etc.
+    if (grepl("^cpu\\d+$", resources)) {
+      cpus <- as.integer(sub("^cpu", "", resources))
+      return(list(cpus = cpus))
+    }
+    if (grepl("^mem\\d+[GM]?$", resources)) {
+      return(list(memory = sub("^mem", "", resources)))
+    }
+    if (grepl("^gpu\\d*$", resources)) {
+      gpus <- sub("^gpu", "", resources)
+      gpus <- if (nzchar(gpus)) as.integer(gpus) else 1L
+      return(list(gpus = gpus))
+    }
+    # Unknown string - pass through as-is (might be a valid profile we don't know about)
+    return(NULL)
+  }
+  
+  # Profile object
+  if (inherits(resources, "parade_profile")) {
+    return(as.list(resources))
+  }
+  
+  # Already a list
+  if (is.list(resources)) {
+    return(resources)
+  }
+  
+  stop("resources must be a string (profile name), profile object, or list")
+}

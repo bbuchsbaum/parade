@@ -219,22 +219,13 @@ slurm_call <- function(.f, ...,
   script_path <- file.path(stage_dir, "runner.R")
   writeLines(runner_lines, script_path)
   
-  # Derive resources profile if character scalar
-  resources_profile <- "default"
-  resources_arg <- resources
-  if (is.character(resources) && length(resources) == 1L) {
-    resources_profile <- resources
-    resources_arg <- NULL
-  }
-
   # Submit via submit_slurm
   job <- submit_slurm(
     script = script_path,
     args = character(),
     name = name %||% "slurm-call",
     template = template,
-    resources = resources_arg,
-    resources_profile = resources_profile,
+    resources = resources,
     registry_dir = registry_dir,
     env = env,
     lib_paths = lib_paths,

@@ -11,7 +11,7 @@
 #' @param ... Additional arguments passed to the function or script
 #' @param .args Named list of additional arguments (alternative to ...)
 #' @param .name_by Naming strategy: "auto", "index", "stem", "digest", or a function
-#' @param .resources Resource specification (profile name, list, or NULL)
+#' @param .resources Resource specification (profile name, profile object, list, or NULL)
 #' @param .packages Character vector of packages to load (for functions)
 #' @param .write_result Path template for saving results (supports macros)
 #' @param .engine Execution engine: "slurm" (default) or "local"
@@ -116,20 +116,11 @@ slurm_map <- function(.x, .f, ...,
         script_args <- c(element, script_args)
       }
       
-      # Derive resources profile if provided as a string
-      resources_profile <- "default"
-      resources_arg <- .resources
-      if (is.character(.resources) && length(.resources) == 1L) {
-        resources_profile <- .resources
-        resources_arg <- NULL
-      }
-
       job <- submit_slurm(
         script = .f,
         args = script_args,
         name = job_name,
-        resources = resources_arg,
-        resources_profile = resources_profile,
+        resources = .resources,
         env = character(),
         lib_paths = .libPaths()
       )

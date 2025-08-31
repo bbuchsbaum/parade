@@ -8,7 +8,7 @@ scaffold_batch_template <- function(system = c("slurm"),
                                    preamble = character(),
                                    overwrite = FALSE) {
   system <- match.arg(system)
-  out_real <- resolve_path(out)
+  out_real <- resolve_path(out, create = FALSE)
   dir.create(dirname(out_real), recursive = TRUE, showWarnings = FALSE)
   if (file.exists(out_real) && !isTRUE(overwrite)) stop("File exists: ", out_real, " (set overwrite=TRUE).")
   txt <- switch(system, slurm = .template_slurm(modules = modules, exports = exports, preamble = preamble), stop("Unsupported system: ", system))
@@ -37,6 +37,7 @@ scaffold_batch_template <- function(system = c("slurm"),
 "<% if (!is.null(resources$ntasks_per_node)) { %>#SBATCH --ntasks-per-node=<%= resources$ntasks_per_node %><% } %>",
 "<% if (!is.null(resources$cpus_per_task))   { %>#SBATCH --cpus-per-task=<%= resources$cpus_per_task %><% } %>",
 "<% if (!is.null(resources$mem))             { %>#SBATCH --mem=<%= resources$mem %><% } %>",
+"<% if (!is.null(resources$gpus))            { %>#SBATCH --gres=gpu<% if (!is.null(resources$gpu_type)) { %>:<%= resources$gpu_type %><% } %>:<%= resources$gpus %><% } %>",
 "",
 "set -euo pipefail",
 "",
