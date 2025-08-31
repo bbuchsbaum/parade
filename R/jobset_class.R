@@ -366,6 +366,7 @@ cancel.parade_job <- function(x, ...) {
 #' @param n Number of lines to show
 #' @param ... Additional arguments
 #' @return Character vector of log lines (invisibly)
+#' @importFrom utils tail
 #' @export
 tail.parade_jobset <- function(x, n = 50, ...) {
   if (length(x) == 0) return(invisible(character()))
