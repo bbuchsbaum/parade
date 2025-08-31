@@ -53,7 +53,13 @@ wrapper around <code><a href="await.html">await()</a></code> with progress enabl
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">progress</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">progress</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'parade_jobset'</span></span>
+<span><span class="fu">progress</span><span class="op">(</span><span class="va">x</span>, timeout <span class="op">=</span> <span class="cn">Inf</span>, poll <span class="op">=</span> <span class="fl">10</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'parade_job'</span></span>
+<span><span class="fu">progress</span><span class="op">(</span><span class="va">x</span>, timeout <span class="op">=</span> <span class="cn">Inf</span>, poll <span class="op">=</span> <span class="fl">10</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -61,15 +67,15 @@ wrapper around <code><a href="await.html">await()</a></code> with progress enabl
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A parade_jobset object</p></dd>
+<dd><p>A parade_jobset or parade_job object</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments passed to await()</p></dd>
+<dd><p>Additional arguments passed to methods</p></dd>
 
 
 <dt id="arg-timeout">timeout<a class="anchor" aria-label="anchor" href="#arg-timeout"></a></dt>
-<dd><p>Maximum time to wait in seconds (default: Inf)</p></dd>
+<dd><p>Maximum time to wait in seconds (default: Inf for no timeout)</p></dd>
 
 
 <dt id="arg-poll">poll<a class="anchor" aria-label="anchor" href="#arg-poll"></a></dt>

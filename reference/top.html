@@ -50,7 +50,13 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">top</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">top</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'parade_jobset'</span></span>
+<span><span class="fu">top</span><span class="op">(</span><span class="va">x</span>, refresh <span class="op">=</span> <span class="fl">2</span>, nlog <span class="op">=</span> <span class="fl">20</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'parade_job'</span></span>
+<span><span class="fu">top</span><span class="op">(</span><span class="va">x</span>, refresh <span class="op">=</span> <span class="fl">2</span>, nlog <span class="op">=</span> <span class="fl">30</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -58,15 +64,19 @@
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A parade_jobset object</p></dd>
+<dd><p>A parade_jobset or parade_job object</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Additional arguments passed to methods</p></dd>
 
 
 <dt id="arg-refresh">refresh<a class="anchor" aria-label="anchor" href="#arg-refresh"></a></dt>
-<dd><p>Refresh interval in seconds</p></dd>
+<dd><p>Refresh interval in seconds (default: 2)</p></dd>
 
 
 <dt id="arg-nlog">nlog<a class="anchor" aria-label="anchor" href="#arg-nlog"></a></dt>
-<dd><p>Number of log lines to show</p></dd>
+<dd><p>Number of log lines to show (default: 30)</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -80,6 +80,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/explain.default.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/explain.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/explain.parade_flow.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/failed.data.frame.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/failed.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/file_ref.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/find_file_arg.html</loc></url>
@@ -124,6 +125,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/name_by.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/name_digest.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/neurovol.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/null-coalesce.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/omit.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/on_error.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/on_error_retry.html</loc></url>
@@ -132,11 +134,13 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/open_logs.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/open_logs.parade_jobset.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/pack.html</loc></url>
-<url><loc>https://bbuchsbaum.github.io/parade/reference/parade.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade-package.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_config_path.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_config_read.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_config_write.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_options.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_chunk_bt.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_chunk_local.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_script_bt.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/param_grid.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/partition.html</loc></url>

@@ -84,27 +84,27 @@ referenced by string shorthand.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># Register a standard compute profile</span></span></span>
-<span class="r-in"><span><span class="fu">profile_register</span><span class="op">(</span><span class="st">"standard"</span>,</span></span>
-<span class="r-in"><span>  <span class="fu"><a href="profile.html">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="time.html">time</a></span><span class="op">(</span><span class="st">"4:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="mem.html">mem</a></span><span class="op">(</span><span class="st">"8G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="cpus.html">cpus</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in profile_register("standard", profile() %&gt;% time("4:00:00") %&gt;%     mem("8G") %&gt;% cpus(4)):</span> Profile 'standard' already exists. Use overwrite = TRUE to replace.</span>
+<span class="r-in"><span><span class="va">standard</span> <span class="op">&lt;-</span> <span class="fu"><a href="profile.html">profile</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">standard</span> <span class="op">&lt;-</span> <span class="fu"><a href="time.html">time</a></span><span class="op">(</span><span class="va">standard</span>, <span class="st">"4:00:00"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">standard</span> <span class="op">&lt;-</span> <span class="fu"><a href="mem.html">mem</a></span><span class="op">(</span><span class="va">standard</span>, <span class="st">"8G"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">standard</span> <span class="op">&lt;-</span> <span class="fu"><a href="cpus.html">cpus</a></span><span class="op">(</span><span class="va">standard</span>, <span class="fl">4</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">profile_register</span><span class="op">(</span><span class="st">"standard"</span>, <span class="va">standard</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in profile_register("standard", standard):</span> Profile 'standard' already exists. Use overwrite = TRUE to replace.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Register a GPU profile</span></span></span>
-<span class="r-in"><span><span class="fu">profile_register</span><span class="op">(</span><span class="st">"gpu"</span>,</span></span>
-<span class="r-in"><span>  <span class="fu"><a href="profile.html">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="time.html">time</a></span><span class="op">(</span><span class="st">"12:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="mem.html">mem</a></span><span class="op">(</span><span class="st">"32G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="cpus.html">cpus</a></span><span class="op">(</span><span class="fl">8</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="gpus.html">gpus</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in profile_register("gpu", profile() %&gt;% time("12:00:00") %&gt;% mem("32G") %&gt;%     cpus(8) %&gt;% gpus(1)):</span> Profile 'gpu' already exists. Use overwrite = TRUE to replace.</span>
+<span class="r-in"><span><span class="va">gpu</span> <span class="op">&lt;-</span> <span class="fu"><a href="profile.html">profile</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">gpu</span> <span class="op">&lt;-</span> <span class="fu"><a href="time.html">time</a></span><span class="op">(</span><span class="va">gpu</span>, <span class="st">"12:00:00"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">gpu</span> <span class="op">&lt;-</span> <span class="fu"><a href="mem.html">mem</a></span><span class="op">(</span><span class="va">gpu</span>, <span class="st">"32G"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">gpu</span> <span class="op">&lt;-</span> <span class="fu"><a href="cpus.html">cpus</a></span><span class="op">(</span><span class="va">gpu</span>, <span class="fl">8</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">gpu</span> <span class="op">&lt;-</span> <span class="fu"><a href="gpus.html">gpus</a></span><span class="op">(</span><span class="va">gpu</span>, <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">profile_register</span><span class="op">(</span><span class="st">"gpu"</span>, <span class="va">gpu</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in profile_register("gpu", gpu):</span> Profile 'gpu' already exists. Use overwrite = TRUE to replace.</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Use registered profiles</span></span></span>
-<span class="r-in"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"gpu"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'my_function' not found</span>
+<span class="r-in"><span><span class="co"># Use registered profiles (SLURM only; skip if not available)</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">Sys.which</a></span><span class="op">(</span><span class="st">"squeue"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">my_function</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">+</span> <span class="fl">1</span></span></span>
+<span class="r-in"><span>  <span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"gpu"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

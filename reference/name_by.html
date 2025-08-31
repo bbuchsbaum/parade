@@ -74,12 +74,19 @@
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># Equivalent to stem()</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="va">files</span>, <span class="va">process_file</span>, .name_by <span class="op">=</span> <span class="fu">name_by</span><span class="op">(</span><span class="st">"stem"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'process_file' not found</span>
+<span class="r-in"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data1.csv"</span>, <span class="st">"data2.csv"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">process_file</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span>  <span class="co"># stub for example</span></span></span>
+<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="va">files</span>, <span class="va">process_file</span>, .name_by <span class="op">=</span> <span class="fu">name_by</span><span class="op">(</span><span class="st">"stem"</span><span class="op">)</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># With arguments</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">process_data</span>, .name_by <span class="op">=</span> <span class="fu">name_by</span><span class="op">(</span><span class="st">"index"</span>, prefix <span class="op">=</span> <span class="st">"task"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'process_data' not found</span>
+<span class="r-in"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span></span>
+<span class="r-in"><span><span class="va">process_data</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span>  <span class="co"># stub for example</span></span></span>
+<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">data</span>,</span></span>
+<span class="r-in"><span>  <span class="va">process_data</span>,</span></span>
+<span class="r-in"><span>  .name_by <span class="op">=</span> <span class="fu">name_by</span><span class="op">(</span><span class="st">"index"</span>, prefix <span class="op">=</span> <span class="st">"task"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  .engine <span class="op">=</span> <span class="st">"local"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

@@ -362,11 +362,11 @@ and timestamps</li>
 <code class="sourceCode R"><span><span class="co"># Register a custom format globally</span></span>
 <span><span class="fu"><a href="../reference/register_sink_format.html">register_sink_format</a></span><span class="op">(</span><span class="st">"nifti"</span>,</span>
 <span>  writer <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu">write_vol</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span><span class="op">)</span></span>
+<span>    <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu"><a href="https://bbuchsbaum.github.io/neuroim2/reference/write_vol-methods.html" class="external-link">write_vol</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>,</span>
 <span>  reader <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">path</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu">read_vol</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span>    <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu"><a href="https://bbuchsbaum.github.io/neuroim2/reference/read_vol.html" class="external-link">read_vol</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>,</span>
 <span>  ext <span class="op">=</span> <span class="st">".nii.gz"</span>,</span>
 <span>  atomic <span class="op">=</span> <span class="cn">TRUE</span>  <span class="co"># Use temp-then-rename pattern</span></span>
@@ -556,8 +556,8 @@ automatically:</p>
 <span>  <span class="fu">mutate</span><span class="op">(</span></span>
 <span>    format <span class="op">=</span> <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">file_ext</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span>,</span>
 <span>    data <span class="op">=</span> <span class="fu">map</span><span class="op">(</span><span class="va">path</span>, <span class="op">~</span> <span class="op">{</span></span>
-<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.qs$"</span>, <span class="va">.x</span><span class="op">)</span><span class="op">)</span> <span class="fu">qs</span><span class="fu">::</span><span class="fu">qread</span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
-<span>      <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.parquet$"</span>, <span class="va">.x</span><span class="op">)</span><span class="op">)</span> <span class="fu">arrow</span><span class="fu">::</span><span class="fu">read_parquet</span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.qs$"</span>, <span class="va">.x</span><span class="op">)</span><span class="op">)</span> <span class="fu">qs</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/qs/man/qread.html" class="external-link">qread</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
+<span>      <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.parquet$"</span>, <span class="va">.x</span><span class="op">)</span><span class="op">)</span> <span class="fu">arrow</span><span class="fu">::</span><span class="fu"><a href="https://arrow.apache.org/docs/r/reference/read_parquet.html" class="external-link">read_parquet</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
 <span>      <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
 <span>    <span class="op">}</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
@@ -728,7 +728,7 @@ full structure</li>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"load_brain"</span>,</span>
 <span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">subject_id</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="co"># Returns complex S4 brain volume object</span></span>
-<span>      <span class="va">brain</span> <span class="op">&lt;-</span> <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu">read_vol</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">subject_id</span>, <span class="st">".nii.gz"</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="va">brain</span> <span class="op">&lt;-</span> <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu"><a href="https://bbuchsbaum.github.io/neuroim2/reference/read_vol.html" class="external-link">read_vol</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">subject_id</span>, <span class="st">".nii.gz"</span><span class="op">)</span><span class="op">)</span></span>
 <span>      </span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>        brain <span class="op">=</span> <span class="va">brain</span>,                      <span class="co"># Full S4 object</span></span>
@@ -1112,7 +1112,7 @@ result.</p>
 <span>    <span class="op">}</span></span>
 <span>    <span class="va">main_file</span></span>
 <span>  <span class="op">}</span>,</span>
-<span>  read <span class="op">=</span> <span class="op">~</span> <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu">read_vol</span><span class="op">(</span><span class="va">.path</span><span class="op">)</span>,</span>
+<span>  read <span class="op">=</span> <span class="op">~</span> <span class="fu">neuroim2</span><span class="fu">::</span><span class="fu"><a href="https://bbuchsbaum.github.io/neuroim2/reference/read_vol.html" class="external-link">read_vol</a></span><span class="op">(</span><span class="va">.path</span><span class="op">)</span>,</span>
 <span>  ext <span class="op">=</span> <span class="st">".nii.gz"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>

@@ -115,6 +115,14 @@ or list. Automatically dispatches to <code>slurm_call</code> for functions or
 <dt id="arg--progress">.progress<a class="anchor" aria-label="anchor" href="#arg--progress"></a></dt>
 <dd><p>Show progress bar</p></dd>
 
+
+<dt id="arg--options">.options<a class="anchor" aria-label="anchor" href="#arg--options"></a></dt>
+<dd><p>Flow control options (e.g., wave_policy() or concurrency_limit())</p></dd>
+
+
+<dt id="arg--error-policy">.error_policy<a class="anchor" aria-label="anchor" href="#arg--error-policy"></a></dt>
+<dd><p>Error handling policy for job failures</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -141,27 +149,25 @@ with appropriate argument conversion.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># Note: The following examples require a SLURM cluster environment</span></span></span>
-<span class="r-in"><span><span class="co"># Map a function over files</span></span></span>
-<span class="r-in"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data1.csv"</span>, <span class="st">"data2.csv"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">files</span>, <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">process_data</span><span class="op">(</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>                  .name_by <span class="op">=</span> <span class="st">"stem"</span>,</span></span>
-<span class="r-in"><span>                  .write_result <span class="op">=</span> <span class="st">"results/{stem}.rds"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA, cluster.functions = cf):</span> unused argument (cluster.functions = cf)</span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">Sys.which</a></span><span class="op">(</span><span class="st">"squeue"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="co"># Map a function over files</span></span></span>
+<span class="r-in"><span>  <span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data1.csv"</span>, <span class="st">"data2.csv"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">files</span>, <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">process_data</span><span class="op">(</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                    .name_by <span class="op">=</span> <span class="st">"stem"</span>,</span></span>
+<span class="r-in"><span>                    .write_result <span class="op">=</span> <span class="st">"results/{stem}.rds"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Map a script with CLI arguments</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">files</span>, <span class="st">"scripts/process.R"</span>,</span></span>
-<span class="r-in"><span>                  .args <span class="op">=</span> <span class="fu"><a href="args_cli.html">args_cli</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in submit_slurm(script = .f, args = script_args, name = job_name,     resources = .resources, env = character(), lib_paths = .libPaths()):</span> Script not found: scripts/process.R</span>
+<span class="r-in"><span>  <span class="co"># Map a script with CLI arguments</span></span></span>
+<span class="r-in"><span>  <span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">files</span>, <span class="st">"scripts/process.R"</span>,</span></span>
+<span class="r-in"><span>                    .args <span class="op">=</span> <span class="fu"><a href="args_cli.html">args_cli</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Use formula notation with SLURM</span></span></span>
-<span class="r-in"><span><span class="va">numbers</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">numbers</span>, <span class="op">~</span> <span class="va">.x</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">.x</span>,</span></span>
-<span class="r-in"><span>                  .name_by <span class="op">=</span> <span class="st">"index"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA, cluster.functions = cf):</span> unused argument (cluster.functions = cf)</span>
+<span class="r-in"><span>  <span class="co"># Use formula notation with SLURM</span></span></span>
+<span class="r-in"><span>  <span class="va">numbers</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span></span></span>
+<span class="r-in"><span>  <span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">numbers</span>, <span class="op">~</span> <span class="va">.x</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">.x</span>,</span></span>
+<span class="r-in"><span>                    .name_by <span class="op">=</span> <span class="st">"index"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Wait for all jobs and collect results</span></span></span>
-<span class="r-in"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="await.html">await</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'jobs' not found</span>
+<span class="r-in"><span>  <span class="co"># Wait for all jobs and collect results</span></span></span>
+<span class="r-in"><span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="await.html">await</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

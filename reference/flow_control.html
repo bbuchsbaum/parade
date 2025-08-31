@@ -75,8 +75,10 @@
 <span class="r-in"><span>  <span class="fu"><a href="max_in_flight.html">max_in_flight</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, <span class="op">~</span> <span class="va">.x</span><span class="op">^</span><span class="fl">2</span>, .options <span class="op">=</span> <span class="va">combined</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in slurm_map(1:100, ~.x^2, .options = combined):</span> Unknown flow control option type</span>
+<span class="r-in"><span><span class="co"># Note: Combined policies are currently illustrative; apply individually</span></span></span>
+<span class="r-in"><span><span class="co"># with slurm_map(), e.g.:</span></span></span>
+<span class="r-in"><span><span class="co"># jobs &lt;- slurm_map(1:100, ~ .x^2, .options = in_waves_of(10), .engine = "local")</span></span></span>
+<span class="r-in"><span><span class="co"># jobs &lt;- slurm_map(1:100, ~ .x^2, .options = max_in_flight(5), .engine = "local")</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

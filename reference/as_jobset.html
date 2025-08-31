@@ -75,19 +75,19 @@ ensuring uniform behavior across all job types.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># Note: These examples require a SLURM cluster environment</span></span></span>
-<span class="r-in"><span><span class="co"># Convert single job to jobset</span></span></span>
-<span class="r-in"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span>, x <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA, cluster.functions = cf):</span> unused argument (cluster.functions = cf)</span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Local examples (no SLURM required)</span></span></span>
+<span class="r-in"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span>, x <span class="op">=</span> <span class="fl">10</span>, engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">jobset</span> <span class="op">&lt;-</span> <span class="fu">as_jobset</span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'job' not found</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Already a jobset - returns unchanged</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA, cluster.functions = cf):</span> unused argument (cluster.functions = cf)</span>
+<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">jobset</span> <span class="op">&lt;-</span> <span class="fu">as_jobset</span><span class="op">(</span><span class="va">jobs</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'jobs' not found</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># SLURM examples (only run when SLURM is available)</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">Sys.which</a></span><span class="op">(</span><span class="st">"squeue"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span>, x <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">jobset</span> <span class="op">&lt;-</span> <span class="fu">as_jobset</span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
