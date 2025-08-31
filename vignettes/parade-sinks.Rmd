@@ -19,7 +19,7 @@ vignette: >
 - **Format flexibility**: Support for RDS, CSV, JSON, Parquet, and custom formats
 - **Persistence**: Results survive R session crashes and can be accessed later
 - **Atomic writes**: Files are written safely without corruption risks
-- **Metadata tracking**: Automatic checksums, file sizes, and timestamps
+- **Metadata tracking**: Optional JSON sidecars with checksums (sha256) and byte sizes
 - **Flexible organization**: Configurable directory structures and file naming
 
 ### Sinks vs. regular return values
@@ -61,10 +61,28 @@ fl <- flow(grid) |>
 
 ### Formula syntax conventions
 
-When using formulas with `sink_quick()`:
-- `.x` - the object to write
-- `.path` - the full target path (with extension)
-- `.base` - the target path without extension
+When using formulas with `sink_quick()`, three special variables are available:
+- `.x` - the object to write (the data being saved)
+- `.path` - the full target path (includes file extension, e.g., "data/output.csv")
+- `.base` - the target path without extension (e.g., "data/output")
+
+Example:
+```r
+# Custom write function using formula variables
+sink_quick("output",
+  write = ~ {
+    message("Writing ", class(.x)[1], " to ", .path)  # .x is your data object
+    if (nrow(.x) > 1000) {
+      # For large data, write to multiple files
+      write.csv(.x[1:1000,], paste0(.base, "_part1.csv"))     # .base for custom names
+      write.csv(.x[1001:nrow(.x),], paste0(.base, "_part2.csv"))
+    } else {
+      write.csv(.x, .path, row.names = FALSE)                 # .path for standard output
+    }
+  },
+  ext = ".csv"
+)
+```
 
 ## Format-agnostic sinks: beyond RDS
 
@@ -178,15 +196,27 @@ if (requireNamespace("hdf5r", quietly = TRUE)) {
   register_sink_format("hdf5",
     writer = function(x, path, ...) {
       file <- hdf5r::H5File$new(path, mode = "w")
-      file[["data"]] <- x
-      file$close()
-      invisible(path)
+      tryCatch({
+        file[["data"]] <- x
+        invisible(path)
+      }, error = function(e) {
+        stop("Failed to write HDF5 file: ", e$message)
+      }, finally = {
+        # Ensure file is closed even if write fails
+        if (file$is_valid) file$close()
+      })
     },
     reader = function(path, ...) {
       file <- hdf5r::H5File$new(path, mode = "r")
-      data <- file[["data"]][]
-      file$close()
-      data
+      tryCatch({
+        data <- file[["data"]][]
+        data
+      }, error = function(e) {
+        stop("Failed to read HDF5 file: ", e$message)
+      }, finally = {
+        # Ensure file is closed even if read fails
+        if (file$is_valid) file$close()
+      })
     },
     ext = ".h5"
   )
@@ -216,7 +246,9 @@ fl <- flow(small_test_data) |>
   )
 ```
 
-Files are written to `tempdir()/parade-quick-TIMESTAMP/` and cleaned up automatically by R.
+Files are written to `tempdir()/parade-quick-TIMESTAMP/`. Temporary directories are
+often cleaned by the OS between sessions, but this is not guaranteed; use
+`unlink(path, recursive = TRUE)` if you need explicit cleanup.
 
 ## 4) Using sinks in stages
 
@@ -684,6 +716,12 @@ sentinel_sink <- sink_quick(
   dir = "artifacts://neuro",
   template = "{.stage}/{subject}/{session}/{.row_key}",
   write = ~ {
+    # Check if already done (important when overwrite = "skip")
+    if (file.exists(.path)) {
+      message("Skipping - already processed: ", .path)
+      return(.path)  # Return sentinel path without re-running
+    }
+    
     out_dir <- .base  # Path without extension (becomes directory)
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
     
@@ -704,6 +742,10 @@ sentinel_sink <- sink_quick(
     # - preprocessing.log
     # ... and 20+ other files
     
+    # For this example, simulate creating files
+    # max_motion <- 0.5  # Would come from actual preprocessing
+    # temporal_snr <- 100  # Would come from actual preprocessing
+    
     # 2) Write a single sentinel file as the only tracked artifact
     done_info <- list(
       ok = TRUE,
@@ -711,11 +753,9 @@ sentinel_sink <- sink_quick(
       output_dir = out_dir,
       subject = .x$subject,
       session = .x$session,
-      files_created = list.files(out_dir, recursive = TRUE),
-      qc_metrics = list(
-        motion = max_motion,
-        tsnr = temporal_snr
-      )
+      files_created = list.files(out_dir, recursive = TRUE)
+      # Add your actual QC metrics here:
+      # qc_metrics = list(motion = max_motion, tsnr = temporal_snr)
     )
     jsonlite::write_json(done_info, .path, auto_unbox = TRUE, pretty = TRUE)
     .path  # Return only the sentinel path
