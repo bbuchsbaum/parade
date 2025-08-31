@@ -53,7 +53,7 @@ failed <- function(out, stage = NULL) {
 #' @examples
 #' manifest_data <- manifest("artifacts://results")
 manifest <- function(root) {
-  files <- list.files(resolve_path(root), pattern = "\\.json$", recursive = TRUE, full.names = TRUE)
+  files <- list.files(resolve_path(root, create = FALSE), pattern = "\\.json$", recursive = TRUE, full.names = TRUE)
   if (!length(files)) return(tibble::tibble())
   dat <- lapply(files, function(f) { x <- try(jsonlite::fromJSON(f, simplifyVector = TRUE), silent = TRUE); if (inherits(x, "try-error")) return(NULL); tibble::as_tibble(x) })
   dat <- purrr::compact(dat); if (!length(dat)) return(tibble::tibble()); dplyr::bind_rows(dat)
