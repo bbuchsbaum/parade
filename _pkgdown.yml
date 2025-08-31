@@ -7,6 +7,8 @@ home:
   description: "Parade builds typed, parallel pipelines with artifact sinks and HPC ergonomics."
   # Override default links so CRAN isn't shown
   links:
+    - text: "Unified API (start here)"
+      href: "articles/parade-unified-api.html"
     - text: "Source on GitHub"
       href: "https://github.com/bbuchsbaum/parade"
     - text: "Get started (Parade core)"

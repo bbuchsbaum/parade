@@ -9,6 +9,12 @@ vignette: >
 
 > Requires **parade ≥ 0.11.0**.
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+> Note: Code evaluation is disabled to keep builds fast and avoid interacting with live cluster resources during checks. Copy code into an interactive session with SLURM access to run.
+
 ## Overview
 
 **parade** provides a comprehensive suite of tools to submit any R script to SLURM and monitor it interactively from within R—no shell access required. This approach gives you the full power of SLURM job scheduling while maintaining the convenience of R-based workflow management.
@@ -32,8 +38,21 @@ paths_init()
 slurm_defaults_set(partition="general", time="2h", cpus_per_task=16, mem=NA, persist=TRUE)
 slurm_template_set("registry://templates/parade-slurm.tmpl")
 
-# Submit a job
+# Submit a script file
 job <- submit_slurm("scripts/train.R", args = c("--fold", "1"))
+
+# Or submit a function directly (new in 0.12.0)
+job <- slurm_call(
+  function(fold) {
+    # Your training code here
+    message("Training fold ", fold)
+    model <- train_model(fold)
+    return(model)
+  },
+  fold = 1,
+  name = "train-fold-1",
+  write_result = "artifacts://models/fold1.rds"
+)
 
 # Quick status check
 script_status(job)
@@ -43,6 +62,49 @@ script_tail(job, 80)
 
 # Launch interactive monitor
 script_top(job, refresh = 2, nlog = 40)
+```
+
+## Uniform verbs with function submissions
+
+You can submit a single function call and still use the full jobset verb surface by
+wrapping the result as a jobset. Use the `.as_jobset = TRUE` flag on `slurm_call()`
+to opt in to this style:
+
+```r
+# Submit a single function job, returned as a one‑element jobset
+jobs <- slurm_call(
+  function(file) {
+    # Pretend to do useful work
+    message("Processing ", basename(file))
+    Sys.sleep(1)
+    read.csv(file)[1:5, ]
+  },
+  file = "data/example.csv",
+  name = "proc-example",
+  write_result = path$artifacts("results/{run}/{stem}.rds"),
+  .as_jobset = TRUE
+)
+
+# Same verbs you use for slurm_map() work here too
+jobs |> progress() |> collect()
+
+# Open logs if needed (no‑ops for local engine)
+open_logs(jobs, selection = "all")
+```
+
+And for multiple inputs the pattern is identical with `slurm_map()`:
+
+```r
+files <- glob("data/*.csv")
+jobs <- slurm_map(
+  files,
+  ~ read.csv(.x)[1:5, ],
+  .name_by = stem(),
+  .write_result = path$artifacts("results/{run}/{stem}.rds")
+)
+
+# Advertise the progress() convenience explicitly
+jobs |> progress() |> collect()
 ```
 
 ## Core monitoring functions
@@ -201,6 +263,176 @@ print(recent)
 # Load a job from its registry path
 job <- script_load(recent$registry[1])
 ```
+
+## Function submission with slurm_call()
+
+New in parade 0.12.0, `slurm_call()` allows you to submit R functions directly to SLURM without creating script files. This is ideal for interactive development, parameter sweeps, and functional programming workflows.
+
+### Basic function submission
+
+```r
+# Submit a simple function
+job <- slurm_call(
+  function(x, y) {
+    result <- x^2 + y^2
+    message("Computed: ", result)
+    return(result)
+  },
+  x = 3,
+  y = 4,
+  name = "pythagorean"
+)
+
+# Monitor just like any other job
+script_top(job)
+```
+
+### Resource profiles
+
+Parade 0.12.0 introduces resource profiles for easier resource management:
+
+```r
+# Use built-in profiles
+job <- slurm_call(my_function, x = 1, resources = "gpu")
+job <- slurm_call(my_function, x = 1, resources = "highmem")
+
+# Create custom profiles with chaining
+my_profile <- profile() %>%
+  time("8:00:00") %>%
+  mem("32G") %>%
+  cpus(16) %>%
+  partition("compute")
+
+job <- slurm_call(my_function, x = 1, resources = my_profile)
+
+# Register profiles for reuse
+profile_register("ml_training",
+  profile() %>%
+    time("24:00:00") %>%
+    mem("64G") %>%
+    cpus(32) %>%
+    gpus(2)
+)
+
+# Use registered profile by name
+job <- slurm_call(train_model, data = data, resources = "ml_training")
+```
+
+### Working with packages
+
+Specify packages to load on the compute node:
+
+```r
+job <- slurm_call(
+  function(n, mu, sigma) {
+    # Packages are loaded before function execution
+    data <- rnorm(n, mean = mu, sd = sigma)
+    model <- lm(data ~ seq_along(data))
+    return(summary(model))
+  },
+  n = 1000,
+  mu = 100, 
+  sigma = 15,
+  packages = c("stats"),
+  name = "linear-model"
+)
+```
+
+### Saving results to artifacts
+
+Use `write_result` to persist function output:
+
+```r
+# Results are automatically saved to the specified path
+job <- slurm_call(
+  function(size) {
+    matrix(runif(size * size), nrow = size)
+  },
+  size = 1000,
+  write_result = "artifacts://matrices/random_1000.rds",
+  resources = list(mem = "8G")
+)
+
+# After job completes, load the result
+script_await(job)
+if (!is.null(job$result_path)) {
+  mat <- readRDS(job$result_path)
+  dim(mat)  # [1] 1000 1000
+}
+```
+
+### Parameter sweeps
+
+Combine with lapply for parallel parameter exploration:
+
+```r
+# Submit multiple function calls with different parameters
+parameters <- expand.grid(
+  alpha = c(0.01, 0.1, 1.0),
+  beta = c(0.5, 1.0, 2.0)
+)
+
+jobs <- mapply(function(a, b) {
+  slurm_call(
+    function(alpha, beta) {
+      # Your model fitting code here
+      result <- fit_model(alpha, beta)
+      return(list(alpha = alpha, beta = beta, score = result$score))
+    },
+    alpha = a,
+    beta = b,
+    name = sprintf("model-a%.2f-b%.2f", a, b),
+    write_result = sprintf("artifacts://models/fit_a%.2f_b%.2f.rds", a, b)
+  )
+}, parameters$alpha, parameters$beta, SIMPLIFY = FALSE)
+
+# Monitor all parameter sweep jobs
+jobs_top(jobs)
+```
+
+### Closures and captured variables
+
+`slurm_call()` serializes the function's environment, so closures work naturally:
+
+```r
+# Configuration captured in closure
+config <- list(
+  iterations = 1000,
+  tolerance = 1e-6,
+  method = "newton"
+)
+
+optimizer <- function(data) {
+  # config is available here
+  optimize_with_config(data, config)
+}
+
+job <- slurm_call(
+  optimizer,
+  data = my_dataset,
+  name = "optimization",
+  resources = list(time = "4:00:00")
+)
+```
+
+### Important considerations
+
+1. **Serialization size**: The function and its environment are serialized with `saveRDS()`. Large captured objects increase overhead.
+
+2. **Working directory**: Functions execute in a temporary staging directory. Use parade's path system for data access:
+   ```r
+   slurm_call(
+     function() {
+       data <- readRDS(resolve_path("data://input.rds"))
+       result <- process(data)
+       saveRDS(result, resolve_path("artifacts://output.rds"))
+     }
+   )
+   ```
+
+3. **Comparison with submit_slurm()**:
+   - Use `submit_slurm()` for: existing scripts, complex workflows, shell integration
+   - Use `slurm_call()` for: interactive development, parameter sweeps, functional pipelines
 
 ## Practical monitoring scenarios
 
