@@ -19,9 +19,13 @@ Helper function to quickly set up local mirai daemons with
 automatic core detection.
 }
 \examples{
-# Use all available cores
-use_mirai_local()
-
-# Use specific number of daemons
-use_mirai_local(n = 4)
+\donttest{
+if (requireNamespace("mirai", quietly = TRUE)) {
+  # Use all available cores
+  use_mirai_local()
+  
+  # Use specific number of daemons
+  use_mirai_local(n = 4)
+}
+}
 }

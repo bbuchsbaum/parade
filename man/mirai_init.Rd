@@ -20,10 +20,16 @@ Sets up daemons and configures the future plan.
 }
 \examples{
 \donttest{
-# Initialize with default settings
-mirai_init()
-
-# Initialize with 4 daemons
-mirai_init(n = 4)
+if (requireNamespace("mirai", quietly = TRUE) && 
+    requireNamespace("future.mirai", quietly = TRUE)) {
+  # Initialize with default settings
+  mirai_init()
+  
+  # Initialize with 4 daemons
+  mirai_init(n = 4)
+  
+  # Clean up
+  mirai_stop()
+}
 }
 }

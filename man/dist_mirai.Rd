@@ -50,11 +50,15 @@ SSH tunneling, and SLURM-managed daemon pools. Mirai provides low-latency
 task execution without R's connection limits.
 }
 \examples{
-# Local daemons
-dist_mirai(n = 4)
-
-# With TLS encryption
-dist_mirai(n = 8, tls = TRUE, port = 5555)
+\donttest{
+if (requireNamespace("mirai", quietly = TRUE)) {
+  # Local daemons
+  dist_mirai(n = 4)
+  
+  # With TLS encryption
+  dist_mirai(n = 8, tls = TRUE, port = 5555)
+}
+}
 
 # SSH remotes (requires configuration)
 \donttest{

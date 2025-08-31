@@ -1,0 +1,58 @@
+\nonstopmode{}
+\documentclass[a4paper]{book}
+\usepackage[times,inconsolata,hyper]{Rd}
+\usepackage{makeidx}
+\usepackage[utf8]{inputenc} % @SET ENCODING@
+% \usepackage{graphicx} % @USE GRAPHICX@
+\makeindex{}
+\begin{document}
+\chapter*{}
+\begin{center}
+{\textbf{\huge \R{} documentation}} \par\bigskip{{\Large of \file{man/mirai\_init.Rd}}}
+\par\bigskip{\large \today}
+\end{center}
+\inputencoding{utf8}
+\HeaderA{mirai\_init}{Initialize mirai for parade}{mirai.Rul.init}
+%
+\begin{Description}
+One-step initialization of mirai for use with parade workflows.
+Sets up daemons and configures the future plan.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+mirai_init(n = NULL, dispatcher = TRUE)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{n}] Number of local daemons (defaults to number of cores)
+
+\item[\code{dispatcher}] Use dispatcher for load balancing
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+Invisibly returns the previous future plan
+\end{Value}
+%
+\begin{Examples}
+\begin{ExampleCode}
+
+if (requireNamespace("mirai", quietly = TRUE) && 
+    requireNamespace("future.mirai", quietly = TRUE)) {
+  # Initialize with default settings
+  mirai_init()
+  
+  # Initialize with 4 daemons
+  mirai_init(n = 4)
+  
+  # Clean up
+  mirai_stop()
+}
+
+\end{ExampleCode}
+\end{Examples}
+\printindex{}
+\end{document}

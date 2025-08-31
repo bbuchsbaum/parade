@@ -18,7 +18,9 @@ scaling compute resources based on workload.
 }
 \examples{
 \donttest{
-# Scale to 8 daemons
-mirai_scale(8)
+if (requireNamespace("mirai", quietly = TRUE)) {
+  # Scale to 8 daemons
+  mirai_scale(8)
+}
 }
 }

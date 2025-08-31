@@ -20,11 +20,15 @@
 #' @return A `parade_dist` object for mirai execution
 #' @export
 #' @examples
-#' # Local daemons
-#' dist_mirai(n = 4)
-#' 
-#' # With TLS encryption
-#' dist_mirai(n = 8, tls = TRUE, port = 5555)
+#' \donttest{
+#' if (requireNamespace("mirai", quietly = TRUE)) {
+#'   # Local daemons
+#'   dist_mirai(n = 4)
+#'   
+#'   # With TLS encryption
+#'   dist_mirai(n = 8, tls = TRUE, port = 5555)
+#' }
+#' }
 #' 
 #' # SSH remotes (requires configuration)
 #' \donttest{
@@ -86,11 +90,15 @@ dist_mirai <- function(
 #' @return A `parade_dist` object configured for local mirai execution
 #' @export
 #' @examples
-#' # Use all available cores
-#' use_mirai_local()
-#' 
-#' # Use specific number of daemons
-#' use_mirai_local(n = 4)
+#' \donttest{
+#' if (requireNamespace("mirai", quietly = TRUE)) {
+#'   # Use all available cores
+#'   use_mirai_local()
+#'   
+#'   # Use specific number of daemons
+#'   use_mirai_local(n = 4)
+#' }
+#' }
 use_mirai_local <- function(n = NULL, dispatcher = TRUE) {
   n <- n %||% parallel::detectCores()
   dist_mirai(n = n, dispatcher = dispatcher)

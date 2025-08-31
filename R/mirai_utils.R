@@ -76,8 +76,10 @@ mirai_dispatcher_status <- function() {
 #' @export
 #' @examples
 #' \donttest{
-#' # Scale to 8 daemons
-#' mirai_scale(8)
+#' if (requireNamespace("mirai", quietly = TRUE)) {
+#'   # Scale to 8 daemons
+#'   mirai_scale(8)
+#' }
 #' }
 mirai_scale <- function(n) {
   if (requireNamespace("mirai", quietly = TRUE)) {
@@ -148,11 +150,17 @@ mirai_available <- function() {
 #' @export
 #' @examples
 #' \donttest{
-#' # Initialize with default settings
-#' mirai_init()
-#' 
-#' # Initialize with 4 daemons
-#' mirai_init(n = 4)
+#' if (requireNamespace("mirai", quietly = TRUE) && 
+#'     requireNamespace("future.mirai", quietly = TRUE)) {
+#'   # Initialize with default settings
+#'   mirai_init()
+#'   
+#'   # Initialize with 4 daemons
+#'   mirai_init(n = 4)
+#'   
+#'   # Clean up
+#'   mirai_stop()
+#' }
 #' }
 mirai_init <- function(n = NULL, dispatcher = TRUE) {
   if (!mirai_available()) {
