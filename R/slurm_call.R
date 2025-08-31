@@ -110,7 +110,9 @@ slurm_call <- function(.f, ...,
         name <- do.call(name_by, args_list)
       }
     }
-    result <- do.call(.f, list(...))
+    # Capture the call arguments for potential retry semantics
+    call_args <- list(...)
+    result <- do.call(.f, call_args)
     if (!is.null(write_result)) {
       # Expand macros with derived name for parity with SLURM path
       result_path <- expand_path_macros(write_result, list(...), name = name %||% "local-call")
@@ -123,7 +125,9 @@ slurm_call <- function(.f, ...,
           function_call = TRUE,
           result = result,
           result_path = result_path,
-          name = name %||% "local-call"
+          name = name %||% "local-call",
+          fn = .f,
+          args = call_args
         ),
         class = c("parade_local_job", "parade_job")
       ))
@@ -133,7 +137,9 @@ slurm_call <- function(.f, ...,
         kind = "local",
         function_call = TRUE,
         result = result,
-        name = name %||% "local-call"
+        name = name %||% "local-call",
+        fn = .f,
+        args = call_args
       ),
       class = c("parade_local_job", "parade_job")
     ))
