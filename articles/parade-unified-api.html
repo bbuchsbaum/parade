@@ -83,7 +83,7 @@ verbs.</p>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span>quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Submit a single function call</span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">y</span><span class="op">^</span><span class="fl">2</span>,</span>
 <span>  x <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  y <span class="op">=</span> <span class="fl">4</span>,</span>
@@ -100,26 +100,26 @@ verbs.</p>
 <code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data1.csv"</span>, <span class="st">"data2.csv"</span>, <span class="st">"data3.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Function path</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">files</span>, <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Processing"</span>, <span class="va">.x</span><span class="op">)</span>, .name_by <span class="op">=</span> <span class="st">"stem"</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="va">files</span>, <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Processing"</span>, <span class="va">.x</span><span class="op">)</span>, .name_by <span class="op">=</span> <span class="st">"stem"</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">jobs</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Script path (CLI flags via args_cli)</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">files</span>, <span class="st">"scripts/process_one.R"</span>,</span>
-<span>                  .args <span class="op">=</span> <span class="fu">args_cli</span><span class="op">(</span>input <span class="op">=</span> <span class="va">.x</span><span class="op">)</span>,</span>
-<span>                  .name_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="va">files</span>, <span class="st">"scripts/process_one.R"</span>,</span>
+<span>                  .args <span class="op">=</span> <span class="fu"><a href="../reference/args_cli.html">args_cli</a></span><span class="op">(</span>input <span class="op">=</span> <span class="va">.x</span><span class="op">)</span>,</span>
+<span>                  .name_by <span class="op">=</span> <span class="fu"><a href="../reference/stem.html">stem</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="elegant-naming-and-paths">Elegant naming and paths<a class="anchor" aria-label="anchor" href="#elegant-naming-and-paths"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Naming helpers: stem/index/digest/glue_name</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="va">files</span>, <span class="op">~</span> <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">file_path_sans_ext</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span>,</span>
-<span>                  .name_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="st">"sample_(\\d+)"</span><span class="op">)</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="va">files</span>, <span class="op">~</span> <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">file_path_sans_ext</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span>,</span>
+<span>                  .name_by <span class="op">=</span> <span class="fu"><a href="../reference/stem.html">stem</a></span><span class="op">(</span><span class="st">"sample_(\\d+)"</span><span class="op">)</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Path macros in write_result</span></span>
 <span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="op">~</span> <span class="va">.x</span><span class="op">^</span><span class="fl">3</span>,</span>
-<span>                  .name_by <span class="op">=</span> <span class="fu">index</span><span class="op">(</span><span class="st">"cube"</span><span class="op">)</span>,</span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="op">~</span> <span class="va">.x</span><span class="op">^</span><span class="fl">3</span>,</span>
+<span>                  .name_by <span class="op">=</span> <span class="fu"><a href="../reference/index.html">index</a></span><span class="op">(</span><span class="st">"cube"</span><span class="op">)</span>,</span>
 <span>                  .write_result <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tmp</span>, <span class="st">"results_{name}_{index}.rds"</span><span class="op">)</span>,</span>
 <span>                  .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -128,12 +128,12 @@ verbs.</p>
 </h2>
 <p>All jobset verbs (<code>await</code>, <code>status</code>,
 <code>collect</code>, <code>cancel</code>, <code>progress</code>,
-<code>open_logs</code>) work on results from <code>slurm_map()</code>.
-If you submit a single function with <code>slurm_call()</code>, add
+<code>open_logs</code>) work on results from <code><a href="../reference/slurm_map.html">slurm_map()</a></code>.
+If you submit a single function with <code><a href="../reference/slurm_call.html">slurm_call()</a></code>, add
 <code>.as_jobset = TRUE</code> to opt into the same surface:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Wrap a single job as a one‑element jobset</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="op">]</span> <span class="op">}</span>,</span>
 <span>  file <span class="op">=</span> <span class="st">"data/example.csv"</span>,</span>
 <span>  name <span class="op">=</span> <span class="st">"proc-example"</span>,</span>
@@ -142,16 +142,16 @@ If you submit a single function with <code>slurm_call()</code>, add
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Same verbs as slurm_map()</span></span>
-<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://progressr.futureverse.org/reference/progress.html" class="external-link">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">open_logs</span><span class="op">(</span><span class="va">jobs</span>, selection <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/progress.html">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/open_logs.html">open_logs</a></span><span class="op">(</span><span class="va">jobs</span>, selection <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="parallel-arguments-with-pmap">Parallel arguments with pmap<a class="anchor" aria-label="anchor" href="#parallel-arguments-with-pmap"></a>
 </h2>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, y <span class="op">=</span> <span class="fl">5</span><span class="op">:</span><span class="fl">8</span>, method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"add"</span>,<span class="st">"multiply"</span>,<span class="st">"add"</span>,<span class="st">"multiply"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_pmap</span><span class="op">(</span><span class="va">df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span>, <span class="va">method</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="va">method</span> <span class="op">==</span> <span class="st">"add"</span><span class="op">)</span> <span class="va">x</span> <span class="op">+</span> <span class="va">y</span> <span class="kw">else</span> <span class="va">x</span> <span class="op">*</span> <span class="va">y</span>,</span>
-<span>                   .name_by <span class="op">=</span> <span class="fu">glue_name</span><span class="op">(</span><span class="st">"{method}-{x}-{y}"</span><span class="op">)</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_pmap.html">slurm_pmap</a></span><span class="op">(</span><span class="va">df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span>, <span class="va">method</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="va">method</span> <span class="op">==</span> <span class="st">"add"</span><span class="op">)</span> <span class="va">x</span> <span class="op">+</span> <span class="va">y</span> <span class="kw">else</span> <span class="va">x</span> <span class="op">*</span> <span class="va">y</span>,</span>
+<span>                   .name_by <span class="op">=</span> <span class="fu"><a href="../reference/glue_name.html">glue_name</a></span><span class="op">(</span><span class="st">"{method}-{x}-{y}"</span><span class="op">)</span>, .engine <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">jobs</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -159,20 +159,82 @@ If you submit a single function with <code>slurm_call()</code>, add
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># CLI arguments (scripts)</span></span>
-<span><span class="fu">args_cli</span><span class="op">(</span>input <span class="op">=</span> <span class="st">"data.csv"</span>, output <span class="op">=</span> <span class="st">"results.rds"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span>, threads <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/args_cli.html">args_cli</a></span><span class="op">(</span>input <span class="op">=</span> <span class="st">"data.csv"</span>, output <span class="op">=</span> <span class="st">"results.rds"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span>, threads <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Function arguments</span></span>
-<span><span class="fu">args_call</span><span class="op">(</span>data <span class="op">=</span> <span class="va">mtcars</span>, formula <span class="op">=</span> <span class="va">mpg</span> <span class="op">~</span> <span class="va">cyl</span> <span class="op">+</span> <span class="va">wt</span>, method <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/args_call.html">args_call</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">mtcars</span>, formula <span class="op">=</span> <span class="va">mpg</span> <span class="op">~</span> <span class="va">cyl</span> <span class="op">+</span> <span class="va">wt</span>, method <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="key-arguments-at-a-glance">Key arguments at a glance<a class="anchor" aria-label="anchor" href="#key-arguments-at-a-glance"></a>
+</h2>
+<p>To keep the surface consistent across functions and scripts, a few
+arguments show up repeatedly. Here’s what they mean and how to pick
+values with confidence:</p>
+<ul>
+<li>name_by / .name_by: how job names are generated
+<ul>
+<li>“auto”: sensible default; uses a file stem when it looks like a
+path, otherwise uses the index (job-1, job-2, …).</li>
+<li>stem(): extracts the filename stem. You can pass a regex to keep
+just a capture group, e.g., stem(“sample_(\d+)”).</li>
+<li>index(prefix = “job”, width = 0): generates names like job-1 or
+task-001.</li>
+<li>digest(prefix = “job”, length = 8): short, content-based names.</li>
+<li>glue_name(“template”): template-based; accepts pmap arguments (e.g.,
+“{method}-{x}-{y}”) or map element/index via
+<code>.x</code>/<code>.i</code>.</li>
+<li>slurm_call() uses <code>name_by = ...</code>;
+slurm_map()/slurm_pmap() use <code>.name_by = ...</code>.</li>
+</ul>
+</li>
+<li>engine / .engine: where the work runs
+<ul>
+<li>“slurm” (default): submits to SLURM (scripts via submit_slurm();
+functions via slurm_call with serialization).</li>
+<li>“local”: runs the function in the current R session (fast for
+debugging); still honors <code>write_result</code> so you can poke at
+outputs.</li>
+<li>For slurm_map(), <code>.engine</code> affects function submissions.
+Script submissions always go through SLURM (no local script runner is
+provided).</li>
+</ul>
+</li>
+<li>write_result / .write_result: on-disk results for functions
+<ul>
+<li>Path template where a function’s return value is saved (e.g.,
+“artifacts://results/{run}/{stem}.rds”).</li>
+<li>Macros like {run}, {stem}, {name}, {index}, {date}, {time}, {user},
+{host} are expanded the same way everywhere.</li>
+</ul>
+</li>
+<li>resources / .resources: how much you ask SLURM for
+<ul>
+<li>Accepts a profile name (e.g., “gpu”, “standard”), a chained profile
+object (profile() %&gt;% time(“2h”) %&gt;% cpus(8)), or a simple
+list.</li>
+<li>Legacy shortcuts like “cpu8”, “mem32G”, “gpu2” are still
+recognized.</li>
+</ul>
+</li>
+<li>.as_jobset (slurm_call only): opt into the jobset surface for single
+jobs
+<ul>
+<li>When TRUE, a one‑element <code>parade_jobset</code> is returned so
+you can write <code>jobs |&gt; progress() |&gt; collect()</code>
+everywhere.</li>
+</ul>
+</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
 </h2>
 <ul>
 <li>“One surface”: scripts via <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code>, functions
-via <code>slurm_call()</code>
+via <code><a href="../reference/slurm_call.html">slurm_call()</a></code>
 </li>
 <li>
-<code>slurm_map()</code>/<code>slurm_pmap()</code> dispatch
+<code><a href="../reference/slurm_map.html">slurm_map()</a></code>/<code><a href="../reference/slurm_pmap.html">slurm_pmap()</a></code> dispatch
 correctly for both kinds</li>
 <li>
 <code>name_by</code>, path macros, resource profiles, and flow

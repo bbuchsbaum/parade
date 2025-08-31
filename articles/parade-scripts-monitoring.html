@@ -73,7 +73,9 @@
     
     
 <blockquote>
-<p>Requires <strong>parade ≥ 0.11.0</strong>.</p>
+<p>Requires <strong>parade ≥ 0.11.0</strong> for basic features,
+<strong>≥ 0.12.0</strong> for function submission with
+<code><a href="../reference/slurm_call.html">slurm_call()</a></code>.</p>
 </blockquote>
 <blockquote>
 <p>Note: Code evaluation is disabled to keep builds fast and avoid
@@ -122,14 +124,15 @@ and error diagnostics</li>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Optional: Configure site defaults</span></span>
+<span><span class="co"># Note: mem=NA means use cluster default memory allocation</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>partition<span class="op">=</span><span class="st">"general"</span>, time<span class="op">=</span><span class="st">"2h"</span>, cpus_per_task<span class="op">=</span><span class="fl">16</span>, mem<span class="op">=</span><span class="cn">NA</span>, persist<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/slurm_template_set.html">slurm_template_set</a></span><span class="op">(</span><span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Submit a script file</span></span>
 <span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"scripts/train.R"</span>, args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"--fold"</span>, <span class="st">"1"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Or submit a function directly (new in 0.12.0)</span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span><span class="co"># Or submit a function directly (requires parade ≥ 0.12.0)</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">fold</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Your training code here</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Training fold "</span>, <span class="va">fold</span><span class="op">)</span></span>
@@ -153,13 +156,14 @@ and error diagnostics</li>
 <div class="section level2">
 <h2 id="uniform-verbs-with-function-submissions">Uniform verbs with function submissions<a class="anchor" aria-label="anchor" href="#uniform-verbs-with-function-submissions"></a>
 </h2>
-<p>You can submit a single function call and still use the full jobset
-verb surface by wrapping the result as a jobset. Use the
-<code>.as_jobset = TRUE</code> flag on <code>slurm_call()</code> to opt
-in to this style:</p>
+<p>A <strong>jobset</strong> is a collection of one or more jobs that
+can be managed together. By default, <code><a href="../reference/slurm_call.html">slurm_call()</a></code> returns a
+single job object, but you can request a jobset (a one-element
+collection) to use the same workflow verbs that work with multiple
+jobs:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Submit a single function job, returned as a one‑element jobset</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># Submit a single function job, returned as a one-element jobset</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Pretend to do useful work</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Processing "</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span><span class="op">)</span></span>
@@ -169,27 +173,31 @@ in to this style:</p>
 <span>  file <span class="op">=</span> <span class="st">"data/example.csv"</span>,</span>
 <span>  name <span class="op">=</span> <span class="st">"proc-example"</span>,</span>
 <span>  write_result <span class="op">=</span> <span class="va">path</span><span class="op">$</span><span class="fu">artifacts</span><span class="op">(</span><span class="st">"results/{run}/{stem}.rds"</span><span class="op">)</span>,</span>
-<span>  .as_jobset <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  .as_jobset <span class="op">=</span> <span class="cn">TRUE</span>  <span class="co"># Return as jobset instead of single job</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Same verbs you use for slurm_map() work here too</span></span>
-<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://progressr.futureverse.org/reference/progress.html" class="external-link">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># Now you can use jobset verbs:</span></span>
+<span><span class="co"># - progress(): Show a progress bar while jobs run</span></span>
+<span><span class="co"># - collect(): Wait for completion and retrieve results</span></span>
+<span><span class="co"># - status(): Check job states</span></span>
+<span><span class="co"># - cancel(): Cancel running jobs</span></span>
+<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/progress.html">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Open logs if needed (no‑ops for local engine)</span></span>
-<span><span class="fu">open_logs</span><span class="op">(</span><span class="va">jobs</span>, selection <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Open logs if needed (no-ops for local engine)</span></span>
+<span><span class="fu"><a href="../reference/open_logs.html">open_logs</a></span><span class="op">(</span><span class="va">jobs</span>, selection <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></code></pre></div>
 <p>And for multiple inputs the pattern is identical with
-<code>slurm_map()</code>:</p>
+<code><a href="../reference/slurm_map.html">slurm_map()</a></code>:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu">glob</span><span class="op">(</span><span class="st">"data/*.csv"</span><span class="op">)</span></span>
-<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">slurm_map</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/glob.html">glob</a></span><span class="op">(</span><span class="st">"data/*.csv"</span><span class="op">)</span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_map.html">slurm_map</a></span><span class="op">(</span></span>
 <span>  <span class="va">files</span>,</span>
 <span>  <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="op">]</span>,</span>
-<span>  .name_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  .name_by <span class="op">=</span> <span class="fu"><a href="../reference/stem.html">stem</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  .write_result <span class="op">=</span> <span class="va">path</span><span class="op">$</span><span class="fu">artifacts</span><span class="op">(</span><span class="st">"results/{run}/{stem}.rds"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Advertise the progress() convenience explicitly</span></span>
-<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://progressr.futureverse.org/reference/progress.html" class="external-link">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/progress.html">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="core-monitoring-functions">Core monitoring functions<a class="anchor" aria-label="anchor" href="#core-monitoring-functions"></a>
@@ -350,7 +358,7 @@ object:</p>
 <div class="section level2">
 <h2 id="function-submission-with-slurm_call">Function submission with slurm_call()<a class="anchor" aria-label="anchor" href="#function-submission-with-slurm_call"></a>
 </h2>
-<p>New in parade 0.12.0, <code>slurm_call()</code> allows you to submit
+<p>New in parade 0.12.0, <code><a href="../reference/slurm_call.html">slurm_call()</a></code> allows you to submit
 R functions directly to SLURM without creating script files. This is
 ideal for interactive development, parameter sweeps, and functional
 programming workflows.</p>
@@ -359,7 +367,7 @@ programming workflows.</p>
 </h3>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Submit a simple function</span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">y</span><span class="op">^</span><span class="fl">2</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Computed: "</span>, <span class="va">result</span><span class="op">)</span></span>
@@ -380,36 +388,36 @@ programming workflows.</p>
 management:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use built-in profiles</span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"gpu"</span><span class="op">)</span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"highmem"</span><span class="op">)</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"gpu"</span><span class="op">)</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="st">"highmem"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Create custom profiles with chaining</span></span>
-<span><span class="va">my_profile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/profile.html" class="external-link">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">time</a></span><span class="op">(</span><span class="st">"8:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>  <span class="fu">mem</span><span class="op">(</span><span class="st">"32G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>  <span class="fu">cpus</span><span class="op">(</span><span class="fl">16</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>  <span class="fu">partition</span><span class="op">(</span><span class="st">"compute"</span><span class="op">)</span></span>
+<span><span class="va">my_profile</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/profile.html">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu"><a href="../reference/time.html">time</a></span><span class="op">(</span><span class="st">"8:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu"><a href="../reference/mem.html">mem</a></span><span class="op">(</span><span class="st">"32G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu"><a href="../reference/cpus.html">cpus</a></span><span class="op">(</span><span class="fl">16</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu"><a href="../reference/partition.html">partition</a></span><span class="op">(</span><span class="st">"compute"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="va">my_profile</span><span class="op">)</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="va">my_function</span>, x <span class="op">=</span> <span class="fl">1</span>, resources <span class="op">=</span> <span class="va">my_profile</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Register profiles for reuse</span></span>
-<span><span class="fu">profile_register</span><span class="op">(</span><span class="st">"ml_training"</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/profile.html" class="external-link">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">time</a></span><span class="op">(</span><span class="st">"24:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>    <span class="fu">mem</span><span class="op">(</span><span class="st">"64G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>    <span class="fu">cpus</span><span class="op">(</span><span class="fl">32</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>    <span class="fu">gpus</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/profile_register.html">profile_register</a></span><span class="op">(</span><span class="st">"ml_training"</span>,</span>
+<span>  <span class="fu"><a href="../reference/profile.html">profile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu"><a href="../reference/time.html">time</a></span><span class="op">(</span><span class="st">"24:00:00"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu"><a href="../reference/mem.html">mem</a></span><span class="op">(</span><span class="st">"64G"</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu"><a href="../reference/cpus.html">cpus</a></span><span class="op">(</span><span class="fl">32</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu"><a href="../reference/gpus.html">gpus</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Use registered profile by name</span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span><span class="va">train_model</span>, data <span class="op">=</span> <span class="va">data</span>, resources <span class="op">=</span> <span class="st">"ml_training"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span><span class="va">train_model</span>, data <span class="op">=</span> <span class="va">data</span>, resources <span class="op">=</span> <span class="st">"ml_training"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="working-with-packages">Working with packages<a class="anchor" aria-label="anchor" href="#working-with-packages"></a>
 </h3>
 <p>Specify packages to load on the compute node:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">n</span>, <span class="va">mu</span>, <span class="va">sigma</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Packages are loaded before function execution</span></span>
 <span>    <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, mean <span class="op">=</span> <span class="va">mu</span>, sd <span class="op">=</span> <span class="va">sigma</span><span class="op">)</span></span>
@@ -429,7 +437,7 @@ management:</p>
 <p>Use <code>write_result</code> to persist function output:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Results are automatically saved to the specified path</span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">size</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">size</span> <span class="op">*</span> <span class="va">size</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="va">size</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>,</span>
@@ -438,11 +446,22 @@ management:</p>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="st">"8G"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># After job completes, load the result</span></span>
+<span><span class="co"># Wait for job to complete</span></span>
 <span><span class="fu"><a href="../reference/script_await.html">script_await</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">job</span><span class="op">$</span><span class="va">result_path</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">job</span><span class="op">$</span><span class="va">result_path</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">mat</span><span class="op">)</span>  <span class="co"># [1] 1000 1000</span></span>
+<span></span>
+<span><span class="co"># Check job status and load result safely</span></span>
+<span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/script_status.html">script_status</a></span><span class="op">(</span><span class="va">job</span>, detail <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">status</span><span class="op">$</span><span class="va">done</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;&amp;</span> <span class="va">status</span><span class="op">$</span><span class="va">error</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="co"># Job succeeded - load the result</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">job</span><span class="op">$</span><span class="va">result_path</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">job</span><span class="op">$</span><span class="va">result_path</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">job</span><span class="op">$</span><span class="va">result_path</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">mat</span><span class="op">)</span>  <span class="co"># [1] 1000 1000</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning</a></span><span class="op">(</span><span class="st">"Result file not found at expected path"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="co"># Job failed - check logs for errors</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning</a></span><span class="op">(</span><span class="st">"Job failed - check logs with script_tail(job)"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -457,7 +476,7 @@ management:</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>    <span class="kw">function</span><span class="op">(</span><span class="va">alpha</span>, <span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="co"># Your model fitting code here</span></span>
 <span>      <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">fit_model</span><span class="op">(</span><span class="va">alpha</span>, <span class="va">beta</span><span class="op">)</span></span>
@@ -476,7 +495,7 @@ management:</p>
 <div class="section level3">
 <h3 id="closures-and-captured-variables">Closures and captured variables<a class="anchor" aria-label="anchor" href="#closures-and-captured-variables"></a>
 </h3>
-<p><code>slurm_call()</code> serializes the function’s environment, so
+<p><code><a href="../reference/slurm_call.html">slurm_call()</a></code> serializes the function’s environment, so
 closures work naturally:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Configuration captured in closure</span></span>
@@ -491,7 +510,7 @@ closures work naturally:</p>
 <span>  <span class="fu">optimize_with_config</span><span class="op">(</span><span class="va">data</span>, <span class="va">config</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span>
+<span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="va">optimizer</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">my_dataset</span>,</span>
 <span>  name <span class="op">=</span> <span class="st">"optimization"</span>,</span>
@@ -510,7 +529,7 @@ objects increase overhead.</p></li>
 temporary staging directory. Use parade’s path system for data
 access:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">slurm_call</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/slurm_call.html">slurm_call</a></span><span class="op">(</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"data://input.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">process</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
@@ -523,7 +542,7 @@ access:</p>
 <ul>
 <li>Use <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code> for: existing scripts, complex
 workflows, shell integration</li>
-<li>Use <code>slurm_call()</code> for: interactive development,
+<li>Use <code><a href="../reference/slurm_call.html">slurm_call()</a></code> for: interactive development,
 parameter sweeps, functional pipelines</li>
 </ul>
 </li>

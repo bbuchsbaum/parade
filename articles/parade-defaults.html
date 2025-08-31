@@ -127,6 +127,15 @@ your call’s <code>resources</code> parameter with the configured
 defaults, normalizes time specifications, and drops any <code>NA</code>
 or <code><a href="../reference/omit.html">omit()</a></code> fields before constructing the
 <code>#SBATCH</code> directives for your SLURM job.</p>
+<blockquote>
+<p>Note for flows: to run a flow on SLURM with your defaults, build a
+resource set with <code><a href="../reference/slurm_resources.html">slurm_resources()</a></code> and pass it via
+<code><a href="../reference/dist_slurm.html">dist_slurm()</a></code> inside <code><a href="../reference/distribute.html">distribute()</a></code>, e.g.:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span><span class="st">"analyze"</span>, <span class="va">analyze_fn</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>resources <span class="op">=</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"standard"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</blockquote>
 </div>
 <div class="section level2">
 <h2 id="configuration-file">Configuration file<a class="anchor" aria-label="anchor" href="#configuration-file"></a>
@@ -145,18 +154,18 @@ automatically as needed)</li>
 </ol>
 <p>The configuration file uses JSON format. Here’s an example showing
 typical defaults for a research cluster:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="dt">"slurm"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>    <span class="dt">"template"</span><span class="fu">:</span> <span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="fu">,</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>    <span class="dt">"defaults"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>      <span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"general"</span><span class="fu">,</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>      <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"2h"</span><span class="fu">,</span> </span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>      <span class="dt">"cpus_per_task"</span><span class="fu">:</span> <span class="dv">16</span><span class="fu">,</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>      <span class="dt">"mem"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>      <span class="dt">"omp_num_threads"</span><span class="fu">:</span> <span class="dv">1</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="dt">"slurm"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>    <span class="dt">"template"</span><span class="fu">:</span> <span class="st">"registry://templates/parade-slurm.tmpl"</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>    <span class="dt">"defaults"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>      <span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"general"</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>      <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"2h"</span><span class="fu">,</span> </span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>      <span class="dt">"cpus_per_task"</span><span class="fu">:</span> <span class="dv">16</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>      <span class="dt">"mem"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>      <span class="dt">"omp_num_threads"</span><span class="fu">:</span> <span class="dv">1</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Note that <code>null</code> in JSON corresponds to <code>NA</code> in
 R, which tells parade to omit that parameter entirely from the SLURM
 submission.</p>
@@ -167,7 +176,7 @@ submission.</p>
 <div class="section level3">
 <h3 id="inspecting-current-defaults">Inspecting current defaults<a class="anchor" aria-label="anchor" href="#inspecting-current-defaults"></a>
 </h3>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># View all current defaults</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -181,7 +190,7 @@ submission.</p>
 </h3>
 <p>The <code><a href="../reference/slurm_resources.html">slurm_resources()</a></code> function combines defaults with
 job-specific overrides:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use defaults but override time and explicitly omit memory</span></span>
 <span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"90min"</span>, mem <span class="op">=</span> <span class="fu"><a href="../reference/omit.html">omit</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -191,7 +200,7 @@ job-specific overrides:</p>
 <div class="section level3">
 <h3 id="updating-defaults-during-your-session">Updating defaults during your session<a class="anchor" aria-label="anchor" href="#updating-defaults-during-your-session"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Change defaults temporarily (session only)</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span>           <span class="co"># omit --mem flag</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span>cpus_per_task <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>  <span class="co"># reduce CPU count</span></span>
@@ -213,7 +222,7 @@ job-specific overrides:</p>
 </h2>
 <p>You can override defaults on a per-job basis by passing a
 <code>resources</code> argument to <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code>:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use defaults for most parameters, but need more time and memory for this job</span></span>
 <span><span class="va">big_job</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit_slurm.html">submit_slurm</a></span><span class="op">(</span><span class="st">"big_analysis.R"</span>, </span>
 <span>                        resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"12h"</span>, mem <span class="op">=</span> <span class="st">"32G"</span><span class="op">)</span><span class="op">)</span></span>
@@ -233,7 +242,7 @@ job-specific overrides:</p>
 <h3 id="setting-up-defaults-for-different-cluster-environments">Setting up defaults for different cluster environments<a class="anchor" aria-label="anchor" href="#setting-up-defaults-for-different-cluster-environments"></a>
 </h3>
 <p>For a cluster that rejects memory specifications:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
 <span>  partition <span class="op">=</span> <span class="st">"compute"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"2h"</span>,</span>
@@ -242,7 +251,7 @@ job-specific overrides:</p>
 <span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>For a GPU cluster:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
 <span>  partition <span class="op">=</span> <span class="st">"gpu"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"4h"</span>, </span>
@@ -252,7 +261,7 @@ job-specific overrides:</p>
 <span>  persist <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>For high-memory jobs:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/slurm_defaults_set.html">slurm_defaults_set</a></span><span class="op">(</span></span>
 <span>  partition <span class="op">=</span> <span class="st">"highmem"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"8h"</span>,</span>

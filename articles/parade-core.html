@@ -73,9 +73,52 @@
     
     
 <blockquote>
+<p>Note: Code evaluation is disabled in this vignette to keep builds
+fast and cluster-agnostic. Copy code into an interactive R session to
+run locally or on your cluster.</p>
+</blockquote>
+<blockquote>
 <p>Requires <strong>parade ≥ 0.6.0</strong>
 (flow/stage/distribute/collect).</p>
 </blockquote>
+<div class="section level2">
+<h2 id="quick-start-5-minutes">Quick Start (5 minutes)<a class="anchor" aria-label="anchor" href="#quick-start-5-minutes"></a>
+</h2>
+<p>Want to see parade in action? Here’s a complete working example:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 1. Define what varies (3 subjects × 2 conditions = 6 analyses)</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
+<span>  subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s01"</span>, <span class="st">"s02"</span>, <span class="st">"s03"</span><span class="op">)</span>,</span>
+<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Create workflow with one analysis step</span></span>
+<span><span class="va">workflow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span></span>
+<span>    id <span class="op">=</span> <span class="st">"analyze"</span>,</span>
+<span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">subject</span>, <span class="va">condition</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="co"># Your analysis code here</span></span>
+<span>      <span class="va">score</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1</span>, mean <span class="op">=</span> <span class="fl">100</span>, sd <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>score <span class="op">=</span> <span class="va">score</span><span class="op">)</span></span>
+<span>    <span class="op">}</span>,</span>
+<span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>score <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 3. Run it!</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">workflow</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
+<span><span class="co"># A tibble: 6 × 4</span></span>
+<span><span class="co">#   subject condition score   .ok</span></span>
+<span><span class="co">#   &lt;chr&gt;   &lt;chr&gt;     &lt;dbl&gt; &lt;lgl&gt;</span></span>
+<span><span class="co"># 1 s01     A          98.2  TRUE</span></span>
+<span><span class="co"># 2 s01     B         102.4  TRUE</span></span>
+<span><span class="co"># ... (4 more rows)</span></span></code></pre></div>
+<p>That’s it! You’ve just run 6 analyses automatically. Read on to
+understand how parade can scale from this simple example to complex,
+multi-stage pipelines on HPC clusters.</p>
+</div>
 <div class="section level2">
 <h2 id="why-parade-a-simple-research-scenario">Why parade? A simple research scenario<a class="anchor" aria-label="anchor" href="#why-parade-a-simple-research-scenario"></a>
 </h2>
@@ -114,16 +157,23 @@ cluster. Instead of writing loops and managing files manually, you:</p>
 <div class="section level2">
 <h2 id="your-first-parade-workflow">Your first parade workflow<a class="anchor" aria-label="anchor" href="#your-first-parade-workflow"></a>
 </h2>
+<blockquote>
+<p><strong>Reproducibility tip</strong>: When generating synthetic data
+for examples, always use <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> to ensure outputs
+remain consistent across runs. In production code, you typically
+wouldn’t set seeds unless you need reproducible randomization.</p>
+</blockquote>
 <div class="section level3">
 <h3 id="step-1-define-your-parameter-space">Step 1: Define your parameter space<a class="anchor" aria-label="anchor" href="#step-1-define-your-parameter-space"></a>
 </h3>
 <p>Every parade workflow starts with a <strong>parameter grid</strong> -
 a table that defines all the analyses you want to run:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://progressr.futureverse.org" class="external-link">progressr</a></span><span class="op">)</span>  <span class="co"># For progress bars</span></span>
 <span></span>
-<span><span class="co"># Initialize parade's path system (we'll explain this later)</span></span>
+<span><span class="co"># Initialize parade's path system for managing artifacts and registries</span></span>
+<span><span class="co"># This creates directories for storing intermediate results and job metadata</span></span>
 <span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Define what varies in your analysis</span></span>
@@ -150,25 +200,35 @@ will handle all 6 automatically.</p>
 </h3>
 <p>Now we create a <strong>flow</strong> - a series of computational
 steps that will be applied to each row:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create a flow from our parameter grid</span></span>
 <span><span class="va">results_flow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
 <span>  <span class="co"># First stage: Load the data</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span></span>
-<span>    id <span class="op">=</span> <span class="st">"load"</span>,  <span class="co"># Give this stage a name</span></span>
+<span>    id <span class="op">=</span> <span class="st">"load"</span>,  <span class="co"># Give this stage a name for reference</span></span>
 <span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">participant</span>, <span class="va">condition</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="co"># This function receives the participant and condition for one row</span></span>
-<span>      <span class="co"># In real code, you'd read from files here</span></span>
-<span>      <span class="co"># For this example, we'll simulate some data</span></span>
+<span>      <span class="co"># This function receives parameters for one row of the grid</span></span>
+<span>      <span class="co"># In production, you would typically:</span></span>
+<span>      <span class="co"># data &lt;- read.csv(sprintf("data/%s_%s.csv", participant, condition))</span></span>
+<span>      </span>
+<span>      <span class="co"># For this example, we simulate data</span></span>
+<span>      <span class="co"># Use participant/condition as seed components for reproducible but varied data</span></span>
+<span>      <span class="va">seed_val</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">participant</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="fl">100</span> <span class="op">+</span> </span>
+<span>                  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">condition</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">seed_val</span><span class="op">)</span></span>
 <span>      </span>
 <span>      <span class="va">n_trials</span> <span class="op">&lt;-</span> <span class="fl">100</span></span>
+<span>      <span class="co"># Simulate reaction time experiment data</span></span>
 <span>      <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>        participant <span class="op">=</span> <span class="va">participant</span>,</span>
 <span>        condition <span class="op">=</span> <span class="va">condition</span>,</span>
 <span>        trial <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="va">n_trials</span>,</span>
-<span>        response_time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_trials</span>, mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">condition</span> <span class="op">==</span> <span class="st">"control"</span>, <span class="fl">500</span>, <span class="fl">450</span><span class="op">)</span>, sd <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>,</span>
-<span>        accuracy <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n_trials</span>, <span class="fl">1</span>, prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">condition</span> <span class="op">==</span> <span class="st">"control"</span>, <span class="fl">0.8</span>, <span class="fl">0.9</span><span class="op">)</span><span class="op">)</span></span>
+<span>        response_time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_trials</span>, </span>
+<span>                             mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">condition</span> <span class="op">==</span> <span class="st">"control"</span>, <span class="fl">500</span>, <span class="fl">450</span><span class="op">)</span>, </span>
+<span>                             sd <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>,</span>
+<span>        accuracy <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n_trials</span>, <span class="fl">1</span>, </span>
+<span>                         prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">condition</span> <span class="op">==</span> <span class="st">"control"</span>, <span class="fl">0.8</span>, <span class="fl">0.9</span><span class="op">)</span><span class="op">)</span></span>
 <span>      <span class="op">)</span></span>
 <span>      </span>
 <span>      <span class="co"># Stages must return a list</span></span>
@@ -190,7 +250,7 @@ stage produces</p>
 <h3 id="step-3-add-analysis-stages">Step 3: Add analysis stages<a class="anchor" aria-label="anchor" href="#step-3-add-analysis-stages"></a>
 </h3>
 <p>Let’s add a stage that analyzes the loaded data:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">results_flow</span> <span class="op">&lt;-</span> <span class="va">results_flow</span> <span class="op">|&gt;</span></span>
 <span>  </span>
 <span>  <span class="co"># Second stage: Analyze the data</span></span>
@@ -231,7 +291,7 @@ the previous stage - The naming convention is:
 <h3 id="step-4-execute-and-collect-results">Step 4: Execute and collect results<a class="anchor" aria-label="anchor" href="#step-4-execute-and-collect-results"></a>
 </h3>
 <p>Now we run the entire workflow:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Execute the workflow</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">results_flow</span><span class="op">)</span></span>
 <span></span>
@@ -260,7 +320,7 @@ purposes:</p>
 <div class="section level3">
 <h3 id="early-error-detection">1. Early error detection<a class="anchor" aria-label="anchor" href="#early-error-detection"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># This will fail immediately if your function returns the wrong type</span></span>
 <span><span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span></span>
 <span>  id <span class="op">=</span> <span class="st">"bad_stage"</span>,</span>
@@ -285,7 +345,7 @@ your code knows exactly what each stage produces.</p>
 <div class="section level3">
 <h3 id="available-types">Available types<a class="anchor" aria-label="anchor" href="#available-types"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Basic types</span></span>
 <span><span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span>    <span class="co"># Double/numeric values</span></span>
 <span><span class="fu"><a href="../reference/int.html">int</a></span><span class="op">(</span><span class="op">)</span>    <span class="co"># Integers</span></span>
@@ -304,7 +364,7 @@ your code knows exactly what each stage produces.</p>
 <h2 id="parallel-execution">Parallel execution<a class="anchor" aria-label="anchor" href="#parallel-execution"></a>
 </h2>
 <p>So far, our workflow runs sequentially. Let’s make it parallel:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Run with parallel workers</span></span>
 <span><span class="va">results_parallel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span></span>
 <span>  <span class="va">results_flow</span>, </span>
@@ -346,7 +406,7 @@ handling all the complexity of parallel execution for you.</p>
 <h2 id="handling-failures-gracefully">Handling failures gracefully<a class="anchor" aria-label="anchor" href="#handling-failures-gracefully"></a>
 </h2>
 <p>Real analyses sometimes fail. Parade provides several strategies:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Option 1: Keep failed rows in results (default)</span></span>
 <span><span class="va">flow_robust</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span>, error <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
 <span></span>
@@ -367,50 +427,84 @@ handling all the complexity of parallel execution for you.</p>
 </h2>
 <p>Stages can depend on multiple previous stages, creating a directed
 acyclic graph (DAG):</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">complex_flow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"load"</span>, </span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">participant</span>, <span class="va">condition</span><span class="op">)</span> <span class="op">{</span></span>
-<span>          <span class="co"># Load raw data</span></span>
-<span>          <span class="co"># In practice, replace with your actual data loading function</span></span>
-<span>          <span class="co"># e.g., read.csv(resolve_path(paste0("data://", participant, "_", condition, ".csv")))</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>raw_data <span class="op">=</span> <span class="fu">read_data</span><span class="op">(</span><span class="va">participant</span>, <span class="va">condition</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
+<span>          <span class="co"># Load raw data from CSV files</span></span>
+<span>          <span class="co"># Using resolve_path() for parade's path management</span></span>
+<span>          <span class="va">file_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"data/%s_%s.csv"</span>, <span class="va">participant</span>, <span class="va">condition</span><span class="op">)</span></span>
+<span>          </span>
+<span>          <span class="co"># For this example, simulate loading data</span></span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">participant</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="fl">100</span> <span class="op">+</span> </span>
+<span>                   <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">condition</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>          </span>
+<span>          <span class="va">raw_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>            x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>,</span>
+<span>            y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>,</span>
+<span>            participant <span class="op">=</span> <span class="va">participant</span>,</span>
+<span>            condition <span class="op">=</span> <span class="va">condition</span></span>
+<span>          <span class="op">)</span></span>
+<span>          </span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>raw_data <span class="op">=</span> <span class="va">raw_data</span><span class="op">)</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>raw_data <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"clean"</span>,</span>
 <span>        needs <span class="op">=</span> <span class="st">"load"</span>,</span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">load.raw_data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>          <span class="co"># Clean the data</span></span>
-<span>          <span class="co"># Replace with your data cleaning logic</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>clean_data <span class="op">=</span> <span class="fu">remove_outliers</span><span class="op">(</span><span class="va">load.raw_data</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
+<span>          <span class="co"># Remove outliers: values &gt; 3 SD from mean</span></span>
+<span>          <span class="va">clean_data</span> <span class="op">&lt;-</span> <span class="va">load.raw_data</span></span>
+<span>          </span>
+<span>          <span class="co"># Remove outliers from x variable</span></span>
+<span>          <span class="va">x_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">clean_data</span><span class="op">$</span><span class="va">x</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>          <span class="va">x_sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">clean_data</span><span class="op">$</span><span class="va">x</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>          <span class="va">clean_data</span> <span class="op">&lt;-</span> <span class="va">clean_data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">clean_data</span><span class="op">$</span><span class="va">x</span> <span class="op">-</span> <span class="va">x_mean</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">3</span> <span class="op">*</span> <span class="va">x_sd</span>, <span class="op">]</span></span>
+<span>          </span>
+<span>          <span class="co"># Remove outliers from y variable  </span></span>
+<span>          <span class="va">y_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">clean_data</span><span class="op">$</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>          <span class="va">y_sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">clean_data</span><span class="op">$</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>          <span class="va">clean_data</span> <span class="op">&lt;-</span> <span class="va">clean_data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">clean_data</span><span class="op">$</span><span class="va">y</span> <span class="op">-</span> <span class="va">y_mean</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">3</span> <span class="op">*</span> <span class="va">y_sd</span>, <span class="op">]</span></span>
+<span>          </span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>clean_data <span class="op">=</span> <span class="va">clean_data</span><span class="op">)</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>clean_data <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"model"</span>,</span>
 <span>        needs <span class="op">=</span> <span class="st">"clean"</span>,</span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">clean.clean_data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>          <span class="co"># Fit a model</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, data <span class="op">=</span> <span class="va">clean.clean_data</span><span class="op">)</span><span class="op">)</span></span>
+<span>          <span class="co"># Fit a linear model</span></span>
+<span>          <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, data <span class="op">=</span> <span class="va">clean.clean_data</span><span class="op">)</span></span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="va">model</span><span class="op">)</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"validate"</span>,</span>
 <span>        needs <span class="op">=</span> <span class="st">"model"</span>,</span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">model.model</span><span class="op">)</span> <span class="op">{</span></span>
-<span>          <span class="co"># Cross-validation</span></span>
-<span>          <span class="co"># Replace with your validation logic, e.g., using caret or mlr3</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cv_score <span class="op">=</span> <span class="fu">cross_validate</span><span class="op">(</span><span class="va">model.model</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
+<span>          <span class="co"># Simple cross-validation: calculate R-squared</span></span>
+<span>          <span class="co"># In production, use caret::train() or mlr3 for proper CV</span></span>
+<span>          </span>
+<span>          <span class="co"># Extract R-squared as a simple validation metric</span></span>
+<span>          <span class="va">cv_score</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">model.model</span><span class="op">)</span><span class="op">$</span><span class="va">r.squared</span></span>
+<span>          </span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cv_score <span class="op">=</span> <span class="va">cv_score</span><span class="op">)</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>cv_score <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  </span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"report"</span>,</span>
 <span>        needs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"validate"</span><span class="op">)</span>,  <span class="co"># Depends on TWO stages</span></span>
 <span>        f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">model.model</span>, <span class="va">validate.cv_score</span><span class="op">)</span> <span class="op">{</span></span>
-<span>          <span class="co"># Generate final report using both model and validation</span></span>
-<span>          <span class="co"># Replace with your reporting logic</span></span>
-<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>summary <span class="op">=</span> <span class="fu">create_report</span><span class="op">(</span><span class="va">model.model</span>, <span class="va">validate.cv_score</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
+<span>          <span class="co"># Generate summary report combining model and validation</span></span>
+<span>          <span class="va">summary_report</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>            coefficients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">model.model</span><span class="op">)</span>,</span>
+<span>            r_squared <span class="op">=</span> <span class="va">cv_score</span>,</span>
+<span>            n_obs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">model.model</span><span class="op">$</span><span class="va">fitted.values</span><span class="op">)</span>,</span>
+<span>            rmse <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">model.model</span><span class="op">$</span><span class="va">residuals</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>          <span class="op">)</span></span>
+<span>          </span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>summary <span class="op">=</span> <span class="va">summary_report</span><span class="op">)</span></span>
 <span>        <span class="op">}</span>,</span>
 <span>        schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>summary <span class="op">=</span> <span class="fu"><a href="../reference/lst.html">lst</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Parade automatically figures out the execution order based on
@@ -420,19 +514,50 @@ dependencies.</p>
 <h2 id="debugging-workflows">Debugging workflows<a class="anchor" aria-label="anchor" href="#debugging-workflows"></a>
 </h2>
 <p>Start small and build up:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Test with just 2 rows</span></span>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 1. Test with just 2 rows first</span></span>
 <span><span class="va">test_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">results_flow</span>, limit <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Run sequentially for easier debugging</span></span>
+<span><span class="co"># Check if everything worked</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">test_results</span><span class="op">$</span><span class="va">.ok</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Test successful! Now try full dataset."</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="co"># Find which rows failed</span></span>
+<span>  <span class="va">failed_rows</span> <span class="op">&lt;-</span> <span class="va">test_results</span><span class="op">[</span><span class="op">!</span><span class="va">test_results</span><span class="op">$</span><span class="va">.ok</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">failed_rows</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># 2. Run sequentially for easier debugging</span></span>
 <span><span class="va">debug_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">results_flow</span>, engine <span class="op">=</span> <span class="st">"sequential"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Check intermediate outputs</span></span>
+<span><span class="co"># 3. Check intermediate outputs from specific stages</span></span>
 <span><span class="va">stage_outputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diagnostics.html">diagnostics</a></span><span class="op">(</span><span class="va">test_results</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">stage_outputs</span><span class="op">$</span><span class="va">load</span><span class="op">)</span>  <span class="co"># See what the load stage produced</span></span>
 <span></span>
-<span><span class="co"># Inspect the flow structure</span></span>
-<span><span class="fu"><a href="../reference/explain.html">explain</a></span><span class="op">(</span><span class="va">results_flow</span><span class="op">)</span>  <span class="co"># Shows stages and dependencies</span></span></code></pre></div>
+<span><span class="co"># Examine what the load stage produced for the first row</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">stage_outputs</span><span class="op">$</span><span class="va">load</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>  </span>
+<span><span class="co"># $data</span></span>
+<span><span class="co"># A data frame with 100 rows and 5 columns</span></span>
+<span></span>
+<span><span class="co"># Check analyze stage output</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">stage_outputs</span><span class="op">$</span><span class="va">analyze</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co"># $mean_rt</span></span>
+<span><span class="co"># [1] 498.2</span></span>
+<span><span class="co"># $sd_rt  </span></span>
+<span><span class="co"># [1] 48.2</span></span>
+<span><span class="co"># ... etc</span></span>
+<span></span>
+<span><span class="co"># 4. Inspect the flow structure</span></span>
+<span><span class="fu"><a href="../reference/explain.html">explain</a></span><span class="op">(</span><span class="va">results_flow</span><span class="op">)</span>  </span>
+<span><span class="co"># Shows DAG with stages and dependencies:</span></span>
+<span><span class="co"># Stage 'load' (no dependencies)</span></span>
+<span><span class="co"># Stage 'analyze' (depends on: load)</span></span>
+<span></span>
+<span><span class="co"># 5. Debug a specific failure</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">test_results</span><span class="op">$</span><span class="va">.ok</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="co"># Get detailed error for first row</span></span>
+<span>  <span class="va">error_info</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diagnostics.html">diagnostics</a></span><span class="op">(</span><span class="va">test_results</span>, row <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">error_info</span><span class="op">$</span><span class="va">.error</span><span class="op">)</span>  <span class="co"># See exact error message</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="common-patterns-and-tips">Common patterns and tips<a class="anchor" aria-label="anchor" href="#common-patterns-and-tips"></a>
@@ -441,7 +566,7 @@ dependencies.</p>
 <h3 id="pattern-1-conditional-execution">Pattern 1: Conditional execution<a class="anchor" aria-label="anchor" href="#pattern-1-conditional-execution"></a>
 </h3>
 <p>Skip stages based on conditions:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">flow_with_skip</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"load"</span>, <span class="va">...</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span></span>
@@ -461,43 +586,67 @@ dependencies.</p>
 <h3 id="pattern-2-reproducible-randomness">Pattern 2: Reproducible randomness<a class="anchor" aria-label="anchor" href="#pattern-2-reproducible-randomness"></a>
 </h3>
 <p>Use a seed column for reproducible random operations:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">grid_with_seeds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create grid with unique seeds for each analysis</span></span>
+<span><span class="va">grid_with_seeds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
 <span>  participant <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"p01"</span>, <span class="st">"p02"</span><span class="op">)</span>,</span>
-<span>  replicate <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">1001</span><span class="op">:</span><span class="fl">1020</span>  <span class="co"># Unique seed for each row</span></span>
-<span><span class="op">)</span></span>
+<span>  replicate <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">mutate</span><span class="op">(</span>seed <span class="op">=</span> <span class="fl">1000</span> <span class="op">+</span> <span class="fu">row_number</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Add unique seed column</span></span>
 <span></span>
+<span><span class="co"># Tell flow to use the seed column</span></span>
 <span><span class="va">flow_reproducible</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid_with_seeds</span>, seed_col <span class="op">=</span> <span class="st">"seed"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span></span>
 <span>    id <span class="op">=</span> <span class="st">"bootstrap"</span>,</span>
 <span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">participant</span>, <span class="va">replicate</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="co"># Random operations will be reproducible</span></span>
+<span>      <span class="co"># No need to call set.seed() - parade handles it!</span></span>
+<span>      <span class="co"># Each row gets its designated seed automatically</span></span>
+<span>      </span>
+<span>      <span class="co"># Simulate some data for this participant</span></span>
+<span>      <span class="va">original_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span>, mean <span class="op">=</span> <span class="fl">100</span>, sd <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
+<span>      </span>
+<span>      <span class="co"># Bootstrap sampling (will be reproducible)</span></span>
 <span>      <span class="va">sample_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="va">original_data</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>      </span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>bootstrap_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sample_data</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>bootstrap_mean <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span></code></pre></div>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Results will be identical every time you run this</span></span>
+<span><span class="va">results1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">flow_reproducible</span><span class="op">)</span></span>
+<span><span class="va">results2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">flow_reproducible</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">results1</span><span class="op">$</span><span class="va">bootstrap_mean</span>, <span class="va">results2</span><span class="op">$</span><span class="va">bootstrap_mean</span><span class="op">)</span>  <span class="co"># TRUE</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="pattern-3-working-with-complex-objects">Pattern 3: Working with complex objects<a class="anchor" aria-label="anchor" href="#pattern-3-working-with-complex-objects"></a>
 </h3>
 <p>For complex objects (models, custom classes, neuroimaging data), use
 <code><a href="../reference/lst.html">lst()</a></code>:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">model_flow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span></span>
 <span>    id <span class="op">=</span> <span class="st">"fit_model"</span>,</span>
 <span>    f <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">participant</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="co"># Simulate loading participant data</span></span>
+<span>      <span class="co"># In production: data &lt;- read.csv(sprintf("data/%s.csv", participant))</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">participant</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">100</span></span>
+<span>      <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>        x1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>,</span>
+<span>        x2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>,</span>
+<span>        x3 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>,</span>
+<span>        y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span>      <span class="op">)</span></span>
+<span>      </span>
 <span>      <span class="co"># Fit a complex model</span></span>
-<span>      <span class="co"># Replace get_data() with your data loading logic</span></span>
-<span>      <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, data <span class="op">=</span> <span class="fu">get_data</span><span class="op">(</span><span class="va">participant</span><span class="op">)</span><span class="op">)</span>  <span class="co"># user-defined function</span></span>
+<span>      <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>, data <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span>
 <span>      </span>
 <span>      <span class="co"># Return both the model object and extracted metrics</span></span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        model <span class="op">=</span> <span class="va">model</span>,  <span class="co"># Complex object</span></span>
-<span>        r_squared <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">$</span><span class="va">r.squared</span>,  <span class="co"># Simple numeric</span></span>
-<span>        n_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Simple integer</span></span>
+<span>        model <span class="op">=</span> <span class="va">model</span>,                          <span class="co"># Complex object stored as list</span></span>
+<span>        r_squared <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">$</span><span class="va">r.squared</span>,   <span class="co"># Simple numeric value</span></span>
+<span>        n_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">)</span>          <span class="co"># Simple integer value</span></span>
 <span>      <span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    schema <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span></span>
@@ -514,7 +663,7 @@ dependencies.</p>
 <div class="section level3">
 <h3 id="schema-mismatches">Schema mismatches<a class="anchor" aria-label="anchor" href="#schema-mismatches"></a>
 </h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Error: Expected &lt;dbl&gt;, got &lt;int&gt;</span></span>
 <span><span class="co"># Solution: Use the correct type or convert in your function</span></span>
 <span><span class="va">schema</span> <span class="op">=</span> <span class="fu"><a href="../reference/returns.html">returns</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="../reference/dbl.html">dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Not int()</span></span>
@@ -523,7 +672,7 @@ dependencies.</p>
 <div class="section level3">
 <h3 id="cant-find-stage-output">Can’t find stage output<a class="anchor" aria-label="anchor" href="#cant-find-stage-output"></a>
 </h3>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Error: Can't find prep.df</span></span>
 <span><span class="co"># Check:</span></span>
 <span><span class="co"># 1. Stage name: needs = "prep"  (must match stage id)</span></span>
@@ -533,7 +682,7 @@ dependencies.</p>
 <div class="section level3">
 <h3 id="memory-issues-with-parallel-execution">Memory issues with parallel execution<a class="anchor" aria-label="anchor" href="#memory-issues-with-parallel-execution"></a>
 </h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># If you run out of memory with many workers</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">flow</span>, workers <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>  <span class="co"># Reduce worker count</span></span>
 <span></span>
@@ -544,7 +693,7 @@ dependencies.</p>
 <div class="section level3">
 <h3 id="debugging-failed-rows">Debugging failed rows<a class="anchor" aria-label="anchor" href="#debugging-failed-rows"></a>
 </h3>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get detailed information about failures</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="va">flow</span>, error <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
 <span></span>

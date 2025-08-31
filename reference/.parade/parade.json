@@ -2,7 +2,6 @@
   "slurm": {
     "defaults": {
       "time": "1h"
-    },
-    "template": "/path/to/custom.tmpl"
+    }
   }
 }

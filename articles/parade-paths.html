@@ -539,7 +539,7 @@ types</strong></p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"/home/alice/outputs/model.rds"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Good</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"artifacts://model.rds"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">model</span>, <span class="fu"><a href="../reference/resolve_path.html">resolve_path</a></span><span class="op">(</span><span class="st">"artifacts://model.rds"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li>
 <p><strong>Document your path configuration</strong></p>
