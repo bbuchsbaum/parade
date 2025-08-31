@@ -2,19 +2,22 @@
 % Please edit documentation in R/script_jobs.R
 \name{submit_slurm}
 \alias{submit_slurm}
-\title{Submit an R script to SLURM and monitor it from R}
+\title{Submit an R script to SLURM or run locally}
 \usage{
 submit_slurm(
   script,
   args = character(),
   name = NULL,
+  engine = c("slurm", "local"),
   template = NULL,
   resources = NULL,
   registry_dir = NULL,
   env = character(),
   lib_paths = .libPaths(),
   rscript = file.path(R.home("bin"), "Rscript"),
-  wd = dirname(normalizePath(script))
+  wd = dirname(normalizePath(script)),
+  .as_jobset = FALSE,
+  .error_policy = NULL
 )
 }
 \arguments{
@@ -24,9 +27,11 @@ submit_slurm(
 
 \item{name}{Optional job name (defaults to script basename)}
 
+\item{engine}{Execution engine: "slurm" or "local" (default: "slurm")}
+
 \item{template}{Path to SLURM template file (uses default if NULL)}
 
-\item{resources}{Named list of SLURM resource specifications}
+\item{resources}{Named list of SLURM resource specifications (ignored for local)}
 
 \item{registry_dir}{Directory for batchtools registry (auto-generated if NULL)}
 
@@ -37,14 +42,20 @@ submit_slurm(
 \item{rscript}{Path to Rscript executable}
 
 \item{wd}{Working directory for script execution}
+
+\item{.as_jobset}{Logical indicating whether to return a single-element jobset
+instead of a bare job object. Defaults to FALSE for backward compatibility.}
+
+\item{.error_policy}{Error policy object for retry logic (from on_error())}
 }
 \value{
-A \code{parade_script_job} object for monitoring the job
+A \code{parade_script_job} or \code{parade_local_job} object for monitoring the job,
+or a \code{parade_jobset} containing the job if \code{.as_jobset = TRUE}.
 }
 \description{
-Submits an R script as a SLURM job using batchtools, with configurable
-resources and environment. Returns a handle for monitoring and retrieving
-results.
+Submits an R script as a SLURM job using batchtools or runs it locally,
+with configurable resources and environment. Returns a handle for monitoring
+and retrieving results.
 }
 \examples{
 \donttest{
@@ -54,5 +65,8 @@ writeLines("cat('Hello from SLURM!')", script_path)
 
 # Submit to SLURM
 job <- submit_slurm(script_path, resources = list(time = "5min"))
+
+# Run locally
+job <- submit_slurm(script_path, engine = "local")
 }
 }

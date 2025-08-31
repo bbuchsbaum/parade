@@ -221,7 +221,7 @@ test_that("local engine honors name_by and macros in write_result", {
   expect_equal(saved, "ok:input.csv")
 })
 
-test_that("slurm_call passes resources profile names to submit_slurm", {
+test_that("slurm_call forwards resources string to submit_slurm (resolved later)", {
   skip_if_not_installed("batchtools")
 
   test_dir <- withr::local_tempdir()
@@ -239,16 +239,14 @@ test_that("slurm_call passes resources profile names to submit_slurm", {
   stub(slurm_call, "resolve_path", function(x, ...) file.path(test_dir, sub("registry://", "", x)))
 
   captured <- new.env(parent = emptyenv())
-  stub(slurm_call, "submit_slurm", function(script, resources = NULL, resources_profile = "default", ...) {
+  stub(slurm_call, "submit_slurm", function(script, resources = NULL, ...) {
     captured$resources <- resources
-    captured$profile <- resources_profile
     structure(list(kind = "script", registry_dir = test_dir, job_id = 1L, stage_dir = dirname(script)), class = c("parade_script_job", "parade_job"))
   })
 
   # Character profile name should be passed via resources_profile and resources set to NULL
   slurm_call(function(x) x, x = 1, resources = "gpu")
-  expect_null(captured$resources)
-  expect_equal(captured$profile, "gpu")
+  expect_equal(captured$resources, "gpu")
 })
 
 test_that("argument helpers work correctly", {

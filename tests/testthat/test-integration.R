@@ -208,7 +208,8 @@ test_that("Job Submission + Monitoring workflow provides correct status", {
   writeLines("#!/bin/bash", template_path)
   stub(submit_slurm, "slurm_template_default", function() template_path)
   
-  job <- submit_slurm(script = script_path, name = "test_monitor")
+  job <- submit_slurm(script = script_path, name = "test_monitor", 
+                      resources = list(cpus_per_task = 4))
   
   expect_s3_class(job, "parade_script_job")
   expect_equal(job$name, "test_monitor")

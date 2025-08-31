@@ -9,8 +9,9 @@
 \arguments{
 \item{row}{Single row of results}
 
-\item{schema}{Schema specification
-rongparam mode Validation mode: "light" or "full"}
+\item{schema}{Schema specification}
+
+\item{mode}{Validation mode: "light" or "full"}
 }
 \value{
 List with ok status and any error messages

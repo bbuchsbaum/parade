@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-> Requires **parade ≥ 0.11.0**.
+> Requires **parade ≥ 0.11.0** for basic features, **≥ 0.12.0** for function submission with `slurm_call()`.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
@@ -35,13 +35,14 @@ library(parade)
 paths_init()
 
 # Optional: Configure site defaults
+# Note: mem=NA means use cluster default memory allocation
 slurm_defaults_set(partition="general", time="2h", cpus_per_task=16, mem=NA, persist=TRUE)
 slurm_template_set("registry://templates/parade-slurm.tmpl")
 
 # Submit a script file
 job <- submit_slurm("scripts/train.R", args = c("--fold", "1"))
 
-# Or submit a function directly (new in 0.12.0)
+# Or submit a function directly (requires parade ≥ 0.12.0)
 job <- slurm_call(
   function(fold) {
     # Your training code here
@@ -66,12 +67,10 @@ script_top(job, refresh = 2, nlog = 40)
 
 ## Uniform verbs with function submissions
 
-You can submit a single function call and still use the full jobset verb surface by
-wrapping the result as a jobset. Use the `.as_jobset = TRUE` flag on `slurm_call()`
-to opt in to this style:
+A **jobset** is a collection of one or more jobs that can be managed together. By default, `slurm_call()` returns a single job object, but you can request a jobset (a one-element collection) to use the same workflow verbs that work with multiple jobs:
 
 ```r
-# Submit a single function job, returned as a one‑element jobset
+# Submit a single function job, returned as a one-element jobset
 jobs <- slurm_call(
   function(file) {
     # Pretend to do useful work
@@ -82,13 +81,17 @@ jobs <- slurm_call(
   file = "data/example.csv",
   name = "proc-example",
   write_result = path$artifacts("results/{run}/{stem}.rds"),
-  .as_jobset = TRUE
+  .as_jobset = TRUE  # Return as jobset instead of single job
 )
 
-# Same verbs you use for slurm_map() work here too
+# Now you can use jobset verbs:
+# - progress(): Show a progress bar while jobs run
+# - collect(): Wait for completion and retrieve results
+# - status(): Check job states
+# - cancel(): Cancel running jobs
 jobs |> progress() |> collect()
 
-# Open logs if needed (no‑ops for local engine)
+# Open logs if needed (no-ops for local engine)
 open_logs(jobs, selection = "all")
 ```
 
@@ -353,11 +356,22 @@ job <- slurm_call(
   resources = list(mem = "8G")
 )
 
-# After job completes, load the result
+# Wait for job to complete
 script_await(job)
-if (!is.null(job$result_path)) {
-  mat <- readRDS(job$result_path)
-  dim(mat)  # [1] 1000 1000
+
+# Check job status and load result safely
+status <- script_status(job, detail = TRUE)
+if (status$done == 1 && status$error == 0) {
+  # Job succeeded - load the result
+  if (!is.null(job$result_path) && file.exists(job$result_path)) {
+    mat <- readRDS(job$result_path)
+    dim(mat)  # [1] 1000 1000
+  } else {
+    warning("Result file not found at expected path")
+  }
+} else {
+  # Job failed - check logs for errors
+  warning("Job failed - check logs with script_tail(job)")
 }
 ```
 

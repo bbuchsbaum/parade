@@ -37,9 +37,17 @@ sink_spec <- function(fields, dir, template = NULL, format = "rds", formats = NU
     # Per-field formats specified
     stopifnot(is.list(formats))
     format_specs <- formats
+    # Disable autoload for per-field formats as we don't track per-field readers
+    if (missing(autoload)) {
+      autoload <- FALSE
+    }
   } else if (is.list(format)) {
     # Format is a list - treat as per-field
     format_specs <- format
+    # Disable autoload for per-field formats as we don't track per-field readers
+    if (missing(autoload)) {
+      autoload <- FALSE
+    }
   } else {
     # Single format for all fields
     format_specs <- NULL

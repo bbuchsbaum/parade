@@ -102,10 +102,37 @@ args_cli(input = "data.csv", output = "results.rds", verbose = TRUE, threads = 4
 args_call(data = mtcars, formula = mpg ~ cyl + wt, method = "lm")
 ```
 
+## Key arguments at a glance
+
+To keep the surface consistent across functions and scripts, a few arguments show up repeatedly. Here’s what they mean and how to pick values with confidence:
+
+- name_by / .name_by: how job names are generated
+  - "auto": sensible default; uses a file stem when it looks like a path, otherwise uses the index (job-1, job-2, ...).
+  - stem(): extracts the filename stem. You can pass a regex to keep just a capture group, e.g., stem("sample_(\\d+)").
+  - index(prefix = "job", width = 0): generates names like job-1 or task-001.
+  - digest(prefix = "job", length = 8): short, content-based names.
+  - glue_name("template"): template-based; accepts pmap arguments (e.g., "{method}-{x}-{y}") or map element/index via `.x`/`.i`.
+  - slurm_call() uses `name_by = ...`; slurm_map()/slurm_pmap() use `.name_by = ...`.
+
+- engine / .engine: where the work runs
+  - "slurm" (default): submits to SLURM (scripts via submit_slurm(); functions via slurm_call with serialization).
+  - "local": runs the function in the current R session (fast for debugging); still honors `write_result` so you can poke at outputs.
+  - For slurm_map(), `.engine` affects function submissions. Script submissions always go through SLURM (no local script runner is provided).
+
+- write_result / .write_result: on-disk results for functions
+  - Path template where a function’s return value is saved (e.g., "artifacts://results/{run}/{stem}.rds").
+  - Macros like {run}, {stem}, {name}, {index}, {date}, {time}, {user}, {host} are expanded the same way everywhere.
+
+- resources / .resources: how much you ask SLURM for
+  - Accepts a profile name (e.g., "gpu", "standard"), a chained profile object (profile() %>% time("2h") %>% cpus(8)), or a simple list.
+  - Legacy shortcuts like "cpu8", "mem32G", "gpu2" are still recognized.
+
+- .as_jobset (slurm_call only): opt into the jobset surface for single jobs
+  - When TRUE, a one‑element `parade_jobset` is returned so you can write `jobs |> progress() |> collect()` everywhere.
+
 ## Summary
 
 - “One surface”: scripts via `submit_slurm()`, functions via `slurm_call()`
 - `slurm_map()`/`slurm_pmap()` dispatch correctly for both kinds
 - `name_by`, path macros, resource profiles, and flow control work uniformly
 - Use `.as_jobset = TRUE` to get the same jobset verbs for single calls
-

@@ -1,21 +1,26 @@
 # Generic Slurm script submission -----------------------------------------
-#' Submit an R script to SLURM and monitor it from R
+#' Submit an R script to SLURM or run locally
 #'
-#' Submits an R script as a SLURM job using batchtools, with configurable
-#' resources and environment. Returns a handle for monitoring and retrieving
-#' results.
+#' Submits an R script as a SLURM job using batchtools or runs it locally,
+#' with configurable resources and environment. Returns a handle for monitoring
+#' and retrieving results.
 #'
 #' @param script Path to R script file to execute
 #' @param args Character vector of command line arguments to pass to script
 #' @param name Optional job name (defaults to script basename)
+#' @param engine Execution engine: "slurm" or "local" (default: "slurm")
 #' @param template Path to SLURM template file (uses default if NULL)
-#' @param resources Named list of SLURM resource specifications
+#' @param resources Named list of SLURM resource specifications (ignored for local)
 #' @param registry_dir Directory for batchtools registry (auto-generated if NULL)
 #' @param env Named character vector of environment variables to set
 #' @param lib_paths Character vector of library paths to use
 #' @param rscript Path to Rscript executable
 #' @param wd Working directory for script execution
-#' @return A `parade_script_job` object for monitoring the job
+#' @param .as_jobset Logical indicating whether to return a single-element jobset
+#'   instead of a bare job object. Defaults to FALSE for backward compatibility.
+#' @param .error_policy Error policy object for retry logic (from on_error())
+#' @return A `parade_script_job` or `parade_local_job` object for monitoring the job, 
+#'   or a `parade_jobset` containing the job if `.as_jobset = TRUE`.
 #' @export
 #' @examples
 #' \donttest{
@@ -25,20 +30,59 @@
 #' 
 #' # Submit to SLURM
 #' job <- submit_slurm(script_path, resources = list(time = "5min"))
+#' 
+#' # Run locally
+#' job <- submit_slurm(script_path, engine = "local")
 #' }
 submit_slurm <- function(script,
                          args = character(),
                          name = NULL,
+                         engine = c("slurm", "local"),
                          template = NULL,
                          resources = NULL,
                          registry_dir = NULL,
                          env = character(),
                          lib_paths = .libPaths(),
                          rscript = file.path(R.home("bin"), "Rscript"),
-                         wd = dirname(normalizePath(script))) {
-  if (!requireNamespace("batchtools", quietly = TRUE)) stop("submit_slurm() requires 'batchtools'.")
+                         wd = dirname(normalizePath(script)),
+                         .as_jobset = FALSE,
+                         .error_policy = NULL) {
+  engine <- match.arg(engine)
+  
+  # Check batchtools requirement for SLURM engine first
+  if (engine == "slurm" && !requireNamespace("batchtools", quietly = TRUE)) {
+    stop("submit_slurm() requires 'batchtools'.")
+  }
+  
   if (!file.exists(script)) stop("Script not found: ", script)
   name <- name %||% tools::file_path_sans_ext(basename(script))
+  
+  # Route to local execution if requested
+  if (engine == "local") {
+    handle <- submit_script_local(
+      script = script,
+      args = args,
+      name = name,
+      env = env,
+      lib_paths = lib_paths,
+      rscript = rscript,
+      wd = wd
+    )
+    
+    # Store error policy if provided
+    if (!is.null(.error_policy)) {
+      attr(handle, "error_policy") <- .error_policy
+    }
+    
+    # Optionally wrap in jobset
+    if (isTRUE(.as_jobset)) {
+      handle <- as_jobset(handle)
+    }
+    
+    return(handle)
+  }
+  
+  # SLURM execution path
   run_id <- substr(digest::digest(list(script, args, Sys.time())), 1, 8)
   # resolve defaults and normalize resources
   resources <- slurm_resources(resources = resources, profile = "default")
@@ -69,8 +113,31 @@ submit_slurm <- function(script,
   meta <- list(name=name, script=normalizePath(script), submitted=as.character(Sys.time()),
                job_id=handle$job_id, registry=reg_dir)
   try(jsonlite::write_json(meta, file.path(reg_dir, "meta.json"), auto_unbox = TRUE), silent = TRUE)
+  
+  # Store error policy if provided
+  if (!is.null(.error_policy)) {
+    handle$script <- normalizePath(script)
+    handle$args <- args
+    handle$resources <- resources
+    attr(handle, "error_policy") <- .error_policy
+  }
+  
+  # Optionally wrap in jobset
+  if (isTRUE(.as_jobset)) {
+    handle <- as_jobset(handle)
+  }
+  
   handle
 }
+#' Run script in batchtools context
+#' @param i Job index
+#' @param script Path to R script
+#' @param args Command line arguments
+#' @param env Environment variables
+#' @param lib_paths Library paths to prepend
+#' @param rscript Path to Rscript executable
+#' @param wd Working directory
+#' @return List with ok status and exit code
 #' @keywords internal
 parade_run_script_bt <- function(i, script, args, env, lib_paths, rscript, wd) {
   if (length(lib_paths)) .libPaths(unique(c(lib_paths, .libPaths())))
@@ -178,4 +245,118 @@ script_find_latest <- function(n = 5, pattern = NULL) {
   info <- file.info(cands); ord <- order(info$mtime, decreasing = TRUE)
   paths <- cands[ord]; if (!is.null(pattern)) paths <- paths[grepl(pattern, basename(paths), fixed = TRUE)]
   tibble::tibble(registry = paths[seq_len(min(n, length(paths)))], mtime = as.POSIXct(info$mtime[ord][seq_len(min(n, length(paths)))]))
+}
+
+#' Submit an R script for local execution
+#' 
+#' @description
+#' Runs an R script locally in a separate R process, capturing output
+#' and providing a job-like interface for consistency with SLURM jobs.
+#' 
+#' @param script Path to R script file to execute
+#' @param args Character vector of command line arguments
+#' @param name Job name
+#' @param env Named character vector of environment variables
+#' @param lib_paths Library paths to use
+#' @param rscript Path to Rscript executable
+#' @param wd Working directory for script execution
+#' @return A parade_local_job object
+#' 
+#' @keywords internal
+submit_script_local <- function(script,
+                                args = character(),
+                                name = NULL,
+                                env = character(),
+                                lib_paths = .libPaths(),
+                                rscript = file.path(R.home("bin"), "Rscript"),
+                                wd = dirname(normalizePath(script))) {
+  
+  if (!file.exists(script)) {
+    stop("Script not found: ", script)
+  }
+  
+  name <- name %||% tools::file_path_sans_ext(basename(script))
+  script_path <- normalizePath(script)
+  
+  # Create a temporary directory for output
+  output_dir <- tempfile(pattern = paste0("local_script_", name, "_"))
+  dir.create(output_dir, recursive = TRUE)
+  
+  # Prepare command
+  cmd_args <- c(script_path, args)
+  
+  # Capture output files
+  stdout_file <- file.path(output_dir, "stdout.txt")
+  stderr_file <- file.path(output_dir, "stderr.txt")
+  
+  # Run the script
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(wd)
+  
+  # Set up environment variables if needed
+  if (length(env) > 0) {
+    old_env <- Sys.getenv(names(env), names = TRUE)
+    for (k in names(env)) {
+      # Use do.call to properly set named argument
+      do.call(Sys.setenv, setNames(list(env[[k]]), k))
+    }
+    on.exit({
+      # Restore original environment
+      for (k in names(old_env)) {
+        do.call(Sys.setenv, setNames(list(old_env[[k]]), k))
+      }
+      setwd(old_wd)
+    }, add = FALSE)
+  }
+  
+  # Execute script and capture result
+  start_time <- Sys.time()
+  result <- tryCatch({
+    status <- system2(
+      command = rscript,
+      args = cmd_args,
+      stdout = stdout_file,
+      stderr = stderr_file,
+      wait = TRUE
+    )
+    
+    # Check exit status
+    if (is.null(status)) status <- 0L
+    
+    if (status != 0L) {
+      # Read any error output if available
+      error_msg <- if (file.exists(stderr_file) && file.size(stderr_file) > 0) {
+        paste(readLines(stderr_file), collapse = "\n")
+      } else {
+        "No error output captured"
+      }
+      stop(sprintf("Script exited with status %s: %s", status, error_msg))
+    }
+    
+    list(success = TRUE, status = status)
+  }, error = function(e) {
+    list(success = FALSE, error = e)
+  })
+  
+  end_time <- Sys.time()
+  
+  # Create job handle
+  handle <- list(
+    kind = "local_script",
+    script = script_path,
+    args = args,
+    name = name,
+    output_dir = output_dir,
+    stdout_file = stdout_file,
+    stderr_file = stderr_file,
+    result = result,
+    start_time = start_time,
+    end_time = end_time,
+    status = if (result$success) "COMPLETED" else "FAILED",
+    wd = wd
+  )
+  
+  class(handle) <- c("parade_local_job", "parade_job")
+  handle
 }

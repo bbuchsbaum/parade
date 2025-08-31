@@ -6,7 +6,25 @@
 \usage{
 x \%||\% y
 }
-\description{
-Null-coalescing operator
+\arguments{
+\item{a}{Left-hand side value to check}
+
+\item{b}{Right-hand side value to use if \code{a} is NULL}
 }
-\keyword{internal}
+\value{
+Returns \code{a} if it is not NULL, otherwise returns \code{b}
+}
+\description{
+Returns the left-hand side if it is not NULL, otherwise returns the
+right-hand side. This operator is re-exported from the rlang package
+for convenience.
+}
+\examples{
+# Returns the non-NULL value
+5 \%||\% 10        # Returns 5
+NULL \%||\% 10     # Returns 10
+
+# Useful for setting defaults
+x <- NULL
+value <- x \%||\% "default"  # Returns "default"
+}

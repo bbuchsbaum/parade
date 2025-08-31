@@ -1,9 +1,24 @@
 # Utility functions
 
 #' Null-coalescing operator
-#' @keywords internal
+#'
+#' Returns the left-hand side if it is not NULL, otherwise returns the
+#' right-hand side. This operator is re-exported from the rlang package
+#' for convenience.
+#'
+#' @param a Left-hand side value to check
+#' @param b Right-hand side value to use if `a` is NULL
+#' @return Returns `a` if it is not NULL, otherwise returns `b`
 #' @importFrom rlang %||%
 #' @export
+#' @examples
+#' # Returns the non-NULL value
+#' 5 %||% 10        # Returns 5
+#' NULL %||% 10     # Returns 10
+#' 
+#' # Useful for setting defaults
+#' x <- NULL
+#' value <- x %||% "default"  # Returns "default"
 `%||%` <- rlang::`%||%`
 
 #' @keywords internal

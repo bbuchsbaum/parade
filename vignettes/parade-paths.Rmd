@@ -454,7 +454,7 @@ paths_set(
    saveRDS(model, "/home/alice/outputs/model.rds")
    
    # Good
-   saveRDS(model, "artifacts://model.rds")
+   saveRDS(model, resolve_path("artifacts://model.rds"))
    ```
 
 4. **Document your path configuration**

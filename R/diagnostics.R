@@ -9,11 +9,24 @@
 #' @return Tibble with diagnostic information
 #' @export
 #' @examples
-#' \donttest{
-#' # results <- collect(flow)
-#' # diag <- diagnostics(results)
-#' # stage_diag <- diagnostics(results, stage = "process")
-#' }
+#' # Create a sample results tibble with diagnostic info
+#' sample_out <- tibble::tibble(
+#'   .ok = c(TRUE, FALSE, TRUE),
+#'   .diag = list(
+#'     list(process = list(ok = TRUE, skipped = FALSE),
+#'          validate = list(ok = TRUE, skipped = FALSE)),
+#'     list(process = list(ok = FALSE, skipped = FALSE),
+#'          validate = list(ok = TRUE, skipped = TRUE)),
+#'     list(process = list(ok = TRUE, skipped = FALSE),
+#'          validate = list(ok = TRUE, skipped = FALSE))
+#'   )
+#' )
+#' 
+#' # Get all diagnostics
+#' diag <- diagnostics(sample_out)
+#' 
+#' # Get diagnostics for specific stage
+#' stage_diag <- diagnostics(sample_out, stage = "process")
 diagnostics <- function(out, stage = NULL) {
   di <- out$.diag
   result <- tibble::tibble(row = seq_len(nrow(out)), diag = di) |>
@@ -33,11 +46,22 @@ diagnostics <- function(out, stage = NULL) {
 #' @return Tibble containing only failed rows
 #' @export
 #' @examples
-#' \donttest{
-#' # results <- collect(flow)
-#' # failures <- failed(results)
-#' # stage_failures <- failed(results, stage = "validation")
-#' }
+#' # Create a sample results tibble with diagnostic info
+#' sample_out <- tibble::tibble(
+#'   .ok = c(TRUE, FALSE, TRUE, FALSE),
+#'   .diag = list(
+#'     list(validation = list(ok = TRUE, skipped = FALSE)),
+#'     list(validation = list(ok = FALSE, skipped = FALSE)),
+#'     list(validation = list(ok = TRUE, skipped = FALSE)),
+#'     list(validation = list(ok = FALSE, skipped = FALSE))
+#'   )
+#' )
+#' 
+#' # Get all failed rows
+#' failures <- failed(sample_out)
+#' 
+#' # Get rows that failed in specific stage
+#' stage_failures <- failed(sample_out, stage = "validation")
 failed <- function(out, stage = NULL) {
   if (is.null(stage)) return(out[!out$.ok, , drop = FALSE])
   di <- diagnostics(out, stage = stage); bad_rows <- di$row[!di$ok & !di$skipped]; out[bad_rows, , drop = FALSE]

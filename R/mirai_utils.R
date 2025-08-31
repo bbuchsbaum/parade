@@ -167,4 +167,4 @@ mirai_init <- function(n = NULL, dispatcher = TRUE) {
   invisible(old_plan)
 }
 
-`%||%` <- function(a, b) if (!is.null(a)) a else b
+# Use the %||% operator from utils.R instead of redefining

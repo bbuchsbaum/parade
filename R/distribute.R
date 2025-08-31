@@ -39,8 +39,15 @@ dist_local <- function(by = NULL, within = c("multisession","sequential"), worke
 #' @return A `parade_dist` object for SLURM execution
 #' @export
 #' @examples
-#' \donttest{
-#' dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
+#' # Create SLURM distribution specification
+#' dist <- dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
+#' 
+#' # Use with a flow (configuration only, no execution)
+#' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#' \dontrun{
+#' flow(grid) |>
+#'   stage("process", function(x) x * 2) |>
+#'   distribute(dist)
 #' }
 dist_slurm <- function(by = NULL, within = c("multisession","sequential"), workers_within = NULL, template = slurm_template(), resources = list(), chunks_per_job = 1L) {
   within <- match.arg(within)
@@ -63,7 +70,11 @@ dist_slurm <- function(by = NULL, within = c("multisession","sequential"), worke
 #' @return A `parade_dist` object suitable for `distribute()`
 #' @export
 #' @examples
-#' \donttest{
+#' # Create SLURM distribution using a profile
+#' dist <- dist_slurm_profile("standard", by = "group")
+#' 
+#' # Configuration example (no execution)
+#' \dontrun{
 #' flow(grid) |>
 #'   stage("analyze", analyze_fn) |>
 #'   distribute(dist_slurm_profile("standard"))

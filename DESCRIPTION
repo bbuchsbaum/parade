@@ -13,7 +13,7 @@ Description: Declarative, lazy, compositional dataflow for R on top of 'future'/
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
-Imports: tibble, tidyr, purrr, rlang, vctrs, furrr, future, progressr, glue, jsonlite, digest
+Imports: tibble, tidyr, dplyr, purrr, rlang, vctrs, furrr, future, progressr, glue, jsonlite, digest
 Suggests: knitr, rmarkdown, future.batchtools, batchtools, mirai, future.mirai, nanonext, testthat, progress
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)

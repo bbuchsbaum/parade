@@ -33,7 +33,14 @@ A \code{parade_dist} object for SLURM execution
 Configure distributed execution on SLURM clusters using batchtools.
 }
 \examples{
-\donttest{
-dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
+# Create SLURM distribution specification
+dist <- dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
+
+# Use with a flow (configuration only, no execution)
+grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+\dontrun{
+flow(grid) |>
+  stage("process", function(x) x * 2) |>
+  distribute(dist)
 }
 }

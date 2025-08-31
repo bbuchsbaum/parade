@@ -6,6 +6,14 @@
 \usage{
 .slurm_exec(cmd, args)
 }
+\arguments{
+\item{cmd}{Command to execute}
+
+\item{args}{Command arguments}
+}
+\value{
+Command output
+}
 \description{
 Execution hook for testing
 }

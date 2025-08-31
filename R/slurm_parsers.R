@@ -3,6 +3,8 @@
 # They have no side effects and are easily testable
 
 #' Parse squeue output
+#' @param output Character vector of squeue command output
+#' @return List with job state information (state, time, timelimit, cpus, nodes, reason, nodelist)
 #' @keywords internal
 .parse_squeue_output <- function(output) {
   if (length(output) == 0L || !nzchar(output[1])) {
@@ -51,6 +53,9 @@
 }
 
 #' Parse sacct output
+#' @param output Character vector of sacct command output
+#' @param job_id Job ID to search for
+#' @return List with job accounting information or NULL if not found
 #' @keywords internal
 .parse_sacct_output <- function(output, job_id) {
   if (length(output) == 0L) return(NULL)
@@ -87,6 +92,8 @@
 }
 
 #' Parse sstat output
+#' @param output Character vector of sstat command output
+#' @return List with job statistics or NULL if not parseable
 #' @keywords internal  
 .parse_sstat_output <- function(output) {
   if (length(output) == 0L || !nzchar(output[1])) return(NULL)
@@ -111,12 +118,18 @@
 }
 
 #' Execution hook for testing
+#' @param cmd Command to execute
+#' @param args Command arguments
+#' @return Command output
 #' @keywords internal
 .slurm_exec <- function(cmd, args) {
   .run_cmd(cmd, args)
 }
 
 #' Refactored squeue info with injectable executor
+#' @param job_id Job ID to query
+#' @param exec Execution function (defaults to .slurm_exec)
+#' @return Parsed squeue output
 #' @keywords internal
 .slurm_squeue_info_v2 <- function(job_id, exec = .slurm_exec) {
   out <- exec("squeue", c("-j", as.character(job_id), "-h", "-o", "%T|%M|%l|%C|%D|%R|%N"))
@@ -124,6 +137,9 @@
 }
 
 #' Refactored sacct info with injectable executor
+#' @param job_id Job ID to query
+#' @param exec Execution function (defaults to .slurm_exec)
+#' @return Parsed sacct output
 #' @keywords internal
 .slurm_sacct_info_v2 <- function(job_id, exec = .slurm_exec) {
   out <- exec("sacct", c("-j", as.character(job_id), "-n", "-p", "-X", "-o", 
@@ -132,6 +148,9 @@
 }
 
 #' Refactored sstat info with injectable executor
+#' @param job_id Job ID to query
+#' @param exec Execution function (defaults to .slurm_exec)
+#' @return Parsed sstat output
 #' @keywords internal
 .slurm_sstat_info_v2 <- function(job_id, exec = .slurm_exec) {
   steps <- c(paste0(job_id, ".batch"), as.character(job_id))

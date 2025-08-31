@@ -133,9 +133,13 @@ slurm_template_default <- function() {
 #' @return Resolved template path (invisibly)
 #' @export
 #' @examples
-#' \donttest{
-#' slurm_template_set("/path/to/custom.tmpl")
-#' }
+#' # Set a custom template path (temporarily, without persisting)
+#' temp_file <- tempfile(fileext = ".tmpl")
+#' writeLines("#!/bin/bash", temp_file)
+#' slurm_template_set(temp_file, persist = FALSE)
+#' 
+#' # Clean up
+#' unlink(temp_file)
 slurm_template_set <- function(path, persist = TRUE) {
   cfg <- parade_config_read()
   if (is.null(cfg$slurm)) cfg$slurm <- list()

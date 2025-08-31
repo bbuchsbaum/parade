@@ -10,9 +10,12 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  eval = FALSE
 )
 ```
+
+> Note: Code evaluation is disabled in this vignette to keep builds fast and cluster-agnostic. Copy code into an interactive R session to run locally or on your cluster.
 
 ## Prerequisites
 
@@ -53,6 +56,7 @@ saveRDS(huge_results, "~/my_home_dir/results.rds")  # NO! Home has quota!
 
 ```r
 library(parade)
+paths_init()  # Initialize smart path aliases (artifacts://, etc.)
 
 # Define what should go to disk
 results <- flow(subjects) |>
@@ -85,6 +89,8 @@ model_50 <- readRDS(results$model[[50]]$path)
 
 ## Quick Start: Your First Artifact Workflow
 
+Reproducibility tip: When examples use random data (`rnorm()`, sampling, etc.), set a seed (e.g., `set.seed(42)`) so printed outputs are deterministic.
+
 ### Step 1: Initialize parade's path system
 
 ```r
@@ -104,6 +110,7 @@ data <- data.frame(
 results <- flow(data) |>
   stage("analyze",
     f = function(sample, size) {
+      set.seed(42)  # reproducible example output
       # Simulate some analysis
       model <- lm(rnorm(size) ~ 1:size)
       metrics <- summary(model)$r.squared
@@ -206,9 +213,22 @@ neuro_pipeline <- flow(subjects) |>
   # Stage 1: Preprocessing (large outputs)
   stage("preprocess",
     f = function(subject) {
-      raw <- load_raw_brain(subject)
-      cleaned <- denoise_and_normalize(raw)  # ~2GB per subject
-      qc_metrics <- calculate_qc(cleaned)    # Small summary
+      # Simulate loading brain data (in production, use actual neuroimaging tools)
+      # raw <- oro.nifti::readNIfTI(sprintf("data/%s_T1.nii.gz", subject))
+      
+      # For this example, simulate with a large matrix
+      set.seed(as.numeric(factor(subject)))
+      raw <- matrix(rnorm(256 * 256 * 176), nrow = 256)  # ~46MB
+      
+      # Simulate preprocessing
+      cleaned <- raw / max(abs(raw))  # Normalize to [-1, 1]
+      
+      # Calculate quality control metrics
+      qc_metrics <- list(
+        snr = 20 * runif(1, 0.5, 1.5),  # Signal-to-noise ratio
+        motion = runif(1, 0, 2),         # Motion estimate in mm
+        outliers = rpois(1, 3)           # Number of outlier voxels
+      )
       
       list(
         cleaned_brain = cleaned,
@@ -222,20 +242,34 @@ neuro_pipeline <- flow(subjects) |>
     sink = sink_spec(
       fields = "cleaned_brain",
       dir = "artifacts://preprocessing",
-      format = "nii.gz"  # Neuroimaging format
+      format = "rds"  # Use RDS here to match readRDS() below
     )
   ) |>
   
   # Stage 2: Analysis (moderate outputs)  
   stage("analyze",
-    f = function(cleaned_brain, qc) {
-      # Load the artifact
-      brain <- readRDS(cleaned_brain$path)
+    needs = "preprocess",  # Declare dependency
+    f = function(preprocess.cleaned_brain, preprocess.qc) {
+      # Load the artifact (matches format = "rds" above)
+      brain <- readRDS(preprocess.cleaned_brain$path)
       
       # Only process if QC passed
-      if (qc$snr > 10) {
-        model <- fit_glm(brain)  # ~500MB
-        stats <- extract_statistics(model)  # ~1KB
+      if (preprocess.qc$snr > 10) {
+        # Simulate GLM fitting on brain data
+        # In production: model <- fsl.glm(brain, design_matrix)
+        
+        # For this example, fit simple model on flattened data
+        y <- as.vector(brain[1:100, 1:100])  # Use subset
+        x <- seq_along(y)
+        model <- lm(y ~ x)
+        
+        # Extract statistics
+        stats <- list(
+          beta = coef(model)[2],
+          t_stat = summary(model)$coefficients[2, "t value"],
+          p_value = summary(model)$coefficients[2, "Pr(>|t|)"]
+        )
+        
         list(model = model, stats = stats)
       } else {
         list(model = NULL, stats = NULL)
@@ -256,6 +290,32 @@ results <- collect(neuro_pipeline)
 
 # Memory usage stays manageable even with 1000 subjects!
 # Only paths and small summaries in memory
+```
+
+### Registering custom formats (e.g., NIfTI)
+
+If you prefer domain formats (like NIfTI), register a reader/writer pair once and reference it by name in `sink_spec()`:
+
+```r
+# Requires the RNifti package
+if (requireNamespace("RNifti", quietly = TRUE)) {
+  register_sink_format(
+    "nii",  # format name used in sink_spec(format = "nii")
+    writer = function(x, path, ...) { RNifti::writeNifti(x, path, ...); invisible(path) },
+    reader = function(path, ...) RNifti::readNifti(path, ...),
+    ext = ".nii.gz"  # ensures files end with .nii.gz
+  )
+}
+
+# Then in your sink, use the registered format name:
+sink_spec(
+  fields = "cleaned_brain",
+  dir = "artifacts://preprocessing",
+  format = "nii"
+)
+
+# Reading later (if autoload = FALSE):
+# brain <- RNifti::readNifti(cleaned_brain$path)
 ```
 
 ### Scenario 2: Machine Learning with Checkpointing
@@ -284,17 +344,44 @@ ml_training <- flow(param_grid(
                               fold, epoch - 1)
           model <- readRDS(resolve_path(prev_path))
         } else {
-          model <- initialize_model()
+          # Initialize a new model (simple linear model for demo)
+          model <- list(
+            weights = rnorm(10),
+            bias = 0,
+            learning_rate = 0.01
+          )
         }
         
-        model <- train_epoch(model, get_fold_data(fold))
+        # Simulate one epoch of training
+        set.seed(fold * 1000 + epoch)
+        
+        # Get mock training data for this fold
+        n_samples <- 100
+        X <- matrix(rnorm(n_samples * 10), ncol = 10)
+        y <- X %*% rnorm(10) + rnorm(n_samples)
+        
+        # Simple gradient descent update (mock training)
+        predictions <- X %*% model$weights + model$bias
+        errors <- predictions - y
+        gradient_w <- t(X) %*% errors / n_samples
+        gradient_b <- mean(errors)
+        
+        # Update model
+        model$weights <- model$weights - model$learning_rate * gradient_w
+        model$bias <- model$bias - model$learning_rate * gradient_b
       }
+      
+      # Calculate loss on validation data
+      val_X <- matrix(rnorm(50 * 10), ncol = 10)
+      val_y <- val_X %*% rnorm(10) + rnorm(50)
+      val_pred <- val_X %*% model$weights + model$bias
+      loss <- mean((val_pred - val_y)^2)  # MSE loss
       
       list(
         model = model,
         fold = fold,
         epoch = epoch,
-        loss = calculate_loss(model)
+        loss = loss
       )
     },
     schema = returns(
@@ -326,9 +413,29 @@ ggplot(results, aes(x = epoch, y = loss, color = factor(fold))) +
 Different team members work on different parts:
 
 ```r
+# Setup: Create subject list
+all_subjects <- data.frame(
+  subject_id = sprintf("sub_%03d", 1:100),
+  group = rep(c("control", "treatment"), 50)
+)
+
 # Alice runs preprocessing
-preprocessing <- flow(all_subjects[1:50]) |>
-  stage("clean", clean_data,
+preprocessing <- flow(all_subjects[1:50, ]) |>
+  stage("clean",
+    f = function(subject_id, group) {
+      # Simulate data cleaning
+      set.seed(as.numeric(factor(subject_id)))
+      raw_data <- data.frame(
+        value = rnorm(1000, mean = ifelse(group == "control", 100, 110)),
+        time = 1:1000
+      )
+      
+      # Remove outliers and normalize
+      cleaned <- raw_data[abs(scale(raw_data$value)) < 3, ]
+      cleaned$value <- scale(cleaned$value)
+      
+      list(cleaned = cleaned)
+    },
     schema = returns(cleaned = artifact()),
     sink = sink_spec(
       fields = "cleaned",
@@ -339,10 +446,15 @@ alice_results <- collect(preprocessing)
 
 # Bob runs models on Alice's outputs
 modeling <- flow(alice_results) |>
-  stage("model", 
-    f = function(cleaned) {
-      data <- readRDS(cleaned$path)
-      model <- fit_model(data)
+  stage("model",
+    needs = "clean",  # Reference Alice's stage
+    f = function(clean.cleaned) {
+      # Load preprocessed data
+      data <- readRDS(clean.cleaned$path)
+      
+      # Fit a simple time series model
+      model <- lm(value ~ poly(time, 3), data = data)
+      
       list(model = model)
     },
     schema = returns(model = artifact()),
@@ -356,19 +468,29 @@ bob_results <- collect(modeling)
 # Carol visualizes without needing full models
 visualization <- flow(bob_results) |>
   stage("plot",
-    f = function(model) {
+    needs = "model",  # Reference Bob's stage
+    f = function(model.model) {
       # Load just the coefficients, not full model
-      m <- readRDS(model$path)
+      m <- readRDS(model.model$path)
       coefs <- coef(m)
       
-      plot <- create_coefficient_plot(coefs)
-      list(plot = plot)
+      # Create a simple coefficient plot
+      # In production, use ggplot2 for better visualizations
+      pdf(NULL)  # Start null device to capture plot
+      barplot(coefs[-1], 
+              names.arg = paste0("Term", 1:(length(coefs)-1)),
+              main = "Model Coefficients",
+              col = "steelblue")
+      plot_obj <- recordPlot()  # Capture the plot
+      dev.off()
+      
+      list(plot = plot_obj)
     },
     schema = returns(plot = artifact()),
     sink = sink_spec(
       fields = "plot",
       dir = "artifacts://shared/figures",
-      format = "pdf"
+      format = "rds"  # Save R plot objects as RDS
     ))
 ```
 

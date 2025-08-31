@@ -88,10 +88,14 @@ has_sink_format <- function(name) {
 }
 
 # Register built-in formats on package load
+#' Register built-in sink formats
+#' @keywords internal
 .register_builtin_formats <- function() {
   # RDS - default format
   register_sink_format("rds",
     writer = function(x, path, compress = "gzip", ...) {
+      # Create parent directory if needed
+      dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
       if (identical(compress, "gz")) compress <- "gzip"
       saveRDS(x, file = path, compress = compress, ...)
       invisible(path)
@@ -104,6 +108,7 @@ has_sink_format <- function(name) {
   # CSV
   register_sink_format("csv",
     writer = function(x, path, ...) {
+      dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
       write.csv(x, file = path, row.names = FALSE, ...)
       invisible(path)
     },
@@ -117,6 +122,7 @@ has_sink_format <- function(name) {
   # TSV
   register_sink_format("tsv",
     writer = function(x, path, ...) {
+      dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
       write.table(x, file = path, sep = "\t", row.names = FALSE, ...)
       invisible(path)
     },
@@ -130,6 +136,7 @@ has_sink_format <- function(name) {
   # JSON
   register_sink_format("json",
     writer = function(x, path, ...) {
+      dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
       jsonlite::write_json(x, path = path, auto_unbox = TRUE, ...)
       invisible(path)
     },
@@ -144,6 +151,7 @@ has_sink_format <- function(name) {
   if (requireNamespace("arrow", quietly = TRUE)) {
     register_sink_format("parquet",
       writer = function(x, path, ...) {
+        dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
         arrow::write_parquet(x, sink = path, ...)
         invisible(path)
       },
@@ -157,6 +165,7 @@ has_sink_format <- function(name) {
     # Feather/Arrow IPC format
     register_sink_format("feather",
       writer = function(x, path, ...) {
+        dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
         arrow::write_feather(x, sink = path, ...)
         invisible(path)
       },
@@ -172,6 +181,7 @@ has_sink_format <- function(name) {
   if (requireNamespace("qs", quietly = TRUE)) {
     register_sink_format("qs",
       writer = function(x, path, ...) {
+        dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
         qs::qsave(x, file = path, ...)
         invisible(path)
       },
@@ -212,6 +222,13 @@ has_sink_format <- function(name) {
 }
 
 # Generic atomic write wrapper
+#' Write atomically with generic writer function
+#' @param writer_fn Function to write data to file
+#' @param x Data object to write
+#' @param path Target file path
+#' @param ... Additional arguments passed to writer_fn
+#' @return Path to written file (invisibly)
+#' @keywords internal
 .write_atomic_generic <- function(writer_fn, x, path, ...) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   tmp <- paste0(path, ".tmp-", Sys.getpid(), "-", as.integer(runif(1)*1e9))
@@ -231,6 +248,11 @@ has_sink_format <- function(name) {
 }
 
 # Helper to get writer/reader for a format or function
+#' Get writer and reader functions for a format
+#' @param format_or_fn Format name string or function
+#' @param field Optional field name for extraction
+#' @return List with writer and reader functions
+#' @keywords internal
 .get_writer_reader <- function(format_or_fn, field = NULL) {
   # If it's a string, look up in registry
   if (is.character(format_or_fn)) {
@@ -267,6 +289,11 @@ has_sink_format <- function(name) {
 }
 
 # Convert formula to function for writer/reader
+#' Convert formula to function for sink operations
+#' @param formula Formula object to convert
+#' @param write_mode Logical indicating whether to create writer (TRUE) or reader (FALSE)
+#' @return Function for writing or reading data
+#' @keywords internal
 .formula_to_function <- function(formula, write_mode = TRUE) {
   stopifnot(inherits(formula, "formula"))
   

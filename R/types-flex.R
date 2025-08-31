@@ -260,7 +260,7 @@ is_flex_type <- function(x) {
 #'
 #' @param row Single row of results
 #' @param schema Schema specification
-#'rongparam mode Validation mode: "light" or "full"
+#' @param mode Validation mode: "light" or "full"
 #' @return List with ok status and any error messages
 #' @keywords internal
 .validate_flex_row <- function(row, schema, mode = "light") {

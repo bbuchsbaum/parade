@@ -6,6 +6,14 @@
 \usage{
 .parse_sacct_output(output, job_id)
 }
+\arguments{
+\item{output}{Character vector of sacct command output}
+
+\item{job_id}{Job ID to search for}
+}
+\value{
+List with job accounting information or NULL if not found
+}
 \description{
 Parse sacct output
 }

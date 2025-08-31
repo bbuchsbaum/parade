@@ -19,9 +19,22 @@ Extracts and formats diagnostic information from completed flow
 execution results, showing success/failure status for each stage.
 }
 \examples{
-\donttest{
-# results <- collect(flow)
-# diag <- diagnostics(results)
-# stage_diag <- diagnostics(results, stage = "process")
-}
+# Create a sample results tibble with diagnostic info
+sample_out <- tibble::tibble(
+  .ok = c(TRUE, FALSE, TRUE),
+  .diag = list(
+    list(process = list(ok = TRUE, skipped = FALSE),
+         validate = list(ok = TRUE, skipped = FALSE)),
+    list(process = list(ok = FALSE, skipped = FALSE),
+         validate = list(ok = TRUE, skipped = TRUE)),
+    list(process = list(ok = TRUE, skipped = FALSE),
+         validate = list(ok = TRUE, skipped = FALSE))
+  )
+)
+
+# Get all diagnostics
+diag <- diagnostics(sample_out)
+
+# Get diagnostics for specific stage
+stage_diag <- diagnostics(sample_out, stage = "process")
 }

@@ -12,6 +12,7 @@
 #' 
 #' @examples
 #' \donttest{
+#' # Note: These examples require a SLURM cluster environment
 #' # Convert single job to jobset
 #' job <- slurm_call(function(x) x^2, x = 10)
 #' jobset <- as_jobset(job)
@@ -216,6 +217,7 @@ await.parade_jobset <- function(x, timeout = Inf, poll = 10, .progress = NULL, .
 #' 
 #' @examples
 #' \donttest{
+#' # Note: This example requires a SLURM cluster environment
 #' jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
 #' progress(jobs)  # Shows progress bar
 #' }

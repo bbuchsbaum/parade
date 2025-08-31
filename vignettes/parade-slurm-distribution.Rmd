@@ -9,6 +9,12 @@ vignette: >
 
 > Requires **parade ≥ 0.6.0**.
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+> Note: Code evaluation is disabled to keep builds fast and avoid submitting jobs during checks. Copy code into an interactive session to run on your local machine or SLURM cluster.
+
 ## Introduction to distributed computing with parade
 
 **parade** separates the **workflow definition** (DAG) from the **execution strategy** (distribution plan), allowing you to run the same computational pipeline locally for development or on SLURM clusters for production. This separation enables:
@@ -23,6 +29,22 @@ The key insight is that parade workflows are *portable* - you define your comput
 ## Local vs. SLURM distribution strategies
 
 ### Local distribution for development
+
+Before we switch to SLURM, it helps to understand what the distribution API does:
+
+- `distribute()` attaches an execution strategy to a flow. The strategy does not
+  change your DAG — it only controls how rows of the parameter grid are scheduled.
+- `dist_local()` builds a local strategy (great for development) and lets you
+  specify grouping (with `by`), the within‑job execution mode (`within`), and the
+  amount of parallelism inside each job (`workers_within`).
+- `dist_slurm()` does the same for a SLURM cluster (we cover it in the next section).
+
+The `by` argument refers to column names in your parameter grid. In this vignette
+we group by `subject`, so all rows for the same subject run in the same job.
+
+If you want to “test on a subset,” simply filter your grid before building the flow
+(for example, `grid_dev <- subset(grid, subject == "sub01")`). The code below keeps
+the full grid and illustrates local parallelism.
 
 ```r
 library(parade)
@@ -46,8 +68,8 @@ fl <- flow(grid) |>
     list(result = paste(subject, session, condition, sep = "_"))
   })
 
-# Local development: test on a subset
-fl_local <- fl |> 
+# Local development: run locally (optionally on a subset)
+fl_local <- fl |>
   distribute(dist_local(
     by = "subject",           # Group by subject
     within = "multisession",  # Use parallel workers within each group  
@@ -112,7 +134,19 @@ parade provides two levels of parallelization control:
 1. **Job-level parallelization**: How many SLURM jobs to submit
 2. **Within-job parallelization**: How many tasks run concurrently within each job
 
-```r
+```
+
+> Tip: If you maintain named resource profiles (via `slurm_defaults_set()` or
+> `profile_register()`), you can avoid boilerplate by using the convenience helper
+> `dist_slurm_profile()`:
+>
+> ```r
+> fl |> distribute(dist_slurm_profile("standard", by = "subject", workers_within = 8))
+> ```
+>
+> This resolves the profile through `slurm_resources()` and fills the `resources`
+> argument of `dist_slurm()` for you.
+r
 # Example: 24 parameter combinations, grouped by subject (3 subjects × 8 combinations each)
 grid <- param_grid(
   subject = c("sub01", "sub02", "sub03"),
@@ -120,7 +154,31 @@ grid <- param_grid(
   run = 1:2
 ) # 24 total combinations
 
-fl <- flow(grid) |> stage("analyze", expensive_computation)
+fl <- flow(grid) |> 
+  stage("analyze", 
+    f = function(subject, session, run) {
+      # Simulate expensive computation
+      set.seed(as.numeric(factor(subject)) * 100 + session * 10 + run)
+      
+      # Mock expensive matrix operations
+      n <- 1000
+      X <- matrix(rnorm(n * n), nrow = n)
+      result <- svd(X, nu = 10, nv = 10)  # Partial SVD
+      
+      list(
+        singular_values = result$d[1:10],
+        subject = subject,
+        session = session, 
+        run = run
+      )
+    },
+    schema = returns(
+      singular_values = lst(),
+      subject = chr(),
+      session = int(),
+      run = int()
+    )
+  )
 
 # Strategy 1: One job per subject, parallel within
 fl |> distribute(dist_slurm(
@@ -178,7 +236,35 @@ grid <- param_grid(
   trial = 1:1000          # But 1000 trials
 )
 
-fl <- flow(grid) |> stage("process_trial", trial_analysis)
+fl <- flow(grid) |> 
+  stage("process_trial", 
+    f = function(subject, trial) {
+      # Simulate trial-level analysis
+      set.seed(trial)
+      
+      # Mock signal processing
+      signal <- rnorm(1000)  # Simulated time series
+      filtered <- filter(signal, rep(1/5, 5), sides = 2)  # Moving average
+      
+      # Extract features
+      features <- list(
+        mean_amplitude = mean(filtered, na.rm = TRUE),
+        peak_value = max(filtered, na.rm = TRUE),
+        variance = var(filtered, na.rm = TRUE)
+      )
+      
+      list(
+        subject = subject,
+        trial = trial,
+        features = features
+      )
+    },
+    schema = returns(
+      subject = chr(),
+      trial = int(),
+      features = lst()
+    )
+  )
 
 # Split into smaller chunks for better scheduling
 fl |> distribute(dist_slurm(
@@ -202,6 +288,34 @@ grid <- param_grid(
   condition = c("rest", "task"),
   session = 1:3
 )
+
+# Define workflow with actual computation
+fl <- flow(grid) |>
+  stage("analyze",
+    f = function(subject, condition, session) {
+      # Simulate fMRI analysis
+      set.seed(as.numeric(factor(subject)) * 100 + 
+               as.numeric(factor(condition)) * 10 + session)
+      
+      # Mock connectivity analysis
+      n_regions <- 50
+      timeseries <- matrix(rnorm(n_regions * 200), nrow = n_regions)
+      correlation_matrix <- cor(t(timeseries))
+      
+      list(
+        mean_connectivity = mean(correlation_matrix[upper.tri(correlation_matrix)]),
+        subject = subject,
+        condition = condition,
+        session = session
+      )
+    },
+    schema = returns(
+      mean_connectivity = dbl(),
+      subject = chr(),
+      condition = chr(),
+      session = int()
+    )
+  )
 
 # Group by multiple columns
 fl |> distribute(dist_slurm(
@@ -288,18 +402,50 @@ resources <- batch_resources(
 ### Pattern 1: Development → Production scaling
 
 ```r
+# Define the analysis workflow once
+analyze_workflow <- function(grid) {
+  flow(grid) |>
+    stage("preprocess",
+      f = function(subject, session) {
+        # Simulate preprocessing
+        set.seed(as.numeric(factor(subject)) * 10 + session)
+        data <- matrix(rnorm(1000 * 100), nrow = 1000)
+        
+        # Normalize and filter
+        normalized <- scale(data)
+        list(processed_data = normalized)
+      },
+      schema = returns(processed_data = lst())
+    ) |>
+    stage("analyze",
+      needs = "preprocess",
+      f = function(preprocess.processed_data) {
+        # Run statistical analysis
+        pca_result <- prcomp(preprocess.processed_data, rank. = 10)
+        list(variance_explained = summary(pca_result)$importance[2, 1:10])
+      },
+      schema = returns(variance_explained = lst())
+    )
+}
+
 # Development: quick test on subset
 grid_dev <- param_grid(subject = "sub01", session = 1:2)
-fl_dev <- flow(grid_dev) |> distribute(dist_local(workers_within = 2))
+fl_dev <- analyze_workflow(grid_dev) |> 
+  distribute(dist_local(workers_within = 2))
+
+# Test locally
+dev_results <- collect(fl_dev)
+print(dev_results)  # Verify everything works
 
 # Production: full dataset on cluster  
-grid_prod <- param_grid(subject = paste0("sub", 1:100), session = 1:4)
-fl_prod <- flow(grid_prod) |> distribute(dist_slurm(
-  by = "subject",
-  workers_within = 4,
-  chunks_per_job = 1,
-  resources = batch_resources(cpus_per_task = 4, time = "2h", mem = "16GB")
-))
+grid_prod <- param_grid(subject = sprintf("sub%02d", 1:100), session = 1:4)
+fl_prod <- analyze_workflow(grid_prod) |> 
+  distribute(dist_slurm(
+    by = "subject",
+    workers_within = 4,
+    chunks_per_job = 1,
+    resources = batch_resources(cpus_per_task = 4, time = "2h", mem = "16GB")
+  ))
 ```
 
 ### Pattern 2: Adaptive chunking based on data size

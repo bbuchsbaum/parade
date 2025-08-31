@@ -6,6 +6,12 @@
 \usage{
 .parse_sstat_output(output)
 }
+\arguments{
+\item{output}{Character vector of sstat command output}
+}
+\value{
+List with job statistics or NULL if not parseable
+}
 \description{
 Parse sstat output
 }

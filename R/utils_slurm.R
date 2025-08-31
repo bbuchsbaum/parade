@@ -1,6 +1,8 @@
 # Utility functions for SLURM submission -------------------------------
 
 #' Find file-like argument in a list
+#' @param args List of arguments to search through
+#' @return First argument that looks like a file path, or NULL if none found
 #' @keywords internal
 find_file_arg <- function(args) {
   for (arg in args) {

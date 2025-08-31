@@ -6,6 +6,14 @@
 \usage{
 .slurm_squeue_info_v2(job_id, exec = .slurm_exec)
 }
+\arguments{
+\item{job_id}{Job ID to query}
+
+\item{exec}{Execution function (defaults to .slurm_exec)}
+}
+\value{
+Parsed squeue output
+}
 \description{
 Refactored squeue info with injectable executor
 }

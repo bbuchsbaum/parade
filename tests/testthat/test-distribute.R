@@ -673,9 +673,14 @@ test_that("deferred_cancel() cancels local jobs", {
   temp_dir <- setup_test_registry()
   on.exit(cleanup_test_registry(temp_dir))
   
-  # Create futures
-  f1 <- future::future({ Sys.sleep(10); "done" })
-  f2 <- future::future({ Sys.sleep(10); "done" })
+  # Set up proper future plan
+  old_plan <- future::plan()
+  on.exit(future::plan(old_plan), add = TRUE)
+  future::plan(future::sequential)
+  
+  # Create futures with proper lazy evaluation
+  f1 <- future::future({ Sys.sleep(10); "done" }, lazy = TRUE)
+  f2 <- future::future({ Sys.sleep(10); "done" }, lazy = TRUE)
   
   handle <- structure(
     list(

@@ -1,5 +1,7 @@
 # parade
 
+[![R-CMD-check](https://github.com/bbuchsbaum/parade/actions/workflows/check.yaml/badge.svg)](https://github.com/bbuchsbaum/parade/actions/workflows/check.yaml) [![codecov](https://codecov.io/gh/bbuchsbaum/parade/branch/main/graph/badge.svg)](https://codecov.io/gh/bbuchsbaum/parade)
+
 **Declarative parallel dataflow for R** — from laptop to HPC.
 Define *what* to compute, not *how* to loop. Parade builds typed, parallel workflows; persists large outputs as **artifacts** (sinks); and talks to **SLURM** directly (submit, monitor, cancel) so you rarely have to leave R.
 

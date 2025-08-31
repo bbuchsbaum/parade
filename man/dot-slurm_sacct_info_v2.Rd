@@ -6,6 +6,14 @@
 \usage{
 .slurm_sacct_info_v2(job_id, exec = .slurm_exec)
 }
+\arguments{
+\item{job_id}{Job ID to query}
+
+\item{exec}{Execution function (defaults to .slurm_exec)}
+}
+\value{
+Parsed sacct output
+}
 \description{
 Refactored sacct info with injectable executor
 }

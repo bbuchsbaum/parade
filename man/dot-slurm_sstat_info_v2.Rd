@@ -6,6 +6,14 @@
 \usage{
 .slurm_sstat_info_v2(job_id, exec = .slurm_exec)
 }
+\arguments{
+\item{job_id}{Job ID to query}
+
+\item{exec}{Execution function (defaults to .slurm_exec)}
+}
+\value{
+Parsed sstat output
+}
 \description{
 Refactored sstat info with injectable executor
 }

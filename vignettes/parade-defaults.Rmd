@@ -45,6 +45,18 @@ job <- submit_slurm("script.R")
 
 When you call `submit_slurm()`, it automatically merges your call's `resources` parameter with the configured defaults, normalizes time specifications, and drops any `NA` or `omit()` fields before constructing the `#SBATCH` directives for your SLURM job.
 
+
+
+> Note for flows: to run a flow on SLURM with your defaults, build a resource set with
+> `slurm_resources()` and pass it via `dist_slurm()` inside `distribute()`, e.g.:
+>
+> ```r
+> flow(grid) |>
+>   stage("analyze", analyze_fn) |>
+>   distribute(dist_slurm(resources = slurm_resources(profile = "standard")))
+> ```
+
+
 ## Configuration file
 
 Parade searches for configuration files in the following order:

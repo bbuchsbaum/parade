@@ -225,4 +225,4 @@ use_mirai_ssh <- function(remotes, tunnel = TRUE, port = NULL) {
   )
 }
 
-`%||%` <- function(a, b) if (!is.null(a)) a else b
+# Use the %||% operator from utils.R instead of redefining

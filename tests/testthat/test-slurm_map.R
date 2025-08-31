@@ -220,7 +220,7 @@ test_that("failed/completed/running/pending selectors work", {
   expect_length(failed_jobs, 0)
 })
 
-test_that("slurm_map script path forwards resources profile names", {
+test_that("slurm_map script path forwards resources string (profile name)", {
   skip_if_not_installed("batchtools")
 
   test_dir <- withr::local_tempdir()
@@ -229,18 +229,12 @@ test_that("slurm_map script path forwards resources profile names", {
 
   # Capture submit args
   captured <- new.env(parent = emptyenv())
-  stub(submit_slurm, "slurm_resources", function(resources = NULL, profile = "default") {
-    captured$called_profile <- profile
-    list(time = "1:00:00")
-  })
-  stub(slurm_map, "submit_slurm", function(script, resources = NULL, resources_profile = "default", ...) {
+  stub(slurm_map, "submit_slurm", function(script, resources = NULL, ...) {
     captured$resources <- resources
-    captured$resources_profile <- resources_profile
     structure(list(kind = "script", name = "test", registry_dir = test_dir, job_id = 1L), class = c("parade_script_job", "parade_job"))
   })
 
   jobs <- slurm_map(c("a", "b"), script_path, .resources = "gpu")
   expect_equal(length(jobs), 2)
-  expect_null(captured$resources)
-  expect_equal(captured$resources_profile, "gpu")
+  expect_equal(captured$resources, "gpu")
 })

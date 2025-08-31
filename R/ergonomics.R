@@ -35,7 +35,7 @@ with_parade_options <- function(..., code) {
 #' @param fl A [flow()].
 #' @return A tibble summarizing stages.
 #' @export
-explain <- function(fl) {
+explain.parade_flow <- function(fl, ...) {
   stopifnot(inherits(fl, "parade_flow"))
   tibble::tibble(
     stage   = vapply(fl$stages, function(s) s$id, ""),
@@ -50,7 +50,7 @@ explain <- function(fl) {
 #' Dry-run a flow: show plan and counts without executing
 #' @param fl A [flow()].
 #' @export
-dry_run <- function(fl) {
+dry_run.parade_flow <- function(fl, ...) {
   stopifnot(inherits(fl, "parade_flow"))
   cat("Plan\n----\n"); print(explain(fl)); cat("\n")
   grid <- fl$grid; cat("Grid rows: ", nrow(grid), "\n", sep="")

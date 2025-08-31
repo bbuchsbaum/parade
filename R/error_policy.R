@@ -225,13 +225,55 @@ resubmit_job.parade_script_job <- function(job) {
 
 #' @export
 resubmit_job.parade_local_job <- function(job) {
-  # For local jobs that stored their function and args
-  if (!is.null(job$fn)) {
+  # Check if this is a local script job
+  if (!is.null(job$script) && job$kind == "local_script") {
+    # Resubmit script locally
+    submit_slurm(
+      script = job$script,
+      args = job$args %||% character(),
+      name = paste0(job$name, "_retry"),
+      engine = "local",
+      wd = job$wd %||% dirname(job$script)
+    )
+  } else if (!is.null(job$fn)) {
+    # For local function jobs that stored their function and args
     arglist <- job$args %||% list()
     do.call(slurm_call, c(list(.f = job$fn), arglist, list(name = paste0(job$name %||% "local-call", "_retry"), engine = "local")))
   } else {
     warning("Cannot retry local job - function not stored")
     job
+  }
+}
+
+#' @export
+resubmit_job.parade_job <- function(job) {
+  # For function-based jobs submitted via slurm_call
+  if (isTRUE(job$function_call) && !is.null(job$fn)) {
+    # Resubmit the function with same arguments
+    arglist <- job$args %||% list()
+    
+    # Extract original parameters from job object
+    new_job <- do.call(slurm_call, c(
+      list(.f = job$fn),
+      arglist,
+      list(
+        name = paste0(job$name, "_retry"),
+        packages = job$packages %||% character(),
+        resources = job$resources,
+        template = job$template,
+        write_result = job$result_path
+      )
+    ))
+    
+    # Preserve error policy
+    if (!is.null(attr(job, "error_policy"))) {
+      attr(new_job, "error_policy") <- attr(job, "error_policy")
+    }
+    
+    new_job
+  } else {
+    # Fall back to script-based resubmission
+    resubmit_job.parade_script_job(job)
   }
 }
 

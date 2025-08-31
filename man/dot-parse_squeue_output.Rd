@@ -6,6 +6,12 @@
 \usage{
 .parse_squeue_output(output)
 }
+\arguments{
+\item{output}{Character vector of squeue command output}
+}
+\value{
+List with job state information (state, time, timelimit, cpus, nodes, reason, nodelist)
+}
 \description{
 Parse squeue output
 }

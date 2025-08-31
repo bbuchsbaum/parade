@@ -20,8 +20,13 @@
 #' @param name_by Function or string for dynamic job naming. Can be "stem", "index", 
 #'   "digest", or a function that takes the arguments and returns a string
 #' @param engine Execution engine: "slurm" (default) or "local" for debugging
+#' @param .as_jobset Logical indicating whether to return a single-element jobset
+#'   instead of a bare job object. Defaults to FALSE for backward compatibility.
+#' @param .error_policy Error handling policy from `on_error()`. Specifies how
+#'   to handle job failures, including retry logic and backoff strategies.
 #'
-#' @return A `parade_script_job` object for monitoring the job. If `write_result`
+#' @return A `parade_script_job` object for monitoring the job, or a
+#'   `parade_jobset` containing the job if `.as_jobset = TRUE`. If `write_result`
 #'   is specified, the job object will include a `result_path` attribute with
 #'   the resolved path where the result will be saved.
 #'
@@ -40,7 +45,17 @@
 #' either specify them here or call `library()` within the function itself.
 #'
 #' @examples
+#' # Local execution example (no SLURM required)
+#' local_job <- slurm_call(
+#'   function(x) x^2,
+#'   x = 10,
+#'   engine = "local"
+#' )
+#' # Returns result immediately
+#' local_job$result
+#' 
 #' \donttest{
+#' # Note: The following examples require a SLURM cluster environment
 #' # Simple function submission
 #' job <- slurm_call(
 #'   function(x) x^2,
@@ -86,7 +101,9 @@ slurm_call <- function(.f, ...,
                        lib_paths = .libPaths(),
                        rscript = file.path(R.home("bin"), "Rscript"),
                        write_result = NULL,
-                       engine = c("slurm", "local")) {
+                       engine = c("slurm", "local"),
+                       .as_jobset = FALSE,
+                       .error_policy = NULL) {
   
   stopifnot(is.function(.f))
   engine <- match.arg(engine)
@@ -113,13 +130,15 @@ slurm_call <- function(.f, ...,
     # Capture the call arguments for potential retry semantics
     call_args <- list(...)
     result <- do.call(.f, call_args)
-    if (!is.null(write_result)) {
+    
+    # Create local job object
+    local_job <- if (!is.null(write_result)) {
       # Expand macros with derived name for parity with SLURM path
       result_path <- expand_path_macros(write_result, list(...), name = name %||% "local-call")
       result_path <- resolve_path(result_path, create = FALSE)
       dir.create(dirname(result_path), recursive = TRUE, showWarnings = FALSE)
       saveRDS(result, result_path)
-      return(structure(
+      structure(
         list(
           kind = "local",
           function_call = TRUE,
@@ -130,19 +149,35 @@ slurm_call <- function(.f, ...,
           args = call_args
         ),
         class = c("parade_local_job", "parade_job")
-      ))
+      )
+    } else {
+      structure(
+        list(
+          kind = "local",
+          function_call = TRUE,
+          result = result,
+          name = name %||% "local-call",
+          fn = .f,
+          args = call_args
+        ),
+        class = c("parade_local_job", "parade_job")
+      )
     }
-    return(structure(
-      list(
-        kind = "local",
-        function_call = TRUE,
-        result = result,
-        name = name %||% "local-call",
-        fn = .f,
-        args = call_args
-      ),
-      class = c("parade_local_job", "parade_job")
-    ))
+    
+    # Add error policy if provided
+    if (!is.null(.error_policy)) {
+      attr(local_job, "error_policy") <- .error_policy
+    }
+    
+    # Optionally wrap in jobset
+    if (isTRUE(.as_jobset)) {
+      local_job <- as_jobset(local_job)
+      if (!is.null(.error_policy)) {
+        attr(local_job, "error_policy") <- .error_policy
+      }
+    }
+    
+    return(local_job)
   }
   
   # Initialize paths if not already done
@@ -246,6 +281,13 @@ slurm_call <- function(.f, ...,
     job$result_path <- result_path
   }
   
+  # Store function and args for potential retry
+  if (!is.null(.error_policy)) {
+    job$fn <- .f
+    job$args <- list(...)
+    attr(job, "error_policy") <- .error_policy
+  }
+  
   # Ensure proper class hierarchy
   if (!inherits(job, "parade_job")) {
     class(job) <- c(class(job), "parade_job")
@@ -253,6 +295,14 @@ slurm_call <- function(.f, ...,
   
   # Save enhanced job object
   saveRDS(job, file.path(job$registry_dir, "script_job.rds"))
+  
+  # Optionally wrap in jobset
+  if (isTRUE(.as_jobset)) {
+    job <- as_jobset(job)
+    if (!is.null(.error_policy)) {
+      attr(job, "error_policy") <- .error_policy
+    }
+  }
   
   job
 }

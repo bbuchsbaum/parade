@@ -13,7 +13,9 @@
 #' @param .progress Whether to display progress bars (default: interactive())
 #' @param limit Optional limit on number of grid rows to process
 #' @param validate Validation mode for flexible types: "light" (default) or "full"
+#' @param ... Additional arguments (unused)
 #' @return A tibble containing results from all executed stages
+#' @method collect parade_flow
 #' @export
 #' @examples
 #' \donttest{
@@ -22,14 +24,15 @@
 #'   stage("double", function(x) x * 2, schema = returns(result = dbl()))
 #' results <- collect(fl)
 #' }
-collect <- function(fl,
+collect.parade_flow <- function(fl,
                     engine    = c("future","sequential"),
                     workers   = NULL,
                     scheduling = 1,
                     seed_furrr = TRUE,
                     .progress = interactive(),
                     limit     = NULL,
-                    validate  = c("light", "full")) {
+                    validate  = c("light", "full"),
+                    ...) {
   stopifnot(inherits(fl, "parade_flow"))
   engine <- match.arg(engine)
   validate <- match.arg(validate)

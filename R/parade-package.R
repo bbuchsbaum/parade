@@ -22,7 +22,7 @@
 #' Monitoring: [script_top()], [jobs_top()], [script_metrics()]
 #' @import tibble
 #' @import tidyr
-#' @import purrr
+#' @import dplyr
 #' @import rlang
 #' @import vctrs
 #' @import furrr
@@ -31,4 +31,5 @@
 #' @import glue
 #' @import jsonlite
 #' @import digest
+#' @importFrom purrr pmap compact map_chr map_dbl map_lgl map_int map_dfr
 NULL

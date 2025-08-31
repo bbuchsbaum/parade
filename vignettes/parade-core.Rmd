@@ -7,7 +7,51 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+> Note: Code evaluation is disabled in this vignette to keep builds fast and cluster-agnostic. Copy code into an interactive R session to run locally or on your cluster.
+
 > Requires **parade ≥ 0.6.0** (flow/stage/distribute/collect).
+
+## Quick Start (5 minutes)
+
+Want to see parade in action? Here's a complete working example:
+
+```r
+library(parade)
+
+# 1. Define what varies (3 subjects × 2 conditions = 6 analyses)
+grid <- param_grid(
+  subject = c("s01", "s02", "s03"),
+  condition = c("A", "B")
+)
+
+# 2. Create workflow with one analysis step
+workflow <- flow(grid) |>
+  stage(
+    id = "analyze",
+    f = function(subject, condition) {
+      # Your analysis code here
+      score <- rnorm(1, mean = 100, sd = 15)
+      list(score = score)
+    },
+    schema = returns(score = dbl())
+  )
+
+# 3. Run it!
+results <- collect(workflow)
+print(results)
+# A tibble: 6 × 4
+#   subject condition score   .ok
+#   <chr>   <chr>     <dbl> <lgl>
+# 1 s01     A          98.2  TRUE
+# 2 s01     B         102.4  TRUE
+# ... (4 more rows)
+```
+
+That's it! You've just run 6 analyses automatically. Read on to understand how parade can scale from this simple example to complex, multi-stage pipelines on HPC clusters.
 
 ## Why parade? A simple research scenario
 
@@ -33,6 +77,8 @@ Let's see how this works with a concrete example.
 
 ## Your first parade workflow
 
+> **Reproducibility tip**: When generating synthetic data for examples, always use `set.seed()` to ensure outputs remain consistent across runs. In production code, you typically wouldn't set seeds unless you need reproducible randomization.
+
 ### Step 1: Define your parameter space
 
 Every parade workflow starts with a **parameter grid** - a table that defines all the analyses you want to run:
@@ -41,7 +87,8 @@ Every parade workflow starts with a **parameter grid** - a table that defines al
 library(parade)
 library(progressr)  # For progress bars
 
-# Initialize parade's path system (we'll explain this later)
+# Initialize parade's path system for managing artifacts and registries
+# This creates directories for storing intermediate results and job metadata
 paths_init()
 
 # Define what varies in your analysis
@@ -74,19 +121,29 @@ results_flow <- flow(grid) |>
   
   # First stage: Load the data
   stage(
-    id = "load",  # Give this stage a name
+    id = "load",  # Give this stage a name for reference
     f = function(participant, condition) {
-      # This function receives the participant and condition for one row
-      # In real code, you'd read from files here
-      # For this example, we'll simulate some data
+      # This function receives parameters for one row of the grid
+      # In production, you would typically:
+      # data <- read.csv(sprintf("data/%s_%s.csv", participant, condition))
+      
+      # For this example, we simulate data
+      # Use participant/condition as seed components for reproducible but varied data
+      seed_val <- as.numeric(factor(participant)) * 100 + 
+                  as.numeric(factor(condition))
+      set.seed(seed_val)
       
       n_trials <- 100
+      # Simulate reaction time experiment data
       data <- data.frame(
         participant = participant,
         condition = condition,
         trial = 1:n_trials,
-        response_time = rnorm(n_trials, mean = ifelse(condition == "control", 500, 450), sd = 50),
-        accuracy = rbinom(n_trials, 1, prob = ifelse(condition == "control", 0.8, 0.9))
+        response_time = rnorm(n_trials, 
+                             mean = ifelse(condition == "control", 500, 450), 
+                             sd = 50),
+        accuracy = rbinom(n_trials, 1, 
+                         prob = ifelse(condition == "control", 0.8, 0.9))
       )
       
       # Stages must return a list
@@ -267,45 +324,79 @@ complex_flow <- flow(grid) |>
   
   stage(id = "load", 
         f = function(participant, condition) {
-          # Load raw data
-          # In practice, replace with your actual data loading function
-          # e.g., read.csv(resolve_path(paste0("data://", participant, "_", condition, ".csv")))
-          list(raw_data = read_data(participant, condition))  # user-defined function
+          # Load raw data from CSV files
+          # Using resolve_path() for parade's path management
+          file_path <- sprintf("data/%s_%s.csv", participant, condition)
+          
+          # For this example, simulate loading data
+          set.seed(as.numeric(factor(participant)) * 100 + 
+                   as.numeric(factor(condition)))
+          
+          raw_data <- data.frame(
+            x = rnorm(100),
+            y = rnorm(100),
+            participant = participant,
+            condition = condition
+          )
+          
+          list(raw_data = raw_data)
         },
         schema = returns(raw_data = lst())) |>
   
   stage(id = "clean",
         needs = "load",
         f = function(load.raw_data) {
-          # Clean the data
-          # Replace with your data cleaning logic
-          list(clean_data = remove_outliers(load.raw_data))  # user-defined function
+          # Remove outliers: values > 3 SD from mean
+          clean_data <- load.raw_data
+          
+          # Remove outliers from x variable
+          x_mean <- mean(clean_data$x, na.rm = TRUE)
+          x_sd <- sd(clean_data$x, na.rm = TRUE)
+          clean_data <- clean_data[abs(clean_data$x - x_mean) <= 3 * x_sd, ]
+          
+          # Remove outliers from y variable  
+          y_mean <- mean(clean_data$y, na.rm = TRUE)
+          y_sd <- sd(clean_data$y, na.rm = TRUE)
+          clean_data <- clean_data[abs(clean_data$y - y_mean) <= 3 * y_sd, ]
+          
+          list(clean_data = clean_data)
         },
         schema = returns(clean_data = lst())) |>
   
   stage(id = "model",
         needs = "clean",
         f = function(clean.clean_data) {
-          # Fit a model
-          list(model = lm(y ~ x, data = clean.clean_data))
+          # Fit a linear model
+          model <- lm(y ~ x, data = clean.clean_data)
+          list(model = model)
         },
         schema = returns(model = lst())) |>
   
   stage(id = "validate",
         needs = "model",
         f = function(model.model) {
-          # Cross-validation
-          # Replace with your validation logic, e.g., using caret or mlr3
-          list(cv_score = cross_validate(model.model))  # user-defined function
+          # Simple cross-validation: calculate R-squared
+          # In production, use caret::train() or mlr3 for proper CV
+          
+          # Extract R-squared as a simple validation metric
+          cv_score <- summary(model.model)$r.squared
+          
+          list(cv_score = cv_score)
         },
         schema = returns(cv_score = dbl())) |>
   
   stage(id = "report",
         needs = c("model", "validate"),  # Depends on TWO stages
         f = function(model.model, validate.cv_score) {
-          # Generate final report using both model and validation
-          # Replace with your reporting logic
-          list(summary = create_report(model.model, validate.cv_score))  # user-defined function
+          # Generate summary report combining model and validation
+          summary_report <- list(
+            coefficients = coef(model.model),
+            r_squared = cv_score,
+            n_obs = length(model.model$fitted.values),
+            rmse = sqrt(mean(model.model$residuals^2))
+          )
+          
+          list(summary = summary_report)
         },
         schema = returns(summary = lst()))
 ```
@@ -317,18 +408,49 @@ Parade automatically figures out the execution order based on dependencies.
 Start small and build up:
 
 ```r
-# Test with just 2 rows
+# 1. Test with just 2 rows first
 test_results <- collect(results_flow, limit = 2)
 
-# Run sequentially for easier debugging
+# Check if everything worked
+if (all(test_results$.ok)) {
+  message("Test successful! Now try full dataset.")
+} else {
+  # Find which rows failed
+  failed_rows <- test_results[!test_results$.ok, ]
+  print(failed_rows)
+}
+
+# 2. Run sequentially for easier debugging
 debug_results <- collect(results_flow, engine = "sequential")
 
-# Check intermediate outputs
+# 3. Check intermediate outputs from specific stages
 stage_outputs <- diagnostics(test_results)
-print(stage_outputs$load)  # See what the load stage produced
 
-# Inspect the flow structure
-explain(results_flow)  # Shows stages and dependencies
+# Examine what the load stage produced for the first row
+print(stage_outputs$load[[1]])  
+# $data
+# A data frame with 100 rows and 5 columns
+
+# Check analyze stage output
+print(stage_outputs$analyze[[1]])
+# $mean_rt
+# [1] 498.2
+# $sd_rt  
+# [1] 48.2
+# ... etc
+
+# 4. Inspect the flow structure
+explain(results_flow)  
+# Shows DAG with stages and dependencies:
+# Stage 'load' (no dependencies)
+# Stage 'analyze' (depends on: load)
+
+# 5. Debug a specific failure
+if (!test_results$.ok[1]) {
+  # Get detailed error for first row
+  error_info <- diagnostics(test_results, row = 1)
+  print(error_info$.error)  # See exact error message
+}
 ```
 
 ## Common patterns and tips
@@ -359,22 +481,36 @@ flow_with_skip <- flow(grid) |>
 Use a seed column for reproducible random operations:
 
 ```r
+# Create grid with unique seeds for each analysis
 grid_with_seeds <- param_grid(
   participant = c("p01", "p02"),
-  replicate = 1:10,
-  seed = 1001:1020  # Unique seed for each row
-)
+  replicate = 1:10
+) |>
+  mutate(seed = 1000 + row_number())  # Add unique seed column
 
+# Tell flow to use the seed column
 flow_reproducible <- flow(grid_with_seeds, seed_col = "seed") |>
   stage(
     id = "bootstrap",
     f = function(participant, replicate) {
-      # Random operations will be reproducible
+      # No need to call set.seed() - parade handles it!
+      # Each row gets its designated seed automatically
+      
+      # Simulate some data for this participant
+      original_data <- rnorm(100, mean = 100, sd = 15)
+      
+      # Bootstrap sampling (will be reproducible)
       sample_data <- sample(original_data, replace = TRUE)
+      
       list(bootstrap_mean = mean(sample_data))
     },
     schema = returns(bootstrap_mean = dbl())
   )
+
+# Results will be identical every time you run this
+results1 <- collect(flow_reproducible)
+results2 <- collect(flow_reproducible)
+identical(results1$bootstrap_mean, results2$bootstrap_mean)  # TRUE
 ```
 
 ### Pattern 3: Working with complex objects
@@ -386,15 +522,25 @@ model_flow <- flow(grid) |>
   stage(
     id = "fit_model",
     f = function(participant) {
+      # Simulate loading participant data
+      # In production: data <- read.csv(sprintf("data/%s.csv", participant))
+      set.seed(as.numeric(factor(participant)))
+      n <- 100
+      data <- data.frame(
+        x1 = rnorm(n),
+        x2 = rnorm(n),
+        x3 = rnorm(n),
+        y = rnorm(n)
+      )
+      
       # Fit a complex model
-      # Replace get_data() with your data loading logic
-      model <- lm(y ~ x1 + x2 + x3, data = get_data(participant))  # user-defined function
+      model <- lm(y ~ x1 + x2 + x3, data = data)
       
       # Return both the model object and extracted metrics
       list(
-        model = model,  # Complex object
-        r_squared = summary(model)$r.squared,  # Simple numeric
-        n_params = length(coef(model))  # Simple integer
+        model = model,                          # Complex object stored as list
+        r_squared = summary(model)$r.squared,   # Simple numeric value
+        n_params = length(coef(model))          # Simple integer value
       )
     },
     schema = returns(

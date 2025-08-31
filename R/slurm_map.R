@@ -35,7 +35,12 @@
 #' }
 #' 
 #' @examples
+#' # Local execution example (no SLURM required)
+#' local_jobs <- slurm_map(1:3, ~ .x^2, .engine = "local")
+#' results <- collect(local_jobs)
+#' 
 #' \donttest{
+#' # Note: The following examples require a SLURM cluster environment
 #' # Map a function over files
 #' files <- c("data1.csv", "data2.csv")
 #' jobs <- slurm_map(files, ~ read.csv(.x) |> process_data(),
@@ -46,11 +51,10 @@
 #' jobs <- slurm_map(files, "scripts/process.R",
 #'                   .args = args_cli(verbose = TRUE))
 #' 
-#' # Use formula notation
+#' # Use formula notation with SLURM
 #' numbers <- 1:10
 #' jobs <- slurm_map(numbers, ~ .x^2 + .x,
-#'                   .name_by = "index",
-#'                   .engine = "local")
+#'                   .name_by = "index")
 #' 
 #' # Wait for all jobs and collect results
 #' results <- jobs |> await() |> collect()
@@ -64,7 +68,9 @@ slurm_map <- function(.x, .f, ...,
                       .packages = character(),
                       .write_result = NULL,
                       .engine = c("slurm", "local"),
-                      .progress = FALSE) {
+                      .progress = FALSE,
+                      .options = NULL,
+                      .error_policy = NULL) {
   
   .engine <- match.arg(.engine)
   
@@ -84,8 +90,34 @@ slurm_map <- function(.x, .f, ...,
     )
   }
   
-  # Map over elements
-  jobs <- lapply(seq_along(.x), function(i) {
+  # Check for flow control options
+  if (!is.null(.options) && is_flow_control(.options)) {
+    # Prepare job specifications
+    job_specs <- lapply(seq_along(.x), function(i) {
+      list(element = .x[[i]], index = i)
+    })
+    
+    # Create submission function
+    submit_fn <- function(spec) {
+      submit_one_job(spec$element, spec$index, .f, ..., 
+                    .args = .args, .name_by = .name_by,
+                    .resources = .resources, .packages = .packages,
+                    .write_result = .write_result, .engine = .engine,
+                    is_script = is_script, .progress = .progress)
+    }
+    
+    # Apply flow control
+    if (inherits(.options, "parade_wave_policy")) {
+      jobs <- apply_waves(job_specs, submit_fn, .options, progress = .progress)
+    } else if (inherits(.options, "parade_concurrency_policy")) {
+      jobs <- apply_concurrency_limit(job_specs, submit_fn, .options, progress = .progress)
+    } else {
+      stop("Unknown flow control option type")
+    }
+  } else {
+    # Standard submission without flow control
+    # Map over elements
+    jobs <- lapply(seq_along(.x), function(i) {
     element <- .x[[i]]
     
     # Generate name
@@ -153,13 +185,15 @@ slurm_map <- function(.x, .f, ...,
     
     job
   })
+  }  # End of flow control if-else
   
   # Return as jobset
   structure(
     jobs,
     class = c("parade_jobset", "list"),
     map_call = match.call(),
-    timestamp = Sys.time()
+    timestamp = Sys.time(),
+    error_policy = .error_policy
   )
 }
 
@@ -181,7 +215,16 @@ slurm_map <- function(.x, .f, ...,
 #' @return A \code{parade_jobset} object
 #' 
 #' @examples
+#' # Local execution example (no SLURM required)
+#' local_jobs <- slurm_pmap(
+#'   list(x = 1:3, y = 4:6),
+#'   function(x, y) x + y,
+#'   .engine = "local"
+#' )
+#' results <- collect(local_jobs)
+#' 
 #' \donttest{
+#' # Note: The following example requires a SLURM cluster environment
 #' # Map over multiple arguments
 #' files <- c("a.csv", "b.csv", "c.csv")
 #' methods <- c("fast", "slow", "fast")
@@ -280,6 +323,77 @@ slurm_pmap <- function(.l, .f, ...,
     pmap_call = match.call(),
     timestamp = Sys.time()
   )
+}
+
+# Helper function to submit a single job (used by flow control)
+submit_one_job <- function(element, index, .f, ..., .args, .name_by, 
+                          .resources, .packages, .write_result, .engine,
+                          is_script, .progress = FALSE) {
+  # Generate name
+  job_name <- generate_job_name(element, index, .name_by, NULL)
+  
+  # Expand path macros if needed
+  write_result <- if (!is.null(.write_result)) {
+    expand_path_macros(.write_result, name = job_name, index = index)
+  } else {
+    NULL
+  }
+  
+  if (is_script) {
+    # Script submission
+    script_args <- if (!is.null(.args)) {
+      .args
+    } else if (length(list(...)) > 0) {
+      args_cli(...)
+    } else {
+      character()
+    }
+    
+    # Add element as first argument if it looks like a file
+    if (is.character(element) && length(element) == 1) {
+      script_args <- c(element, script_args)
+    }
+    
+    job <- submit_slurm(
+      script = .f,
+      args = script_args,
+      name = job_name,
+      resources = .resources,
+      env = character(),
+      lib_paths = .libPaths()
+    )
+  } else {
+    # Function submission
+    call_args <- c(list(element), list(...))
+    if (!is.null(.args)) {
+      call_args <- c(call_args, .args)
+    }
+    
+    job <- do.call(slurm_call, c(
+      list(.f = .f),
+      call_args,
+      list(
+        name = job_name,
+        packages = .packages,
+        resources = .resources,
+        write_result = write_result,
+        engine = .engine
+      )
+    ))
+  }
+  
+  # Store metadata
+  job$.__index__ <- index
+  job$.__element__ <- element
+  
+  if (isTRUE(.progress)) {
+    # Update progress if we have a progress bar
+    if (exists("pb", parent.frame())) {
+      get("pb", parent.frame())$tick()
+    }
+  }
+  
+  job
 }
 
 # Helper function to generate job names
