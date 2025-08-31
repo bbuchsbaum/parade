@@ -26,7 +26,7 @@ find_file_arg <- function(args) {
 #' @param name Job name
 #' @return Expanded path string
 #' @keywords internal
-expand_path_macros <- function(path, args = list(), name = NULL) {
+expand_path_macros <- function(path, args = list(), name = NULL, index = NULL) {
   if (is.null(path)) return(NULL)
   
   # Find file argument for stem extraction
@@ -46,8 +46,10 @@ expand_path_macros <- function(path, args = list(), name = NULL) {
   path <- gsub("\\{date\\}", format(Sys.Date(), "%Y%m%d"), path)
   path <- gsub("\\{time\\}", format(Sys.time(), "%H%M%S"), path)
   
-  # Index if we can detect it (for use in map functions later)
-  if (".__index__" %in% names(args)) {
+  # Index if provided explicitly or detectable in args
+  if (!is.null(index)) {
+    path <- gsub("\\{index\\}", as.character(index), path)
+  } else if (".__index__" %in% names(args)) {
     path <- gsub("\\{index\\}", as.character(args[[".__index__"]]), path)
   }
   

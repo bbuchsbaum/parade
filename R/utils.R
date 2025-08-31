@@ -10,8 +10,7 @@
 #' @param b Right-hand side value to use if `a` is NULL
 #' @return Returns `a` if it is not NULL, otherwise returns `b`
 #' @importFrom rlang %||%
-#' @export
-#' @examples
+#' #' @examples
 #' # Returns the non-NULL value
 #' 5 %||% 10        # Returns 5
 #' NULL %||% 10     # Returns 10
