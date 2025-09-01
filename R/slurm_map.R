@@ -46,6 +46,7 @@
 #' if (Sys.which("squeue") != "") {
 #'   # Map a function over files
 #'   files <- c("data1.csv", "data2.csv")
+#'   process_data <- function() identity  # stub for example
 #'   jobs <- slurm_map(files, ~ read.csv(.x) |> process_data(),
 #'                     .name_by = "stem",
 #'                     .write_result = "results/{stem}.rds")
@@ -233,6 +234,7 @@ slurm_map <- function(.x, .f, ...,
 #' files <- c("a.csv", "b.csv", "c.csv")
 #' methods <- c("fast", "slow", "fast")
 #' thresholds <- c(0.1, 0.2, 0.15)
+#' process_file <- function(file, ...) file  # stub for example
 #' 
 #' jobs <- slurm_pmap(
 #'   list(file = files, method = methods, threshold = thresholds),

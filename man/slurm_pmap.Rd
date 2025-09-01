@@ -57,6 +57,7 @@ results <- collect(local_jobs)
 files <- c("a.csv", "b.csv", "c.csv")
 methods <- c("fast", "slow", "fast")
 thresholds <- c(0.1, 0.2, 0.15)
+process_file <- function(file, ...) file  # stub for example
 
 jobs <- slurm_pmap(
   list(file = files, method = methods, threshold = thresholds),

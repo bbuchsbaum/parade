@@ -2,7 +2,7 @@
 title: "Artifacts: Managing Large Analysis Outputs"  
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{4. Artifacts: Managing Large Analysis Outputs}
+  %\VignetteIndexEntry{5. Artifacts: Managing Large Analysis Outputs}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

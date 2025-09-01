@@ -2,7 +2,7 @@
 title: "SLURM Profiles: One Size Doesn't Fit All Jobs"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{7. SLURM Profiles: Managing Multiple Job Types}
+  %\VignetteIndexEntry{9. SLURM Profiles: Managing Multiple Job Types}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

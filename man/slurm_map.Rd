@@ -77,6 +77,7 @@ results <- collect(local_jobs)
 if (Sys.which("squeue") != "") {
   # Map a function over files
   files <- c("data1.csv", "data2.csv")
+  process_data <- function() identity  # stub for example
   jobs <- slurm_map(files, ~ read.csv(.x) |> process_data(),
                     .name_by = "stem",
                     .write_result = "results/{stem}.rds")

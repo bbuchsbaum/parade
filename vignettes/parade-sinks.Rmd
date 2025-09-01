@@ -2,12 +2,20 @@
 title: "Artifacts: format-agnostic sinks, atomic writes, and manifests"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{3. Sinks and Artifacts: format-agnostic persistent storage}
+  %\VignetteIndexEntry{4. Sinks and Artifacts: format-agnostic persistent storage}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 > Requires **parade ≥ 0.12.0** for format-agnostic sinks (≥ 0.6.0 for basic sinks).
+
+Before you begin
+----------------
+
+- New to parade? Start with the [Quickstart](articles/parade-quickstart.html)
+  or the [Overview](articles/parade-overview.html).
+- For job-centric usage (functions/scripts), see the
+  [Unified API](articles/parade-unified-api.html).
 
 ## What are sinks and artifacts?
 

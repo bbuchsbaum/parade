@@ -2,7 +2,7 @@
 title: "Unified API: Functions and Scripts, One Surface"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{0. Unified API: functions and scripts}
+  %\VignetteIndexEntry{1. Unified API: functions and scripts}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -13,6 +13,12 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 
 This vignette shows how the same Parade ergonomics apply whether you submit a
 script or a function. You get one mental model and one set of verbs.
+
+See also:
+
+- Overview: high-level orientation — [Overview](articles/parade-overview.html)
+- Quickstart: your first pipeline — [Quickstart](articles/parade-quickstart.html)
+- Sinks & Artifacts: robust I/O — [Sinks](articles/parade-sinks.html)
 
 ## Quick start: function first
 

@@ -2,7 +2,7 @@
 title: "SLURM script submission and monitoring from R"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{8. SLURM Scripts: submission and monitoring}
+  %\VignetteIndexEntry{10. SLURM Scripts: submission and monitoring}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

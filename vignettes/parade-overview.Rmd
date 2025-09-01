@@ -1,0 +1,82 @@
+---
+title: "Overview: Parade in 10 Minutes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{0. Overview: Parade in 10 Minutes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Introduction
+------------
+
+Parade is a small framework for building typed, parallel dataflows in R.
+It wraps future/furrr for local parallelism, adds backends for SLURM and
+mirai, and provides a unified, ergonomic interface to submit, monitor,
+and collect results — with optional artifact sinks and typed schemas.
+
+What you get
+------------
+
+- Flows and stages: Compose small, pure functions over a parameter grid.
+- Distribution: Run locally (future), via SLURM (batchtools), or mirai.
+- Deferred execution: `submit()` → `deferred_await()` → `deferred_collect()`.
+- Artifacts and sinks: Save outputs reliably with typed schemas and manifests.
+- Ergonomics: Defaults, profiles, helpers for paths, naming, and monitoring.
+
+Core concepts at a glance
+-------------------------
+
+```r
+library(parade)
+
+# Grid of inputs
+grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+
+# Define a simple flow with one stage and an explicit return schema
+fl <- flow(grid) |>
+  stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+  distribute(dist_local(by = "group"))
+
+# Submit for deferred execution (local futures by default)
+d <- submit(fl)
+
+# Wait briefly and collect results
+deferred_await(d, timeout = 30)
+out <- deferred_collect(d)
+out
+```
+
+When to use which surface
+-------------------------
+
+- Use the flow DSL when you want typed, multi-stage pipelines with sinks.
+- Use the unified job API (`slurm_call()`, `slurm_map()/slurm_pmap()`) for
+  quick function/script submission and jobset operations.
+
+Distribution options
+--------------------
+
+- Local: `dist_local(by = ..., within = "multisession")` for multi-core.
+- SLURM: `dist_slurm()` or `dist_slurm_profile()` when on a cluster.
+- Mirai: `dist_mirai()` for high-performance clusters or SSH/TLS setups.
+
+Artifacts and sinks (optional)
+------------------------------
+
+Define sinks in stages to write outputs to stable paths with format-specific
+read/write. Start with temporary sinks during development; switch to project
+paths (`artifacts://`) for production.
+
+Next steps
+----------
+
+- Quickstart: build your first pipeline end-to-end
+  - website: [Quickstart](articles/parade-quickstart.html)
+  - R help: `vignette("parade-quickstart")`
+- Unified API: job-centric usage (functions and scripts)
+  - website: [Unified API](articles/parade-unified-api.html)
+  - R help: `vignette("parade-unified-api")`
+- Sinks & Artifacts: robust I/O and typed schemas
+  - website: [Sinks & Artifacts](articles/parade-sinks.html)
+  - R help: `vignette("parade-sinks")`

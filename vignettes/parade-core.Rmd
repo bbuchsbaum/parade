@@ -2,7 +2,7 @@
 title: "Parade core: declarative flows, types, and execution"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{1. Core Concepts: flows, types, execution}
+  %\VignetteIndexEntry{2. Core Concepts: flows, types, execution}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
