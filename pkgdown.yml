@@ -7,12 +7,14 @@ articles:
   parade-defaults-profiles: parade-defaults-profiles.html
   parade-defaults: parade-defaults.html
   parade-mirai: parade-mirai.html
+  parade-overview: parade-overview.html
   parade-paths: parade-paths.html
+  parade-quickstart: parade-quickstart.html
   parade-scripts-monitoring: parade-scripts-monitoring.html
   parade-sinks: parade-sinks.html
   parade-slurm-distribution: parade-slurm-distribution.html
   parade-unified-api: parade-unified-api.html
-last_built: 2025-08-31T22:57Z
+last_built: 2025-09-01T00:42Z
 urls:
   reference: https://bbuchsbaum.github.io/parade/reference
   article: https://bbuchsbaum.github.io/parade/articles
