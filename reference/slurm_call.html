@@ -179,7 +179,7 @@ either specify them here or call <code><a href="https://rdrr.io/r/base/library.h
 <span class="r-in"><span>  x <span class="op">=</span> <span class="fl">10</span>,</span></span>
 <span class="r-in"><span>  name <span class="op">=</span> <span class="st">"square-10"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA, cluster.functions = cf):</span> unused argument (cluster.functions = cf)</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA):</span> Assertion on 'file.dir' failed: File at path already exists: '/tmp/Rtmp3xyEHO/parade-registry/script-fc2784d9'.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># With packages and result saving</span></span></span>
 <span class="r-in"><span><span class="va">job</span> <span class="op">&lt;-</span> <span class="fu">slurm_call</span><span class="op">(</span></span></span>
@@ -191,7 +191,7 @@ either specify them here or call <code><a href="https://rdrr.io/r/base/library.h
 <span class="r-in"><span>  write_result <span class="op">=</span> <span class="st">"artifacts://random_matrix.rds"</span>,</span></span>
 <span class="r-in"><span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="st">"8G"</span>, time <span class="op">=</span> <span class="st">"10min"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA, cluster.functions = cf):</span> unused argument (cluster.functions = cf)</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA):</span> Assertion on 'file.dir' failed: File at path already exists: '/tmp/Rtmp3xyEHO/parade-registry/script-1fe1847f'.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Monitor the job</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="script_tail.html">script_tail</a></span><span class="op">(</span><span class="va">job</span><span class="op">)</span></span></span>

@@ -124,7 +124,7 @@ inputs provided as lists or data frames.</p>
 <span class="r-in"><span>  <span class="op">}</span>,</span></span>
 <span class="r-in"><span>  .name_by <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">...</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"proc-"</span>, <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">file_path_sans_ext</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">..1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA, cluster.functions = cf):</span> unused argument (cluster.functions = cf)</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA):</span> Assertion on 'file.dir' failed: File at path already exists: '/tmp/Rtmp3xyEHO/parade-registry/script-a0aa04ac'.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
