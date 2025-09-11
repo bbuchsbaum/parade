@@ -21,7 +21,7 @@ bt_make_registry <- function(reg_dir, cf) {
     )
   }, error = function(e) {
     msg <- conditionMessage(e)
-    if (grepl("unused argument[^"]*cluster\\.functions", msg)) {
+    if (grepl("unused argument", msg, fixed = TRUE) && grepl("cluster.functions", msg, fixed = TRUE)) {
       # Fallback for older batchtools: create then assign CF
       reg <- batchtools::makeRegistry(
         file.dir = reg_dir,
@@ -37,4 +37,3 @@ bt_make_registry <- function(reg_dir, cf) {
     }
   })
 }
-
