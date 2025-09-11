@@ -50,7 +50,7 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     if (!requireNamespace("future.batchtools", quietly = TRUE) || !requireNamespace("batchtools", quietly = TRUE)) stop("submit(): dist_slurm requires 'future.batchtools' and 'batchtools'.")
     tmpl <- resolve_path(dist$slurm$template, create = FALSE)
     cf <- batchtools::makeClusterFunctionsSlurm(tmpl)
-    reg <- batchtools::makeRegistry(file.dir = handle$registry_dir, make.default = FALSE, conf.file = NA, cluster.functions = cf)
+    reg <- bt_make_registry(reg_dir = handle$registry_dir, cf = cf)
     batchtools::batchMap(fun = parade_run_chunk_bt, i = seq_along(chunks), more.args = list(flow_path = handle$flow_path, chunks_path = handle$chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling), reg = reg)
     batchtools::submitJobs(resources = dist$slurm$resources, reg = reg); jt <- batchtools::getJobTable(reg = reg); handle$jobs <- jt$job.id
   } else if (identical(dist$backend, "mirai")) {
