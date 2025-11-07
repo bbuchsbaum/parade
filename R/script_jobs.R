@@ -89,8 +89,15 @@ submit_slurm <- function(script,
   # resolve defaults and normalize resources
   resources <- slurm_resources(resources = resources, profile = "default")
   tmpl_path <- resolve_path(template %||% slurm_template_default(), create = FALSE)
-  reg_dir <- normalizePath(resolve_path(registry_dir %||% file.path("registry://", paste0("script-", run_id))), mustWork = FALSE)
-  dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)
+  reg_path <- registry_dir %||% file.path("registry://", paste0("script-", run_id))
+  reg_dir <- normalizePath(resolve_path(reg_path, create = FALSE), mustWork = FALSE)
+  dir.create(dirname(reg_dir), recursive = TRUE, showWarnings = FALSE)
+  if (dir.exists(reg_dir)) {
+    stop(
+      "Registry directory already exists: ", reg_dir,
+      ". Provide a unique `registry_dir` or remove the existing directory."
+    )
+  }
   if (!file.exists(tmpl_path)) stop("Template not found: ", tmpl_path)
   cf <- batchtools::makeClusterFunctionsSlurm(tmpl_path)
   reg <- bt_make_registry(reg_dir = reg_dir, cf = cf)

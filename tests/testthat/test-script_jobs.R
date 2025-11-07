@@ -52,9 +52,12 @@ test_that("submit_slurm submits a script successfully", {
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
   
-  # Create mock registry directory
-  reg_dir <- file.path(test_dir, "registry", "script-12345678")
-  dir.create(reg_dir, recursive = TRUE)
+  # Prepare mock registry directory (parent exists, target absent)
+  reg_root <- file.path(test_dir, "registry")
+  dir.create(reg_root, recursive = TRUE)
+  reg_dir <- file.path(reg_root, "script-12345678")
+  reg_dir_norm <- normalizePath(reg_dir, mustWork = FALSE)
+  expect_false(dir.exists(reg_dir_norm))
   
   # Mock batchtools functions
   mock_cf <- list(name = "Slurm", type = "cluster")
@@ -63,7 +66,12 @@ test_that("submit_slurm submits a script successfully", {
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", mock_cf)
-  stub(submit_slurm, "batchtools::makeRegistry", mock_reg)
+  stub(submit_slurm, "batchtools::makeRegistry", function(file.dir, ...) {
+    expect_equal(file.dir, reg_dir_norm)
+    expect_false(dir.exists(file.dir))
+    dir.create(file.dir, recursive = TRUE)
+    mock_reg
+  })
   stub(submit_slurm, "batchtools::batchMap", invisible(NULL))
   stub(submit_slurm, "batchtools::submitJobs", 42L)
   stub(submit_slurm, "batchtools::getJobTable", mock_jt)
@@ -74,7 +82,7 @@ test_that("submit_slurm submits a script successfully", {
   stub(submit_slurm, "slurm_template_default", "/mock/template.tmpl")
   stub(submit_slurm, "resolve_path", function(x, ...) {
     if (grepl("^registry://", x)) {
-      return(reg_dir)
+      return(reg_dir_norm)
     }
     return(x)
   })
@@ -137,7 +145,11 @@ test_that("submit_slurm handles missing template error", {
 test_that("submit_slurm uses default values when not specified", {
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
-  reg_dir <- file.path(test_dir, "registry", "script-default")
+  reg_root <- file.path(test_dir, "registry")
+  dir.create(reg_root, recursive = TRUE)
+  reg_dir <- file.path(reg_root, "script-default")
+  reg_dir_norm <- normalizePath(reg_dir, mustWork = FALSE)
+  expect_false(dir.exists(reg_dir_norm))
   
   # Setup mocks
   mock_cf <- list(name = "Slurm")
@@ -146,7 +158,12 @@ test_that("submit_slurm uses default values when not specified", {
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", mock_cf)
-  stub(submit_slurm, "batchtools::makeRegistry", mock_reg)
+  stub(submit_slurm, "batchtools::makeRegistry", function(file.dir, ...) {
+    expect_equal(file.dir, reg_dir_norm)
+    expect_false(dir.exists(file.dir))
+    dir.create(file.dir, recursive = TRUE)
+    mock_reg
+  })
   stub(submit_slurm, "batchtools::batchMap", invisible(NULL))
   stub(submit_slurm, "batchtools::submitJobs", 1L)
   stub(submit_slurm, "batchtools::getJobTable", mock_jt)
@@ -155,7 +172,7 @@ test_that("submit_slurm uses default values when not specified", {
   stub(submit_slurm, "slurm_resources", list(ncpus = 1, mem = "4G"))
   stub(submit_slurm, "slurm_template_default", "/default/template.tmpl")
   stub(submit_slurm, "resolve_path", function(x, ...) {
-    if (grepl("^registry://", x)) return(reg_dir)
+    if (grepl("^registry://", x)) return(reg_dir_norm)
     return(x)
   })
   stub(submit_slurm, "file.exists", TRUE)
@@ -481,8 +498,11 @@ test_that("print.parade_script_job displays job information", {
 test_that("submit_slurm saves metadata files", {
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
-  reg_dir <- file.path(test_dir, "registry", "script-meta")
-  dir.create(reg_dir, recursive = TRUE)
+  reg_root <- file.path(test_dir, "registry")
+  dir.create(reg_root, recursive = TRUE)
+  reg_dir <- file.path(reg_root, "script-meta")
+  reg_dir_norm <- normalizePath(reg_dir, mustWork = FALSE)
+  expect_false(dir.exists(reg_dir_norm))
   
   # Setup mocks
   mock_cf <- list(name = "Slurm")
@@ -491,7 +511,12 @@ test_that("submit_slurm saves metadata files", {
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", mock_cf)
-  stub(submit_slurm, "batchtools::makeRegistry", mock_reg)
+  stub(submit_slurm, "batchtools::makeRegistry", function(file.dir, ...) {
+    expect_equal(file.dir, reg_dir_norm)
+    expect_false(dir.exists(file.dir))
+    dir.create(file.dir, recursive = TRUE)
+    mock_reg
+  })
   stub(submit_slurm, "batchtools::batchMap", invisible(NULL))
   stub(submit_slurm, "batchtools::submitJobs", 99L)
   stub(submit_slurm, "batchtools::getJobTable", mock_jt)
@@ -500,7 +525,7 @@ test_that("submit_slurm saves metadata files", {
   stub(submit_slurm, "slurm_resources", list(ncpus = 1))
   stub(submit_slurm, "slurm_template_default", "/mock/template.tmpl")
   stub(submit_slurm, "resolve_path", function(x, ...) {
-    if (grepl("^registry://", x)) return(reg_dir)
+    if (grepl("^registry://", x)) return(reg_dir_norm)
     return(x)
   })
   stub(submit_slurm, "file.exists", TRUE)
@@ -527,7 +552,7 @@ test_that("submit_slurm saves metadata files", {
   expect_type(saved_meta, "list")
   expect_equal(saved_meta$name, "metadata_test")
   expect_equal(saved_meta$job_id, 99L)
-  expect_equal(normalizePath(saved_meta$registry), normalizePath(reg_dir))
+  expect_equal(normalizePath(saved_meta$registry), reg_dir_norm)
 })
 
 test_that("submit_slurm handles custom working directory", {
