@@ -80,7 +80,10 @@ wrapper around <code><a href="await.html">await()</a></code> with progress enabl
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># Note: This example requires a SLURM cluster environment</span></span></span>
 <span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::makeRegistry(file.dir = reg_dir, make.default = FALSE,     conf.file = NA):</span> Assertion on 'file.dir' failed: File at path already exists: '/tmp/Rtmp3xyEHO/parade-registry/script-820ff2af'.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> No readable configuration file found</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Created registry in '/tmp/RtmpRDQaPQ/parade-registry/script-477a5442' using cluster functions 'Interactive'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Adding 1 jobs ...</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in batchtools::submitJobs(resources = resources, reg = reg, ids = 1L,     job.name = name):</span> unused argument (job.name = name)</span>
 <span class="r-in"><span><span class="fu">progress</span><span class="op">(</span><span class="va">jobs</span><span class="op">)</span>  <span class="co"># Shows progress bar</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'jobs' not found</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
