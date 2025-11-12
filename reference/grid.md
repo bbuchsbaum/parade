@@ -1,0 +1,55 @@
+# Create parameter grid for job submission
+
+Generate a grid of parameter combinations for parameter sweeps,
+compatible with slurm_pmap for parallel execution.
+
+## Usage
+
+``` r
+grid(..., .filter = NULL, .add_metadata = TRUE)
+```
+
+## Arguments
+
+- ...:
+
+  Named arguments with vectors of values to expand
+
+- .filter:
+
+  Optional function to filter combinations
+
+- .add_metadata:
+
+  Whether to add metadata columns
+
+## Value
+
+Data frame with one row per parameter combination
+
+## Examples
+
+``` r
+# \donttest{
+# Simple parameter grid
+params <- grid(
+  alpha = c(0.1, 0.5, 1.0),
+  beta = c(1, 2),
+  method = c("lm", "glm")
+)
+# Creates 3 * 2 * 2 = 12 combinations
+
+# With filtering
+params <- grid(
+  x = 1:3,
+  y = 1:3,
+  .filter = ~ .x <= .y  # Only upper triangle
+)
+
+# Use with slurm_pmap (local engine for examples)
+jobs <- slurm_pmap(params, function(x, y, method, ...) {
+  # Run analysis with these parameters
+  x + y
+}, .engine = "local")
+# }
+```

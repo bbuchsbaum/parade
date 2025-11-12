@@ -1,0 +1,616 @@
+# SLURM script submission and monitoring from R
+
+> Requires **parade ≥ 0.11.0** for basic features, **≥ 0.12.0** for
+> function submission with
+> [`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md).
+
+> Note: Code evaluation is disabled to keep builds fast and avoid
+> interacting with live cluster resources during checks. Copy code into
+> an interactive session with SLURM access to run.
+
+## Overview
+
+**parade** provides a comprehensive suite of tools to submit any R
+script to SLURM and monitor it interactively from within R—no shell
+access required. This approach gives you the full power of SLURM job
+scheduling while maintaining the convenience of R-based workflow
+management.
+
+## Key monitoring capabilities
+
+- **Live resource monitoring**: Real-time CPU usage, memory consumption,
+  and job status
+- **Interactive dashboards**: Single job
+  ([`script_top()`](https://bbuchsbaum.github.io/parade/reference/script_top.md))
+  and multi-job
+  ([`jobs_top()`](https://bbuchsbaum.github.io/parade/reference/jobs_top.md))
+  monitoring
+- **Log streaming**: View live output from running jobs
+  ([`script_tail()`](https://bbuchsbaum.github.io/parade/reference/script_tail.md))
+- **Status checking**: Quick job state queries
+  ([`script_status()`](https://bbuchsbaum.github.io/parade/reference/script_status.md))
+- **Job management**: Cancel, wait for, and track multiple jobs
+- **Error handling**: Automatic detection of failed jobs and error
+  diagnostics
+
+## Quick start example
+
+``` r
+library(parade)
+paths_init()
+
+# Optional: Configure site defaults
+# Note: mem=NA means use cluster default memory allocation
+slurm_defaults_set(partition="general", time="2h", cpus_per_task=16, mem=NA, persist=TRUE)
+slurm_template_set("registry://templates/parade-slurm.tmpl")
+
+# Submit a script file
+job <- submit_slurm("scripts/train.R", args = c("--fold", "1"))
+
+# Or submit a function directly (requires parade ≥ 0.12.0)
+job <- slurm_call(
+  function(fold) {
+    # Your training code here
+    message("Training fold ", fold)
+    model <- train_model(fold)
+    return(model)
+  },
+  fold = 1,
+  name = "train-fold-1",
+  write_result = "artifacts://models/fold1.rds"
+)
+
+# Quick status check
+script_status(job)
+
+# View recent log output
+script_tail(job, 80)
+
+# Launch interactive monitor
+script_top(job, refresh = 2, nlog = 40)
+```
+
+## Uniform verbs with function submissions
+
+A **jobset** is a collection of one or more jobs that can be managed
+together. By default,
+[`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md)
+returns a single job object, but you can request a jobset (a one-element
+collection) to use the same workflow verbs that work with multiple jobs:
+
+``` r
+# Submit a single function job, returned as a one-element jobset
+jobs <- slurm_call(
+  function(file) {
+    # Pretend to do useful work
+    message("Processing ", basename(file))
+    Sys.sleep(1)
+    read.csv(file)[1:5, ]
+  },
+  file = "data/example.csv",
+  name = "proc-example",
+  write_result = path$artifacts("results/{run}/{stem}.rds"),
+  .as_jobset = TRUE  # Return as jobset instead of single job
+)
+
+# Now you can use jobset verbs:
+# - progress(): Show a progress bar while jobs run
+# - collect(): Wait for completion and retrieve results
+# - status(): Check job states
+# - cancel(): Cancel running jobs
+jobs |> progress() |> collect()
+
+# Open logs if needed (no-ops for local engine)
+open_logs(jobs, selection = "all")
+```
+
+And for multiple inputs the pattern is identical with
+[`slurm_map()`](https://bbuchsbaum.github.io/parade/reference/slurm_map.md):
+
+``` r
+files <- glob("data/*.csv")
+jobs <- slurm_map(
+  files,
+  ~ read.csv(.x)[1:5, ],
+  .name_by = stem(),
+  .write_result = path$artifacts("results/{run}/{stem}.rds")
+)
+
+# Advertise the progress() convenience explicitly
+jobs |> progress() |> collect()
+```
+
+## Core monitoring functions
+
+### Single job monitoring: `script_top()`
+
+The
+[`script_top()`](https://bbuchsbaum.github.io/parade/reference/script_top.md)
+function provides a real-time, interactive dashboard for monitoring a
+single SLURM job:
+
+``` r
+job <- submit_slurm("analysis.R")
+script_top(job, refresh = 2, nlog = 30, clear = TRUE)
+```
+
+**Features displayed:** - **Job identification**: Name, SLURM job ID,
+assigned node - **Resource usage**: CPU percentage with visual progress
+bar, allocated vs. used CPUs - **Memory statistics**: Average and
+maximum RSS (Resident Set Size), virtual memory usage - **Timing
+information**: Elapsed time, CPU time used, uptime since monitoring
+started - **Live log output**: Most recent log lines from the job
+(configurable number) - **Status tracking**: Automatically detects when
+jobs complete or fail
+
+**Parameters:** - `refresh`: Update interval in seconds (default: 2) -
+`nlog`: Number of recent log lines to display (default: 30)  
+- `clear`: Whether to clear screen between updates for smoother display
+(default: TRUE)
+
+### Multi-job dashboard: `jobs_top()`
+
+Monitor multiple jobs simultaneously with a tabular overview plus
+detailed logs from running jobs:
+
+``` r
+# Submit multiple jobs
+job1 <- submit_slurm("preprocess.R", args = c("--dataset", "A"))
+job2 <- submit_slurm("preprocess.R", args = c("--dataset", "B"))
+job3 <- submit_slurm("model_train.R")
+
+# Monitor all jobs together
+jobs_top(list(job1, job2, job3), refresh = 3, nlog = 20)
+```
+
+**Display format:** - **Summary line**: Count of jobs in each state
+(PENDING=1, RUNNING=2, etc.) - **Job table**: Compact view with name,
+job ID, state, CPU%, allocated CPUs, max memory, elapsed time, node -
+**Live log tail**: Recent output from the first running job
+
+**Flexible input formats:**
+
+``` r
+# List of job objects
+jobs_top(list(job1, job2, job3))
+
+# Data frame with job column
+df <- data.frame(name = c("job1", "job2"), job = list(job1, job2))
+jobs_top(df)
+
+# Registry paths as strings
+jobs_top(c("registry://script-abc123", "registry://script-def456"))
+```
+
+## Essential job management functions
+
+### Status checking: `script_status()`
+
+Get current job state without launching a full monitor:
+
+``` r
+status <- script_status(job)
+print(status)
+# # A tibble: 1 × 5
+#   pending started running  done error
+#     <int>   <int>   <int> <int> <int>
+#        0       0       1     0     0
+
+# Detailed view includes full batchtools information
+detailed <- script_status(job, detail = TRUE)
+```
+
+### Log viewing: `script_tail()`
+
+Display recent log output from a job:
+
+``` r
+# Show last 50 lines
+script_tail(job, n = 50)
+
+# Quick check of recent output
+script_tail(job)  # Default: 200 lines
+```
+
+### Resource metrics: `script_metrics()`
+
+Get detailed resource usage statistics:
+
+``` r
+metrics <- script_metrics(job)
+print(metrics)
+# $job_id
+# [1] "12345"
+# 
+# $state
+# [1] "RUNNING"
+# 
+# $cpu_pct
+# [1] 87.3
+# 
+# $max_rss
+# [1] 1024000000  # bytes
+```
+
+### Job completion: `script_done()`
+
+Check if a job has finished (successfully or with errors):
+
+``` r
+if (script_done(job)) {
+  cat("Job completed!\n")
+  # Process results...
+} else {
+  cat("Job still running...\n")
+}
+```
+
+## Advanced job management
+
+### Waiting for completion: `script_await()`
+
+Block execution until job completes:
+
+``` r
+# Wait indefinitely
+script_await(job)
+
+# Wait with timeout (5 minutes)
+script_await(job, timeout = 300)
+
+# Custom polling interval
+script_await(job, timeout = 600, poll = 30)  # Check every 30 seconds
+```
+
+### Canceling jobs: `script_cancel()`
+
+Stop running jobs:
+
+``` r
+script_cancel(job)
+```
+
+### Finding recent jobs: `script_find_latest()`
+
+Locate recently submitted jobs when you don’t have the job object:
+
+``` r
+# Find 5 most recent jobs
+recent <- script_find_latest(n = 5)
+print(recent)
+
+# Load a job from its registry path
+job <- script_load(recent$registry[1])
+```
+
+## Function submission with slurm_call()
+
+New in parade 0.12.0,
+[`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md)
+allows you to submit R functions directly to SLURM without creating
+script files. This is ideal for interactive development, parameter
+sweeps, and functional programming workflows.
+
+### Basic function submission
+
+``` r
+# Submit a simple function
+job <- slurm_call(
+  function(x, y) {
+    result <- x^2 + y^2
+    message("Computed: ", result)
+    return(result)
+  },
+  x = 3,
+  y = 4,
+  name = "pythagorean"
+)
+
+# Monitor just like any other job
+script_top(job)
+```
+
+### Resource profiles
+
+Parade 0.12.0 introduces resource profiles for easier resource
+management:
+
+``` r
+# Use built-in profiles
+job <- slurm_call(my_function, x = 1, resources = "gpu")
+job <- slurm_call(my_function, x = 1, resources = "highmem")
+
+# Create custom profiles with chaining
+my_profile <- profile() %>%
+  time("8:00:00") %>%
+  mem("32G") %>%
+  cpus(16) %>%
+  partition("compute")
+
+job <- slurm_call(my_function, x = 1, resources = my_profile)
+
+# Register profiles for reuse
+profile_register("ml_training",
+  profile() %>%
+    time("24:00:00") %>%
+    mem("64G") %>%
+    cpus(32) %>%
+    gpus(2)
+)
+
+# Use registered profile by name
+job <- slurm_call(train_model, data = data, resources = "ml_training")
+```
+
+### Working with packages
+
+Specify packages to load on the compute node:
+
+``` r
+job <- slurm_call(
+  function(n, mu, sigma) {
+    # Packages are loaded before function execution
+    data <- rnorm(n, mean = mu, sd = sigma)
+    model <- lm(data ~ seq_along(data))
+    return(summary(model))
+  },
+  n = 1000,
+  mu = 100, 
+  sigma = 15,
+  packages = c("stats"),
+  name = "linear-model"
+)
+```
+
+### Saving results to artifacts
+
+Use `write_result` to persist function output:
+
+``` r
+# Results are automatically saved to the specified path
+job <- slurm_call(
+  function(size) {
+    matrix(runif(size * size), nrow = size)
+  },
+  size = 1000,
+  write_result = "artifacts://matrices/random_1000.rds",
+  resources = list(mem = "8G")
+)
+
+# Wait for job to complete
+script_await(job)
+
+# Check job status and load result safely
+status <- script_status(job, detail = TRUE)
+if (status$done == 1 && status$error == 0) {
+  # Job succeeded - load the result
+  if (!is.null(job$result_path) && file.exists(job$result_path)) {
+    mat <- readRDS(job$result_path)
+    dim(mat)  # [1] 1000 1000
+  } else {
+    warning("Result file not found at expected path")
+  }
+} else {
+  # Job failed - check logs for errors
+  warning("Job failed - check logs with script_tail(job)")
+}
+```
+
+### Parameter sweeps
+
+Combine with lapply for parallel parameter exploration:
+
+``` r
+# Submit multiple function calls with different parameters
+parameters <- expand.grid(
+  alpha = c(0.01, 0.1, 1.0),
+  beta = c(0.5, 1.0, 2.0)
+)
+
+jobs <- mapply(function(a, b) {
+  slurm_call(
+    function(alpha, beta) {
+      # Your model fitting code here
+      result <- fit_model(alpha, beta)
+      return(list(alpha = alpha, beta = beta, score = result$score))
+    },
+    alpha = a,
+    beta = b,
+    name = sprintf("model-a%.2f-b%.2f", a, b),
+    write_result = sprintf("artifacts://models/fit_a%.2f_b%.2f.rds", a, b)
+  )
+}, parameters$alpha, parameters$beta, SIMPLIFY = FALSE)
+
+# Monitor all parameter sweep jobs
+jobs_top(jobs)
+```
+
+### Closures and captured variables
+
+[`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md)
+serializes the function’s environment, so closures work naturally:
+
+``` r
+# Configuration captured in closure
+config <- list(
+  iterations = 1000,
+  tolerance = 1e-6,
+  method = "newton"
+)
+
+optimizer <- function(data) {
+  # config is available here
+  optimize_with_config(data, config)
+}
+
+job <- slurm_call(
+  optimizer,
+  data = my_dataset,
+  name = "optimization",
+  resources = list(time = "4:00:00")
+)
+```
+
+### Important considerations
+
+1.  **Serialization size**: The function and its environment are
+    serialized with [`saveRDS()`](https://rdrr.io/r/base/readRDS.html).
+    Large captured objects increase overhead.
+
+2.  **Working directory**: Functions execute in a temporary staging
+    directory. Use parade’s path system for data access:
+
+    ``` r
+    slurm_call(
+      function() {
+        data <- readRDS(resolve_path("data://input.rds"))
+        result <- process(data)
+        saveRDS(result, resolve_path("artifacts://output.rds"))
+      }
+    )
+    ```
+
+3.  **Comparison with submit_slurm()**:
+
+    - Use
+      [`submit_slurm()`](https://bbuchsbaum.github.io/parade/reference/submit_slurm.md)
+      for: existing scripts, complex workflows, shell integration
+    - Use
+      [`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md)
+      for: interactive development, parameter sweeps, functional
+      pipelines
+
+## Practical monitoring scenarios
+
+### Scenario 1: Long-running training job
+
+``` r
+# Submit training job with generous time limit
+job <- submit_slurm("train_model.R", 
+                    resources = list(time = "24:00:00", mem = "32G"))
+
+# Quick status check
+if (script_status(job)$running > 0) {
+  cat("Training started successfully\n")
+  
+  # Monitor for a few minutes, then leave it running
+  script_top(job, refresh = 5, nlog = 20)
+} else {
+  cat("Job may be queued or failed\n")
+  script_tail(job, 100)  # Check for error messages
+}
+```
+
+### Scenario 2: Batch processing pipeline
+
+``` r
+# Submit preprocessing jobs for multiple datasets
+datasets <- c("dataset_A", "dataset_B", "dataset_C")
+prep_jobs <- lapply(datasets, function(d) {
+  submit_slurm("preprocess.R", args = c("--input", d))
+})
+
+# Monitor all preprocessing
+jobs_top(prep_jobs, refresh = 5)
+
+# Wait for all to complete
+lapply(prep_jobs, script_await)
+
+# Submit analysis job that depends on preprocessing
+analysis_job <- submit_slurm("analyze_results.R")
+script_top(analysis_job)
+```
+
+### Scenario 3: Troubleshooting failed jobs
+
+``` r
+job <- submit_slurm("problematic_script.R")
+
+# Check if job completed
+if (script_done(job)) {
+  status <- script_status(job)
+  
+  if (status$error > 0) {
+    cat("Job failed! Checking logs...\n")
+    
+    # View full log output for debugging
+    script_tail(job, n = 500)
+    
+    # Get log file paths for detailed analysis
+    logs <- script_logs(job)
+    cat("Log files:", logs$path, "\n")
+  } else {
+    cat("Job completed successfully\n")
+  }
+}
+```
+
+## Tips for efficient monitoring
+
+### Resource optimization
+
+- **Monitor CPU usage**: Look for jobs using less than expected CPU% -
+  may indicate I/O bottlenecks
+- **Track memory patterns**: MaxRSS shows peak memory usage; compare
+  against requested memory
+- **Watch for memory leaks**: Increasing AveRSS over time may indicate
+  memory management issues
+
+### Interactive monitoring best practices
+
+- **Use appropriate refresh rates**: Fast updates (1-2s) for active
+  debugging, slower (5-10s) for long jobs
+- **Adjust log lines**: More lines (`nlog = 100`) for detailed
+  debugging, fewer (`nlog = 10`) for overview
+- **Background monitoring**: Use `clear = FALSE` when capturing output
+  or running non-interactively
+
+### Multi-job management
+
+- **Group related jobs**: Monitor job families together with
+  [`jobs_top()`](https://bbuchsbaum.github.io/parade/reference/jobs_top.md)
+- **Stagger job submission**: Avoid overwhelming the scheduler with
+  simultaneous submissions
+- **Use descriptive names**: Job names appear in monitoring
+  displays—make them informative
+
+## Error handling and troubleshooting
+
+### Common monitoring issues
+
+**“Cannot fetch metrics” error:** - Ensure SLURM commands (`squeue`,
+`sstat`, `sacct`) are available - Check that job ID is valid and job
+hasn’t been purged from SLURM records - Verify SLURM permissions and
+cluster connectivity
+
+**Empty log output:** - Job may not have started writing output yet -
+Check job status—may be pending in queue - Verify output redirection in
+SLURM template
+
+**Memory metrics showing NA:** - Some metrics unavailable until job
+starts running - SLURM accounting may not be enabled on cluster - Try
+[`script_metrics()`](https://bbuchsbaum.github.io/parade/reference/script_metrics.md)
+directly to see raw data
+
+### Recovery strategies
+
+**Lost job objects:**
+
+``` r
+# Find recent jobs
+recent <- script_find_latest(pattern = "train")
+job <- script_load(recent$registry[1])
+```
+
+**Monitor jobs from different R sessions:**
+
+``` r
+# Jobs persist across R sessions via registry
+job_path <- "registry://script-abc123"
+job <- script_load(job_path)
+script_top(job)
+```
+
+This comprehensive monitoring system makes SLURM job management as
+convenient as local R execution while providing the scalability and
+resource management benefits of cluster computing.

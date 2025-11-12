@@ -1,0 +1,157 @@
+# Unified API: Functions and Scripts, One Surface
+
+This vignette shows how the same Parade ergonomics apply whether you
+submit a script or a function. You get one mental model and one set of
+verbs.
+
+See also:
+
+- Overview: high-level orientation —
+  [Overview](https://bbuchsbaum.github.io/parade/articles/articles/parade-overview.md)
+- Quickstart: your first pipeline —
+  [Quickstart](https://bbuchsbaum.github.io/parade/articles/articles/parade-quickstart.md)
+- Sinks & Artifacts: robust I/O —
+  [Sinks](https://bbuchsbaum.github.io/parade/articles/articles/parade-sinks.md)
+
+## Quick start: function first
+
+``` r
+library(parade)
+paths_init(quiet = TRUE)
+
+# Submit a single function call
+job <- slurm_call(
+  function(x, y) x^2 + y^2,
+  x = 3,
+  y = 4,
+  name_by = "index",
+  engine = "local"
+)
+print(job)
+cat("Result:", job$result, "\n")
+```
+
+## Map over inputs (function or script)
+
+``` r
+files <- c("data1.csv", "data2.csv", "data3.csv")
+
+# Function path
+jobs <- slurm_map(files, ~ paste("Processing", .x), .name_by = "stem", .engine = "local")
+results <- collect(jobs)
+
+# Script path (CLI flags via args_cli)
+jobs <- slurm_map(files, "scripts/process_one.R",
+                  .args = args_cli(input = .x),
+                  .name_by = stem())
+```
+
+## Elegant naming and paths
+
+``` r
+# Naming helpers: stem/index/digest/glue_name
+jobs <- slurm_map(files, ~ tools::file_path_sans_ext(.x),
+                  .name_by = stem("sample_(\\d+)"), .engine = "local")
+
+# Path macros in write_result
+tmp <- tempdir()
+jobs <- slurm_map(1:3, ~ .x^3,
+                  .name_by = index("cube"),
+                  .write_result = file.path(tmp, "results_{name}_{index}.rds"),
+                  .engine = "local")
+```
+
+## Jobset verbs everywhere
+
+All jobset verbs (`await`, `status`, `collect`, `cancel`, `progress`,
+`open_logs`) work on results from
+[`slurm_map()`](https://bbuchsbaum.github.io/parade/reference/slurm_map.md).
+If you submit a single function with
+[`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md),
+add `.as_jobset = TRUE` to opt into the same surface:
+
+``` r
+# Wrap a single job as a one‑element jobset
+jobs <- slurm_call(
+  function(file) { Sys.sleep(1); read.csv(file)[1:5, ] },
+  file = "data/example.csv",
+  name = "proc-example",
+  write_result = path$artifacts("results/{run}/{stem}.rds"),
+  .as_jobset = TRUE
+)
+
+# Same verbs as slurm_map()
+jobs |> progress() |> collect()
+open_logs(jobs, selection = "all")
+```
+
+## Parallel arguments with pmap
+
+``` r
+df <- data.frame(x = 1:4, y = 5:8, method = c("add","multiply","add","multiply"))
+jobs <- slurm_pmap(df, function(x, y, method) if (method == "add") x + y else x * y,
+                   .name_by = glue_name("{method}-{x}-{y}"), .engine = "local")
+collect(jobs)
+```
+
+## Argument helpers
+
+``` r
+# CLI arguments (scripts)
+args_cli(input = "data.csv", output = "results.rds", verbose = TRUE, threads = 4)
+
+# Function arguments
+args_call(data = mtcars, formula = mpg ~ cyl + wt, method = "lm")
+```
+
+## Key arguments at a glance
+
+To keep the surface consistent across functions and scripts, a few
+arguments show up repeatedly. Here’s what they mean and how to pick
+values with confidence:
+
+- name_by / .name_by: how job names are generated
+  - “auto”: sensible default; uses a file stem when it looks like a
+    path, otherwise uses the index (job-1, job-2, …).
+  - stem(): extracts the filename stem. You can pass a regex to keep
+    just a capture group, e.g., stem(“sample\_(\d+)”).
+  - index(prefix = “job”, width = 0): generates names like job-1 or
+    task-001.
+  - digest(prefix = “job”, length = 8): short, content-based names.
+  - glue_name(“template”): template-based; accepts pmap arguments (e.g.,
+    “{method}-{x}-{y}”) or map element/index via `.x`/`.i`.
+  - slurm_call() uses `name_by = ...`; slurm_map()/slurm_pmap() use
+    `.name_by = ...`.
+- engine / .engine: where the work runs
+  - “slurm” (default): submits to SLURM (scripts via submit_slurm();
+    functions via slurm_call with serialization).
+  - “local”: runs the function in the current R session (fast for
+    debugging); still honors `write_result` so you can poke at outputs.
+  - For slurm_map(), `.engine` affects function submissions. Script
+    submissions always go through SLURM (no local script runner is
+    provided).
+- write_result / .write_result: on-disk results for functions
+  - Path template where a function’s return value is saved (e.g.,
+    “artifacts://results/{run}/{stem}.rds”).
+  - Macros like {run}, {stem}, {name}, {index}, {date}, {time}, {user},
+    {host} are expanded the same way everywhere.
+- resources / .resources: how much you ask SLURM for
+  - Accepts a profile name (e.g., “gpu”, “standard”), a chained profile
+    object (profile() %\>% time(“2h”) %\>% cpus(8)), or a simple list.
+  - Legacy shortcuts like “cpu8”, “mem32G”, “gpu2” are still recognized.
+- .as_jobset (slurm_call only): opt into the jobset surface for single
+  jobs
+  - When TRUE, a one‑element `parade_jobset` is returned so you can
+    write `jobs |> progress() |> collect()` everywhere.
+
+## Summary
+
+- “One surface”: scripts via
+  [`submit_slurm()`](https://bbuchsbaum.github.io/parade/reference/submit_slurm.md),
+  functions via
+  [`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md)
+- [`slurm_map()`](https://bbuchsbaum.github.io/parade/reference/slurm_map.md)/[`slurm_pmap()`](https://bbuchsbaum.github.io/parade/reference/slurm_pmap.md)
+  dispatch correctly for both kinds
+- `name_by`, path macros, resource profiles, and flow control work
+  uniformly
+- Use `.as_jobset = TRUE` to get the same jobset verbs for single calls
