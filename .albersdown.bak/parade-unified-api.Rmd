@@ -1,23 +1,13 @@
 ---
-title: 'Unified API: Functions and Scripts, One Surface'
+title: "Unified API: Functions and Scripts, One Surface"
 output: rmarkdown::html_vignette
-vignette: '%\VignetteIndexEntry{1. Unified API: functions and scripts} %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}'
-params:
-  family: red
-css: albers.css
-resource_files:
-- albers.css
-- albers.js
-includes:
-  in_header: |-
-    <script src="albers.js"></script>
-    <script>document.addEventListener('DOMContentLoaded',()=>document.body.classList.add('palette-red'));</script>
-
+vignette: >
+  %\VignetteIndexEntry{1. Unified API: functions and scripts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 

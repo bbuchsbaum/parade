@@ -135,3 +135,7 @@ PRs welcome! Please:
 - follow tidyverse style (lintr + styler),
 - add tests for new user-facing behavior,
 - update roxygen and a NEWS entry.
+
+
+## Albers theme
+This package uses the albersdown theme. Vignettes are styled with `vignettes/albers.css` and a local `vignettes/albers.js`; the palette family is provided via `params$family` (default 'red'). The pkgdown site uses `template: { package: albersdown }`.

@@ -1,44 +1,42 @@
 url: https://bbuchsbaum.github.io/parade/
 template:
   bootstrap: 5
-
+  package: albersdown
 home:
-  title: "Declarative Parallel Dataflow with Future/Mirai/SLURM"
-  description: "Parade builds typed, parallel pipelines with artifact sinks and HPC ergonomics."
-  # Override default links so CRAN isn't shown
+  title: Declarative Parallel Dataflow with Future/Mirai/SLURM
+  description: Parade builds typed, parallel pipelines with artifact sinks and HPC
+    ergonomics.
   links:
-    - text: "Quickstart (start here)"
-      href: "articles/parade-quickstart.html"
-    - text: "Overview"
-      href: "articles/parade-overview.html"
-    - text: "Unified API"
-      href: "articles/parade-unified-api.html"
-    - text: "Source on GitHub"
-      href: "https://github.com/bbuchsbaum/parade"
-    - text: "Core Concepts"
-      href: "articles/parade-core.html"
-
+  - text: Quickstart (start here)
+    href: articles/parade-quickstart.html
+  - text: Overview
+    href: articles/parade-overview.html
+  - text: Unified API
+    href: articles/parade-unified-api.html
+  - text: Source on GitHub
+    href: https://github.com/bbuchsbaum/parade
+  - text: Core Concepts
+    href: articles/parade-core.html
 articles:
-  - title: "Start Here"
-    desc: "Orientation and a 5-minute first pipeline"
-    contents:
-      - parade-overview
-      - parade-quickstart
-  - title: "Core Concepts"
-    contents:
-      - parade-unified-api
-      - parade-core
-      - parade-paths
-  - title: "Distribution"
-    contents:
-      - parade-slurm-distribution
-      - parade-mirai
-      - parade-defaults
-      - parade-defaults-profiles
-  - title: "Artifacts & Sinks"
-    contents:
-      - parade-sinks
-      - parade-artifacts
-  - title: "Scripts & Monitoring"
-    contents:
-      - parade-scripts-monitoring
+- title: Start Here
+  desc: Orientation and a 5-minute first pipeline
+  contents:
+  - parade-overview
+  - parade-quickstart
+- title: Core Concepts
+  contents:
+  - parade-unified-api
+  - parade-core
+  - parade-paths
+- title: Distribution
+  contents:
+  - parade-slurm-distribution
+  - parade-mirai
+  - parade-defaults
+  - parade-defaults-profiles
+- title: Artifacts & Sinks
+  contents:
+  - parade-sinks
+  - parade-artifacts
+- title: Scripts & Monitoring
+  contents: parade-scripts-monitoring
