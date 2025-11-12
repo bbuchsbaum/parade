@@ -7,7 +7,7 @@
 .parade_parse_mem <- function(x) { if (is.na(x) || !nzchar(x)) return(NA_real_); s <- trimws(toupper(as.character(x))); if (s %in% c("N/A","NA","NONE")) return(NA_real_); m <- regexec("^([0-9]+(?:\\.[0-9]+)?)([KMGTP]?)", s); g <- regmatches(s, m)[[1]]; if (length(g) >= 2) { n <- as.numeric(g[2]); u <- if (length(g) >= 3) g[3] else ""; mult <- switch(u, "K"=1024, "M"=1024^2, "G"=1024^3, "T"=1024^4, "P"=1024^5, 1); return(n * mult) }; suppressWarnings(as.numeric(s)) }
 
 .slurm_squeue_info <- function(job_id) {
-  # Use squeue with custom format; be robust to shells interpreting '|'
+  # Use squeue with custom format
   out <- .run_cmd("squeue", c("-j", as.character(job_id), "-h", "-o", "%T|%M|%l|%C|%D|%R|%N"))
   # If command failed or output malformed, return unknowns
   st <- attr(out, "status") %||% 0L
@@ -26,7 +26,8 @@
   rows <- strsplit(out, "|", fixed = TRUE)
   best <- NULL
   for (r in rows) { if (length(r) < 8) next; jid <- r[[1]]; if (grepl(paste0("^", job_id, "(\\.batch)?$"), jid)) { best <- r; break } }
-  if (is.null(best)) best <- rows[[1]]
+  if (is.null(best) && length(rows) > 0) best <- rows[[1]]
+  if (is.null(best) || length(best) < 8) return(NULL)  # No valid data
   list(JobID=best[[1]], State=best[[2]], ElapsedRaw=suppressWarnings(as.numeric(best[[3]])), TotalCPU=.parade_parse_hms(best[[4]]), AllocCPUS=suppressWarnings(as.numeric(best[[5]])), ReqMem=best[[6]], MaxRSS=.parade_parse_mem(best[[7]]), MaxVMSize=.parade_parse_mem(best[[8]]))
 }
 .slurm_sstat_info <- function(job_id) {
@@ -97,8 +98,14 @@ script_metrics <- function(job) {
       }
     }
   }
-  # If we still don't have a batch id, metrics will be limited
-  jid <- as.character(sid %||% job$job_id)
+  # If we still don't have a valid batch id, return NA metrics
+  if (is.null(sid) || is.na(sid) || !nzchar(as.character(sid))) {
+    return(list(job_id = NA_character_, name = job$name, state = "UNKNOWN", node = NA_character_,
+                elapsed = NA_real_, timelimit = NA_real_, cpus_alloc = NA_real_, cpu_used = NA_real_,
+                cpu_pct = NA_real_, ave_rss = NA_real_, max_rss = NA_real_, ave_vmsize = NA_real_,
+                max_vmsize = NA_real_, req_mem = NA_character_))
+  }
+  jid <- as.character(sid)
   sq <- .slurm_squeue_info(jid)
   ss <- .slurm_sstat_info(jid)
   sa <- .slurm_sacct_info(jid)
