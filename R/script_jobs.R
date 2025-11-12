@@ -105,7 +105,13 @@ submit_slurm <- function(script,
   batchtools::batchMap(fun = parade_run_script_bt, i = 1L,
                        more.args = list(script = normalizePath(script), args = args, env = env, lib_paths = lib_paths, rscript = rscript, wd = wd),
                        reg = reg)
-  ids <- batchtools::submitJobs(resources = resources, reg = reg, ids = 1L, job.name = name)
+  # Submit job; support older batchtools versions without job.name argument
+  submit_formals <- try(names(formals(batchtools::submitJobs)), silent = TRUE)
+  if (!inherits(submit_formals, "try-error") && "job.name" %in% submit_formals) {
+    ids <- batchtools::submitJobs(resources = resources, reg = reg, ids = 1L, job.name = name)
+  } else {
+    ids <- batchtools::submitJobs(resources = resources, reg = reg, ids = 1L)
+  }
   jt  <- batchtools::getJobTable(reg = reg)
   handle <- list(kind = "script",
                  script = normalizePath(script),
