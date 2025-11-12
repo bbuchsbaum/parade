@@ -195,7 +195,29 @@ script_status <- function(job, detail = FALSE) {
   stopifnot(inherits(job, "parade_script_job"))
   if (!requireNamespace("batchtools", quietly = TRUE)) stop("script_status() requires 'batchtools'.")
   reg <- batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
-  if (isTRUE(detail)) tibble::as_tibble(batchtools::getJobTable(reg)) else { st <- batchtools::getStatus(reg); tibble::tibble(pending = st$pending, started = st$started, running = st$running, done = st$done, error = st$error) }
+  if (isTRUE(detail)) {
+    return(tibble::as_tibble(batchtools::getJobTable(reg)))
+  }
+  # Prefer robust summary derived from job table (avoids API differences)
+  jt <- try(batchtools::getJobTable(reg), silent = TRUE)
+  if (inherits(jt, "try-error")) {
+    # Fallback to getStatus if available
+    st <- try(batchtools::getStatus(reg), silent = TRUE)
+    if (!inherits(st, "try-error")) {
+      return(tibble::tibble(pending = st$pending, started = st$started, running = st$running, done = st$done, error = st$error))
+    } else {
+      # Last resort: unknown
+      return(tibble::tibble(pending = NA_integer_, started = NA_integer_, running = NA_integer_, done = NA_integer_, error = NA_integer_))
+    }
+  }
+  # Compute summary counts from job table
+  na_false <- function(x) ifelse(is.na(x), FALSE, x)
+  pending <- sum(is.na(jt$submitted))
+  running <- sum(na_false(!is.na(jt$started)) & na_false(is.na(jt$done)) & na_false(is.na(jt$error) | jt$error == ""))
+  started <- sum(!is.na(jt$started))
+  done <- sum(!is.na(jt$done))
+  error <- sum(na_false(!is.na(jt$error) & jt$error != ""))
+  tibble::tibble(pending = pending, started = started, running = running, done = done, error = error)
 }
 #' Wait for a SLURM script job to complete
 #'

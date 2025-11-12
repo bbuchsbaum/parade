@@ -7,9 +7,17 @@
 .parade_parse_mem <- function(x) { if (is.na(x) || !nzchar(x)) return(NA_real_); s <- trimws(toupper(as.character(x))); if (s %in% c("N/A","NA","NONE")) return(NA_real_); m <- regexec("^([0-9]+(?:\\.[0-9]+)?)([KMGTP]?)", s); g <- regmatches(s, m)[[1]]; if (length(g) >= 2) { n <- as.numeric(g[2]); u <- if (length(g) >= 3) g[3] else ""; mult <- switch(u, "K"=1024, "M"=1024^2, "G"=1024^3, "T"=1024^4, "P"=1024^5, 1); return(n * mult) }; suppressWarnings(as.numeric(s)) }
 
 .slurm_squeue_info <- function(job_id) {
+  # Use squeue with custom format; be robust to shells interpreting '|'
   out <- .run_cmd("squeue", c("-j", as.character(job_id), "-h", "-o", "%T|%M|%l|%C|%D|%R|%N"))
-  if (length(out) == 0L) return(list(state = "UNKNOWN", time = NA_real_, timelimit = NA_real_, cpus = NA_real_, nodes = NA_real_, reason = NA_character_, nodelist = NA_character_))
+  # If command failed or output malformed, return unknowns
+  st <- attr(out, "status") %||% 0L
+  if (length(out) == 0L || st != 0L || !grepl("\\|", out[[1]], fixed = TRUE)) {
+    return(list(state = "UNKNOWN", time = NA_real_, timelimit = NA_real_, cpus = NA_real_, nodes = NA_real_, reason = NA_character_, nodelist = NA_character_))
+  }
   parts <- strsplit(out[[1]], "|", fixed = TRUE)[[1]]
+  if (length(parts) < 7) {
+    return(list(state = "UNKNOWN", time = NA_real_, timelimit = NA_real_, cpus = NA_real_, nodes = NA_real_, reason = NA_character_, nodelist = NA_character_))
+  }
   list(state = parts[1], time = .parade_parse_hms(parts[2]), timelimit = .parade_parse_hms(parts[3]), cpus = suppressWarnings(as.numeric(parts[4])), nodes = suppressWarnings(as.numeric(parts[5])), reason = parts[6], nodelist = parts[7])
 }
 .slurm_sacct_info <- function(job_id) {
