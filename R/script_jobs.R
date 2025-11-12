@@ -195,6 +195,16 @@ script_status <- function(job, detail = FALSE) {
   stopifnot(inherits(job, "parade_script_job"))
   if (!requireNamespace("batchtools", quietly = TRUE)) stop("script_status() requires 'batchtools'.")
   reg <- batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
+
+  # Sync registry with actual SLURM job status (read-only mode still allows syncing)
+  tryCatch(
+    batchtools::syncRegistry(reg = reg),
+    error = function(e) {
+      # Ignore sync errors in read-only mode - we'll work with what we have
+      invisible(NULL)
+    }
+  )
+
   if (isTRUE(detail)) {
     return(tibble::as_tibble(batchtools::getJobTable(reg)))
   }
@@ -212,11 +222,17 @@ script_status <- function(job, detail = FALSE) {
   }
   # Compute summary counts from job table
   na_false <- function(x) ifelse(is.na(x), FALSE, x)
-  pending <- sum(is.na(jt$submitted))
-  running <- sum(na_false(!is.na(jt$started)) & na_false(is.na(jt$done)) & na_false(is.na(jt$error) | jt$error == ""))
-  started <- sum(!is.na(jt$started))
-  done <- sum(!is.na(jt$done))
-  error <- sum(na_false(!is.na(jt$error) & jt$error != ""))
+
+  # Handle case where job table might be empty or have no rows
+  if (nrow(jt) == 0) {
+    return(tibble::tibble(pending = 0L, started = 0L, running = 0L, done = 0L, error = 0L))
+  }
+
+  pending <- sum(is.na(jt$submitted), na.rm = TRUE)
+  running <- sum(na_false(!is.na(jt$started)) & na_false(is.na(jt$done)) & na_false(is.na(jt$error) | jt$error == ""), na.rm = TRUE)
+  started <- sum(!is.na(jt$started), na.rm = TRUE)
+  done <- sum(!is.na(jt$done), na.rm = TRUE)
+  error <- sum(na_false(!is.na(jt$error) & jt$error != ""), na.rm = TRUE)
   tibble::tibble(pending = pending, started = started, running = running, done = done, error = error)
 }
 #' Wait for a SLURM script job to complete
