@@ -119,6 +119,7 @@ submit_slurm <- function(script,
                  run_id = run_id,
                  registry_dir = reg_dir,
                  job_id = jt$job.id[[1]],
+                 batch_id = jt$batch.id[[1]] %||% NA_character_,
                  resources = resources,
                  template = tmpl_path)
   class(handle) <- c("parade_script_job", "parade_job")

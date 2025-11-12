@@ -76,7 +76,21 @@
 #' }
 script_metrics <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
-  jid <- job$job_id
+  # Prefer SLURM batch id if available
+  sid <- job$batch_id
+  if (is.null(sid) || is.na(sid) || !nzchar(as.character(sid))) {
+    # Fallback: try to resolve from registry
+    if (requireNamespace("batchtools", quietly = TRUE) && !is.null(job$registry_dir)) {
+      reg <- try(batchtools::loadRegistry(job$registry_dir, writeable = FALSE), silent = TRUE)
+      if (!inherits(reg, "try-error")) {
+        jt <- batchtools::getJobTable(reg)
+        row <- jt[jt$job.id == job$job_id, , drop = FALSE]
+        if (nrow(row) >= 1 && !is.na(row$batch.id[[1]])) sid <- row$batch.id[[1]]
+      }
+    }
+  }
+  # If we still don't have a batch id, metrics will be limited
+  jid <- as.character(sid %||% job$job_id)
   sq <- .slurm_squeue_info(jid)
   ss <- .slurm_sstat_info(jid)
   sa <- .slurm_sacct_info(jid)
