@@ -52,7 +52,16 @@ paths_set <- function(...) { x <- rlang::list2(...); cur <- paths_get(); for (nm
 #' @examples
 #' path_here("data", "input", "file.csv")
 #' path_here("artifacts", create = FALSE)
-path_here <- function(alias, ..., create = TRUE) { roots <- paths_get(); if (!alias %in% names(roots)) stop("Unknown alias: ", alias); p <- file.path(roots[[alias]], file.path(...)); if (isTRUE(create)) dir.create(p, recursive = TRUE, showWarnings = FALSE); normalizePath(p, mustWork = FALSE) }
+#' @details When `create = TRUE`, missing directories are created.
+#'   If the resolved path appears to be a file (e.g., has an extension),
+#'   only its parent directories are created so the file itself remains writable.
+path_here <- function(alias, ..., create = TRUE) { 
+  roots <- paths_get()
+  if (!alias %in% names(roots)) stop("Unknown alias: ", alias)
+  p <- file.path(roots[[alias]], file.path(...))
+  if (isTRUE(create)) .ensure_target_dir(p)
+  normalizePath(p, mustWork = FALSE) 
+}
 #' Resolve paths with URI-style aliases
 #'
 #' Resolves path strings that may contain URI-style aliases like
@@ -65,6 +74,9 @@ path_here <- function(alias, ..., create = TRUE) { roots <- paths_get(); if (!al
 #' @examples
 #' resolve_path("data://processed/output.rds")
 #' resolve_path("/absolute/path")
+#' @details When `create = TRUE`, the function ensures that directory
+#'   targets exist. For file-like paths (those with extensions or leading dots),
+#'   only parent directories are created so the file path itself is left untouched.
 resolve_path <- function(x, create = TRUE) { 
   if (length(x) != 1L || !is.character(x)) return(x)
   m <- regexec("^([a-zA-Z0-9_]+)://(.*)$", x)
@@ -74,8 +86,26 @@ resolve_path <- function(x, create = TRUE) {
     rel <- reg[3]
     return(path_here(alias, rel, create = create)) 
   }
-  if (isTRUE(create)) {
-    dir.create(x, recursive = TRUE, showWarnings = FALSE)
-  }
+  if (isTRUE(create)) .ensure_target_dir(x)
   normalizePath(x, mustWork = FALSE) 
+}
+
+.ensure_target_dir <- function(path) {
+  target <- if (.path_is_probably_file(path)) dirname(path) else path
+  if (!nzchar(target)) target <- "."
+  dir.create(target, recursive = TRUE, showWarnings = FALSE)
+  invisible(path)
+}
+
+.path_is_probably_file <- function(path) {
+  if (is.null(path) || anyNA(path)) return(FALSE)
+  # Trailing slash indicates a directory intent
+  if (grepl(sprintf("%s$", .Platform$file.sep), path)) return(FALSE)
+  info <- suppressWarnings(file.info(path))
+  if (!is.null(info$isdir) && !is.na(info$isdir)) return(!isTRUE(info$isdir))
+  base <- basename(path)
+  if (!nzchar(base) || base %in% c(".", "..")) return(FALSE)
+  ext <- tools::file_ext(base)
+  if (nzchar(ext)) return(TRUE)
+  startsWith(base, ".")
 }

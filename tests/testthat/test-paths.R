@@ -376,6 +376,30 @@ test_that("resolve_path handles URI-style paths correctly", {
   unlink(temp_project, recursive = TRUE)
 })
 
+test_that("resolve_path leaves file targets writable", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+  
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(temp_project)
+  
+  paths_init(quiet = TRUE)
+  
+  tmpl_uri <- "registry://templates/parade-slurm.tmpl"
+  resolved <- resolve_path(tmpl_uri)
+  
+  expect_true(dir.exists(dirname(resolved)))
+  expect_false(dir.exists(resolved))
+  expect_false(file.exists(resolved))
+  
+  writeLines("SBATCH --partition=compute", resolved)
+  expect_true(file.exists(resolved))
+  
+  # Cleanup
+  unlink(temp_project, recursive = TRUE)
+})
+
 test_that("resolve_path handles non-URI paths correctly", {
   setup_test_env()
   temp_project <- create_temp_project()
