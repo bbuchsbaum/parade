@@ -99,13 +99,15 @@ script_metrics <- function(job) {
     }
   }
   # If we still don't have a valid batch id, return NA metrics
-  if (is.null(sid) || is.na(sid) || !nzchar(as.character(sid))) {
+  # Validate that batch_id looks like a job ID (numeric or contains only digits)
+  sid_chr <- as.character(sid)
+  if (is.null(sid) || is.na(sid) || !nzchar(sid_chr) || !grepl("^[0-9]+$", sid_chr)) {
     return(list(job_id = NA_character_, name = job$name, state = "UNKNOWN", node = NA_character_,
                 elapsed = NA_real_, timelimit = NA_real_, cpus_alloc = NA_real_, cpu_used = NA_real_,
                 cpu_pct = NA_real_, ave_rss = NA_real_, max_rss = NA_real_, ave_vmsize = NA_real_,
                 max_vmsize = NA_real_, req_mem = NA_character_))
   }
-  jid <- as.character(sid)
+  jid <- sid_chr
   sq <- .slurm_squeue_info(jid)
   ss <- .slurm_sstat_info(jid)
   sa <- .slurm_sacct_info(jid)

@@ -112,6 +112,17 @@ submit_slurm <- function(script,
     ids <- batchtools::submitJobs(resources = resources, reg = reg, ids = 1L)
   }
   jt  <- batchtools::getJobTable(reg = reg)
+
+  # Extract batch_id safely, ensuring it's a valid integer
+  batch_id_raw <- jt$batch.id[[1]]
+  batch_id <- if (!is.null(batch_id_raw) && !is.na(batch_id_raw)) {
+    # Convert to character and validate it's numeric
+    bid_chr <- as.character(batch_id_raw)
+    if (grepl("^[0-9]+$", bid_chr)) bid_chr else NA_character_
+  } else {
+    NA_character_
+  }
+
   handle <- list(kind = "script",
                  script = normalizePath(script),
                  args = args,
@@ -119,7 +130,7 @@ submit_slurm <- function(script,
                  run_id = run_id,
                  registry_dir = reg_dir,
                  job_id = jt$job.id[[1]],
-                 batch_id = jt$batch.id[[1]] %||% NA_character_,
+                 batch_id = batch_id,
                  resources = resources,
                  template = tmpl_path)
   class(handle) <- c("parade_script_job", "parade_job")
@@ -194,16 +205,23 @@ print.parade_script_job <- function(x, ...) {
 script_status <- function(job, detail = FALSE) {
   stopifnot(inherits(job, "parade_script_job"))
   if (!requireNamespace("batchtools", quietly = TRUE)) stop("script_status() requires 'batchtools'.")
-  reg <- batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
 
-  # Sync registry with actual SLURM job status (read-only mode still allows syncing)
-  tryCatch(
-    batchtools::syncRegistry(reg = reg),
-    error = function(e) {
-      # Ignore sync errors in read-only mode - we'll work with what we have
-      invisible(NULL)
-    }
+  # Try to load with write access for syncing; fall back to read-only if that fails
+  reg <- tryCatch(
+    batchtools::loadRegistry(job$registry_dir, writeable = TRUE),
+    error = function(e) batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
   )
+
+  # Sync registry with actual SLURM job status (requires write access)
+  if (reg$writeable) {
+    tryCatch(
+      batchtools::syncRegistry(reg = reg),
+      error = function(e) {
+        # Ignore sync errors - we'll work with what we have
+        invisible(NULL)
+      }
+    )
+  }
 
   if (isTRUE(detail)) {
     return(tibble::as_tibble(batchtools::getJobTable(reg)))
