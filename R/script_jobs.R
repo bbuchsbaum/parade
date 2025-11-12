@@ -101,7 +101,6 @@ submit_slurm <- function(script,
   if (!file.exists(tmpl_path)) stop("Template not found: ", tmpl_path)
   cf <- batchtools::makeClusterFunctionsSlurm(tmpl_path)
   reg <- bt_make_registry(reg_dir = reg_dir, cf = cf)
-  on.exit(try(batchtools::clearRegistry(reg = reg), silent = TRUE), add = TRUE)
   batchtools::batchMap(fun = parade_run_script_bt, i = 1L,
                        more.args = list(script = normalizePath(script), args = args, env = env, lib_paths = lib_paths, rscript = rscript, wd = wd),
                        reg = reg)
