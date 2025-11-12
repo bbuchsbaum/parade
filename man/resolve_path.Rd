@@ -18,6 +18,11 @@ Resolved absolute path
 Resolves path strings that may contain URI-style aliases like
 "data://input/file.csv" or "artifacts://results".
 }
+\details{
+When \code{create = TRUE}, the function ensures that directory
+targets exist. For file-like paths (those with extensions or leading dots),
+only parent directories are created so the file path itself is left untouched.
+}
 \examples{
 resolve_path("data://processed/output.rds")
 resolve_path("/absolute/path")

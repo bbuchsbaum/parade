@@ -6,7 +6,7 @@
 \usage{
 dist_local(
   by = NULL,
-  within = c("multisession", "sequential"),
+  within = c("multisession", "multicore", "callr", "sequential"),
   workers_within = NULL,
   chunks_per_job = 1L
 )
@@ -14,7 +14,7 @@ dist_local(
 \arguments{
 \item{by}{Column names to group by for parallelization}
 
-\item{within}{Execution strategy: "multisession" or "sequential"}
+\item{within}{Execution strategy: "multisession", "multicore", "callr", or "sequential"}
 
 \item{workers_within}{Number of workers within each job}
 
@@ -28,5 +28,6 @@ Configure local parallel execution using the future framework.
 }
 \examples{
 dist_local(by = "group", within = "multisession")
+dist_local(by = "group", within = "multicore")
 dist_local(chunks_per_job = 2L)
 }

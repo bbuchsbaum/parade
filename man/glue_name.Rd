@@ -20,20 +20,22 @@ element values and metadata.
 }
 \examples{
 \donttest{
-# Simple template
-files <- c("data1.csv", "data2.csv")
-process_file <- function(x, ...) x  # stub for example
-jobs <- slurm_map(files, process_file, 
-                  .name_by = glue_name("process-{basename(.x)}"),
-                  .engine = "local")
+if (interactive()) {
+  # Simple template
+  files <- c("data1.csv", "data2.csv")
+  process_file <- function(x, ...) x  # stub for example
+  jobs <- slurm_map(files, process_file,
+                    .name_by = glue_name("process-{basename(.x)}"),
+                    .engine = "local")
 
-# With multiple variables (for pmap)
-jobs <- slurm_pmap(
-  list(file = files, method = c("fast", "slow")),
-  function(file, method) process_file(file, method),
-  .name_by = glue_name("{tools::file_path_sans_ext(basename(file))}-{method}"),
-  .engine = "local"
-)
+  # With multiple variables (for pmap)
+  jobs <- slurm_pmap(
+    list(file = files, method = c("fast", "slow")),
+    function(file, method) process_file(file, method),
+    .name_by = glue_name("{tools::file_path_sans_ext(basename(file))}-{method}"),
+    .engine = "local"
+  )
+}
 }
 
 }

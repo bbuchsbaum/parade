@@ -101,7 +101,14 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     }
     handle$jobs <- fs
   } else {
-    op <- future::plan(); on.exit(future::plan(op), add = TRUE); inner <- if (identical(dist$within, "multisession")) future::tweak(future::multisession, workers = dist$workers_within %||% NULL) else future::sequential
+    op <- future::plan(); on.exit(future::plan(op), add = TRUE)
+    inner <- switch(dist$within,
+      "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% NULL),
+      "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% NULL),
+      "callr" = future::tweak(future.callr::future.callr, workers = dist$workers_within %||% NULL),
+      "sequential" = future::sequential,
+      future::sequential  # fallback
+    )
     future::plan(list(inner)); fs <- list(); for (i in seq_along(chunks)) { fs[[i]] <- future::future(parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)) }; handle$jobs <- fs
   }
   handle
@@ -140,7 +147,15 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
 #' @keywords internal
 .parade_execute_chunk <- function(fl, idx_vec, index_dir, job_id, mode = "index", seed_furrr = TRUE, scheduling = 1) {
   grid <- fl$grid; dist <- fl$dist; subrows <- unlist(idx_vec, use.names = FALSE); sub <- grid[subrows, , drop = FALSE]; order <- .toposort(fl$stages)
-  op <- future::plan(); on.exit(future::plan(op), add = TRUE); inner <- if (identical(dist$within, "multisession")) future::tweak(future::multisession, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))) else future::sequential; future::plan(list(inner))
+  op <- future::plan(); on.exit(future::plan(op), add = TRUE)
+  inner <- switch(dist$within,
+    "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
+    "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
+    "callr" = future::tweak(future.callr::future.callr, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
+    "sequential" = future::sequential,
+    future::sequential  # fallback
+  )
+  future::plan(list(inner))
   rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
   rows <- purrr::compact(rows); res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
   if (identical(mode, "index")) { p <- file.path(index_dir, sprintf("index-%04d.rds", as.integer(job_id))); dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE); saveRDS(res, p, compress = "gzip"); invisible(list(ok = TRUE, n = nrow(res), index = p)) } else { res }

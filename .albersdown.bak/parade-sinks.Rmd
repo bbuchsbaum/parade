@@ -1,10 +1,19 @@
 ---
-title: "Artifacts: format-agnostic sinks, atomic writes, and manifests"
+title: 'Artifacts: format-agnostic sinks, atomic writes, and manifests'
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{4. Sinks and Artifacts: format-agnostic persistent storage}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+vignette: '%\VignetteIndexEntry{4. Sinks and Artifacts: format-agnostic persistent
+  storage} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}'
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',()=>document.body.classList.add('palette-red'));</script>
+
 ---
 
 > Requires **parade ≥ 0.12.0** for format-agnostic sinks (≥ 0.6.0 for basic sinks).

@@ -238,3 +238,118 @@ test_that("slurm_map script path forwards resources string (profile name)", {
   expect_equal(length(jobs), 2)
   expect_equal(captured$resources, "gpu")
 })
+
+# Packed execution tests ---------------------------------------------------
+
+test_that("packed mode creates fewer jobs than elements", {
+  # 10 elements with chunk size of 3 should create 4 chunk jobs
+  data <- 1:10
+  jobs <- slurm_map(data, ~ .x^2,
+                    .engine = "local",
+                    .packed = TRUE,
+                    .workers_per_node = 3,
+                    .chunk_size = 3)
+
+  expect_s3_class(jobs, "parade_jobset")
+  expect_equal(length(jobs), 4)  # ceiling(10/3) = 4 chunks
+  expect_true(attr(jobs, "is_packed"))
+  expect_equal(attr(jobs, "n_elements"), 10)
+  expect_equal(attr(jobs, "chunk_size"), 3)
+  expect_equal(attr(jobs, "workers_per_node"), 3)
+})
+
+test_that("packed mode collect returns element-level results", {
+  # Create 10 elements, pack into chunks of 3
+  data <- 1:10
+  jobs <- slurm_map(data, ~ .x^2,
+                    .engine = "local",
+                    .packed = TRUE,
+                    .workers_per_node = 3,
+                    .chunk_size = 3)
+
+  # Collect should return 10 results, not 4 chunk results
+  results <- collect(jobs)
+  expect_length(results, 10)
+  expect_equal(results, (1:10)^2)
+})
+
+test_that("packed mode defaults chunk_size to workers_per_node", {
+  data <- 1:12
+  jobs <- slurm_map(data, ~ .x,
+                    .engine = "local",
+                    .packed = TRUE,
+                    .workers_per_node = 4)
+
+  # Should create 3 chunks (12/4)
+  expect_equal(length(jobs), 3)
+  expect_equal(attr(jobs, "chunk_size"), 4)
+})
+
+test_that("packed mode with different chunk_size and workers", {
+  # Chunk size of 5 but only 2 workers per node
+  data <- 1:10
+  jobs <- slurm_map(data, ~ .x * 2,
+                    .engine = "local",
+                    .packed = TRUE,
+                    .workers_per_node = 2,
+                    .chunk_size = 5)
+
+  # Should create 2 chunks (10/5)
+  expect_equal(length(jobs), 2)
+  expect_equal(attr(jobs, "chunk_size"), 5)
+  expect_equal(attr(jobs, "workers_per_node"), 2)
+
+  # Results should still be element-level
+  results <- collect(jobs)
+  expect_equal(results, (1:10) * 2)
+})
+
+test_that("packed mode preserves naming with stem", {
+  test_dir <- withr::local_tempdir()
+
+  # Create some dummy files
+  files <- file.path(test_dir, paste0("data", 1:6, ".csv"))
+  lapply(files, function(f) writeLines("a,b\n1,2", f))
+
+  jobs <- slurm_map(
+    files,
+    ~ basename(.x),
+    .name_by = "stem",
+    .engine = "local",
+    .packed = TRUE,
+    .workers_per_node = 2,
+    .chunk_size = 2
+  )
+
+  # Should create 3 chunks for 6 files
+  expect_equal(length(jobs), 3)
+
+  # Collect should return 6 results with proper stem naming
+  results <- collect(jobs)
+  expect_length(results, 6)
+})
+
+test_that("packed mode errors for script mapping", {
+  test_dir <- withr::local_tempdir()
+  script_path <- file.path(test_dir, "test.R")
+  writeLines("cat('test')", script_path)
+
+  expect_error(
+    slurm_map(1:5, script_path,
+              .engine = "local",
+              .packed = TRUE),
+    "Packed execution for script mapping is not yet implemented"
+  )
+})
+
+test_that("packed mode works with formula notation", {
+  data <- 1:8
+  jobs <- slurm_map(data,
+                    ~ .x * 3 + 1,
+                    .engine = "local",
+                    .packed = TRUE,
+                    .workers_per_node = 4)
+
+  results <- collect(jobs)
+  expect_equal(results, data * 3 + 1)
+})

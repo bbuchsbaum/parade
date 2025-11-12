@@ -27,12 +27,14 @@
 #'   y = 1:3,
 #'   .filter = ~ .x <= .y  # Only upper triangle
 #' )
-#' 
+#'
 #' # Use with slurm_pmap (local engine for examples)
-#' jobs <- slurm_pmap(params, function(x, y, method, ...) {
-#'   # Run analysis with these parameters
-#'   x + y
-#' }, .engine = "local")
+#' if (interactive()) {
+#'   jobs <- slurm_pmap(params, function(x, y, method, ...) {
+#'     # Run analysis with these parameters
+#'     x + y
+#'   }, .engine = "local")
+#' }
 #' }
 #' 
 #' @export

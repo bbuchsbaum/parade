@@ -16,7 +16,11 @@ slurm_map(
   .engine = c("slurm", "local"),
   .progress = FALSE,
   .options = NULL,
-  .error_policy = NULL
+  .error_policy = NULL,
+  .packed = FALSE,
+  .workers_per_node = NULL,
+  .chunk_size = NULL,
+  .parallel_backend = c("callr", "auto", "multicore", "multisession")
 )
 }
 \arguments{
@@ -43,6 +47,18 @@ slurm_map(
 \item{.options}{Flow control options (e.g., wave_policy() or concurrency_limit())}
 
 \item{.error_policy}{Error handling policy for job failures}
+
+\item{.packed}{Logical; if TRUE, pack multiple tasks into single SLURM jobs for
+efficient node utilization (default: FALSE)}
+
+\item{.workers_per_node}{Integer; number of parallel workers per node when packed
+(defaults to resources$cpus_per_task if present, else 1)}
+
+\item{.chunk_size}{Integer; number of tasks per packed job (defaults to .workers_per_node)}
+
+\item{.parallel_backend}{Backend for within-node parallelism when \code{.packed = TRUE}.
+One of: "callr", "multicore", "multisession", or "auto". Ignored when
+\code{.packed = FALSE}. Defaults to "callr" for strong isolation.}
 }
 \value{
 A \code{parade_jobset} object containing all submitted jobs
@@ -65,6 +81,27 @@ The \code{.name_by} parameter controls job naming:
 \item "stem": Extract stem from file paths in .x
 \item "digest": Use content hash
 \item function: Custom naming function receiving element and index
+}
+
+\strong{Packed Execution for HPC Efficiency:}
+
+Use \code{.packed = TRUE} to pack multiple tasks into single SLURM jobs for better
+node utilization on HPC systems. This is critical when admins expect full-node
+allocations:
+\itemize{
+\item \strong{Standard mode} (\code{.packed = FALSE}): 1000 files → 1000 SLURM jobs → likely 1000 nodes
+\item \strong{Packed mode} (\code{.packed = TRUE}, \code{.workers_per_node = 20}): 1000 files →
+50 SLURM jobs → 50 nodes, each using 20 cores
+}
+
+Packed mode automatically:
+\itemize{
+\item Chunks inputs into batches
+\item Requests appropriate \code{cpus_per_task}
+\item Runs tasks in parallel per node using the selected backend (\code{.parallel_backend}):
+"callr" (default, most isolated), "multicore" (HPC Linux), or "multisession"
+\item Works with flow control via \code{.options} (e.g., \code{max_in_flight()})
+\item Preserves element-level naming and result writing with \code{{stem}}, \code{{run}} macros
 }
 }
 \examples{
@@ -90,6 +127,21 @@ if (Sys.which("squeue") != "") {
   numbers <- 1:10
   jobs <- slurm_map(numbers, ~ .x^2 + .x,
                     .name_by = "index")
+
+  # PACKED EXECUTION: Process 1000 files using 20 cores per node
+  # This submits ~50 jobs instead of 1000, making HPC admins happy
+  files <- glob("data/*.csv")
+  jobs <- slurm_map(
+    files,
+    ~ read.csv(.x)[1:5, ],
+    .name_by = "stem",
+    .write_result = path$artifacts("results/{run}/{stem}.rds"),
+    .packed = TRUE,
+    .workers_per_node = 20,
+    .resources = list(cpus_per_task = 20, mem = "64G", time = "4h")
+  )
+  # Track progress and collect element-level results
+  results <- jobs |> progress() |> collect()  # Returns 1000 results
 
   # Wait for all jobs and collect results
   results <- jobs |> await() |> collect()

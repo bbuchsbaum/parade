@@ -96,14 +96,16 @@ guard_packages <- function(packages = NULL, .f = NULL, load = FALSE,
 #' \donttest{
 #' # Find all CSV files
 #' csv_files <- glob("*.csv")
-#' 
+#'
 #' # Find all R scripts in subdirectory
 #' scripts <- glob("scripts/*.R")
-#' 
+#'
 #' # Use with slurm_map
-#' files <- glob("data/*.rds")
-#' process_file <- function(x) x  # stub for example
-#' jobs <- slurm_map(files, process_file, .engine = "local")
+#' if (interactive()) {
+#'   files <- glob("data/*.rds")
+#'   process_file <- function(x) x  # stub for example
+#'   jobs <- slurm_map(files, process_file, .engine = "local")
+#' }
 #' }
 #' 
 #' @export

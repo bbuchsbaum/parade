@@ -316,27 +316,54 @@ collect <- function(x, ...) {
 #' @export
 collect.parade_jobset <- function(x, simplify = TRUE, ...) {
   if (length(x) == 0) return(list())
-  
-  results <- lapply(x, collect_result)
-  
+
+  # Check if this is a packed jobset
+  is_packed <- isTRUE(attr(x, "is_packed"))
+
+  if (is_packed) {
+    # Packed execution: each job contains multiple element results
+    # Flatten chunk results into element-level results
+    chunk_results <- lapply(x, collect_result)
+
+    # Extract elements from each chunk
+    all_results <- list()
+    for (chunk_res in chunk_results) {
+      if (inherits(chunk_res, "parade_packed_result")) {
+        # This is a structured packed result with metadata
+        all_results <- c(all_results, unclass(chunk_res))
+      } else if (is.list(chunk_res)) {
+        # Fallback: treat as list of results
+        all_results <- c(all_results, chunk_res)
+      } else {
+        # Single result? Wrap it
+        all_results <- c(all_results, list(chunk_res))
+      }
+    }
+
+    results <- all_results
+  } else {
+    # Standard execution: one result per job
+    results <- lapply(x, collect_result)
+  }
+
   if (isTRUE(simplify) && length(results) > 0) {
     # Try to simplify if all results are same type
     if (all(vapply(results, is.null, logical(1)))) {
       return(NULL)
     }
-    
+
     # Check if we can create a data frame
     if (all(vapply(results, is.data.frame, logical(1)))) {
       return(do.call(rbind, results))
     }
-    
+
     # Check if all atomic of same type
     types <- vapply(results, typeof, character(1))
     if (length(unique(types)) == 1 && all(vapply(results, is.atomic, logical(1)))) {
       return(unlist(results))
     }
   }
-  
+
   results
 }
 

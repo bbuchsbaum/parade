@@ -14,15 +14,16 @@ distribute <- function(fl, dist) { stopifnot(inherits(fl, "parade_flow")); fl$di
 #' Configure local parallel execution using the future framework.
 #'
 #' @param by Column names to group by for parallelization
-#' @param within Execution strategy: "multisession" or "sequential"
+#' @param within Execution strategy: "multisession", "multicore", "callr", or "sequential"
 #' @param workers_within Number of workers within each job
 #' @param chunks_per_job Number of groups to process per job
 #' @return A `parade_dist` object for local execution
 #' @export
 #' @examples
 #' dist_local(by = "group", within = "multisession")
+#' dist_local(by = "group", within = "multicore")
 #' dist_local(chunks_per_job = 2L)
-dist_local <- function(by = NULL, within = c("multisession","sequential"), workers_within = NULL, chunks_per_job = 1L) {
+dist_local <- function(by = NULL, within = c("multisession", "multicore", "callr", "sequential"), workers_within = NULL, chunks_per_job = 1L) {
   within <- match.arg(within)
   structure(list(backend="local", by = by %||% character(), within=within, workers_within=workers_within, chunks_per_job=as.integer(chunks_per_job), slurm=NULL), class="parade_dist")
 }
@@ -31,7 +32,7 @@ dist_local <- function(by = NULL, within = c("multisession","sequential"), worke
 #' Configure distributed execution on SLURM clusters using batchtools.
 #'
 #' @param by Column names to group by for parallelization
-#' @param within Execution strategy within each SLURM job
+#' @param within Execution strategy within each SLURM job: "multisession", "multicore", "callr", or "sequential"
 #' @param workers_within Number of workers within each SLURM job
 #' @param template Path to SLURM batch template file
 #' @param resources Named list of SLURM resource specifications
@@ -41,7 +42,11 @@ dist_local <- function(by = NULL, within = c("multisession","sequential"), worke
 #' @examples
 #' # Create SLURM distribution specification
 #' dist <- dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
-#' 
+#'
+#' # Use multicore within each SLURM job for efficiency
+#' dist <- dist_slurm(by = "condition", within = "multicore", workers_within = 8,
+#'                    resources = list(cpus_per_task = 8))
+#'
 #' # Use with a flow (configuration only, no execution)
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' \dontrun{
@@ -49,7 +54,7 @@ dist_local <- function(by = NULL, within = c("multisession","sequential"), worke
 #'   stage("process", function(x) x * 2) |>
 #'   distribute(dist)
 #' }
-dist_slurm <- function(by = NULL, within = c("multisession","sequential"), workers_within = NULL, template = slurm_template(), resources = list(), chunks_per_job = 1L) {
+dist_slurm <- function(by = NULL, within = c("multisession", "multicore", "callr", "sequential"), workers_within = NULL, template = slurm_template(), resources = list(), chunks_per_job = 1L) {
   within <- match.arg(within)
   structure(list(backend="slurm", by = by %||% character(), within=within, workers_within=workers_within, chunks_per_job=as.integer(chunks_per_job), slurm=list(template=template, resources=resources)), class="parade_dist")
 }
@@ -63,7 +68,7 @@ dist_slurm <- function(by = NULL, within = c("multisession","sequential"), worke
 #'   character name registered via `slurm_defaults_set()` or `profile_register()`;
 #'   can also be a `parade_profile` object or a plain list.
 #' @param by Optional column names to group by for parallelization.
-#' @param within Execution strategy within each SLURM job: "multisession" or "sequential".
+#' @param within Execution strategy within each SLURM job: "multisession", "multicore", "callr", or "sequential".
 #' @param workers_within Number of workers used within each SLURM job.
 #' @param template Path to SLURM template file.
 #' @param chunks_per_job Number of groups to process per SLURM job.
@@ -74,7 +79,12 @@ dist_slurm <- function(by = NULL, within = c("multisession","sequential"), worke
 #' \dontrun{
 #' dist <- dist_slurm_profile("standard", by = "group")
 #' }
-#' 
+#'
+#' # Use multicore for within-job parallelism
+#' \dontrun{
+#' dist <- dist_slurm_profile("highmem", within = "multicore", workers_within = 16)
+#' }
+#'
 #' # Configuration example (no execution)
 #' \dontrun{
 #' flow(grid) |>
@@ -83,7 +93,7 @@ dist_slurm <- function(by = NULL, within = c("multisession","sequential"), worke
 #' }
 dist_slurm_profile <- function(profile,
                                by = NULL,
-                               within = c("multisession", "sequential"),
+                               within = c("multisession", "multicore", "callr", "sequential"),
                                workers_within = NULL,
                                template = slurm_template(),
                                chunks_per_job = 1L) {

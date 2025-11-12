@@ -19,6 +19,11 @@ Resolved absolute path
 \description{
 Resolve a path using configured aliases
 }
+\details{
+When \code{create = TRUE}, missing directories are created.
+If the resolved path appears to be a file (e.g., has an extension),
+only its parent directories are created so the file itself remains writable.
+}
 \examples{
 path_here("data", "input", "file.csv")
 path_here("artifacts", create = FALSE)

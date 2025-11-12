@@ -54,7 +54,13 @@ collect.parade_flow <- function(x,
     if (!length(out)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!out))
   }
   op <- future::plan(); on.exit(future::plan(op), add = TRUE)
-  inner <- if (identical(dist$within, "multisession")) future::tweak(future::multisession, workers = dist$workers_within %||% workers %||% NULL) else future::sequential
+  inner <- switch(dist$within,
+    "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% workers %||% NULL),
+    "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% workers %||% NULL),
+    "callr" = future::tweak(future.callr::future.callr, workers = dist$workers_within %||% workers %||% NULL),
+    "sequential" = future::sequential,
+    future::sequential  # fallback
+  )
   future::plan(list(inner))
   parts <- furrr::future_map(chunks, run_chunk, .options=furrr::furrr_options(seed=seed_furrr, scheduling=scheduling), .progress=.progress)
   parts <- purrr::compact(parts); if (!length(parts)) return(grid[0, , drop = FALSE]); tibble::as_tibble(vctrs::vec_rbind(!!!parts))

@@ -6,7 +6,7 @@
 \usage{
 dist_slurm(
   by = NULL,
-  within = c("multisession", "sequential"),
+  within = c("multisession", "multicore", "callr", "sequential"),
   workers_within = NULL,
   template = slurm_template(),
   resources = list(),
@@ -16,7 +16,7 @@ dist_slurm(
 \arguments{
 \item{by}{Column names to group by for parallelization}
 
-\item{within}{Execution strategy within each SLURM job}
+\item{within}{Execution strategy within each SLURM job: "multisession", "multicore", "callr", or "sequential"}
 
 \item{workers_within}{Number of workers within each SLURM job}
 
@@ -35,6 +35,10 @@ Configure distributed execution on SLURM clusters using batchtools.
 \examples{
 # Create SLURM distribution specification
 dist <- dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
+
+# Use multicore within each SLURM job for efficiency
+dist <- dist_slurm(by = "condition", within = "multicore", workers_within = 8,
+                   resources = list(cpus_per_task = 8))
 
 # Use with a flow (configuration only, no execution)
 grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))

@@ -10,15 +10,17 @@
 #' 
 #' @examples
 #' \donttest{
-#' files <- c("data/file1.csv", "data/file2.csv")
-#' process_file <- function(x) x  # stub for example
-#' jobs <- slurm_map(files, process_file, .name_by = stem(), .engine = "local")
-#' # Job names will be: "file1", "file2"
-#' 
-#' # With pattern extraction
-#' files <- c("sample_001_raw.txt", "sample_002_raw.txt")
-#' jobs <- slurm_map(files, process_file, .name_by = stem("sample_(\\d+)"), .engine = "local")
-#' # Job names will be: "001", "002"
+#' if (interactive()) {
+#'   files <- c("data/file1.csv", "data/file2.csv")
+#'   process_file <- function(x) x  # stub for example
+#'   jobs <- slurm_map(files, process_file, .name_by = stem(), .engine = "local")
+#'   # Job names will be: "file1", "file2"
+#'
+#'   # With pattern extraction
+#'   files <- c("sample_001_raw.txt", "sample_002_raw.txt")
+#'   jobs <- slurm_map(files, process_file, .name_by = stem("sample_(\\d+)"), .engine = "local")
+#'   # Job names will be: "001", "002"
+#' }
 #' }
 #' 
 #' @export
@@ -56,12 +58,14 @@ stem <- function(pattern = NULL) {
 #' 
 #' @examples
 #' \donttest{
-#' data <- 1:10
-#' jobs <- slurm_map(data, ~ .x^2, .name_by = index(), .engine = "local")
-#' # Job names will be: "job-1", "job-2", ..., "job-10"
-#' 
-#' jobs <- slurm_map(data, ~ .x^2, .name_by = index("task", width = 3), .engine = "local")
-#' # Job names will be: "task-001", "task-002", ..., "task-010"
+#' if (interactive()) {
+#'   data <- 1:10
+#'   jobs <- slurm_map(data, ~ .x^2, .name_by = index(), .engine = "local")
+#'   # Job names will be: "job-1", "job-2", ..., "job-10"
+#'
+#'   jobs <- slurm_map(data, ~ .x^2, .name_by = index("task", width = 3), .engine = "local")
+#'   # Job names will be: "task-001", "task-002", ..., "task-010"
+#' }
 #' }
 #' 
 #' @export
@@ -86,11 +90,13 @@ index <- function(prefix = "job", width = 0) {
 #' 
 #' @examples
 #' \donttest{
-#' # Each unique input gets a unique name
-#' data <- list(a = 1:10, b = 11:20, a = 1:10)  # Note: 'a' appears twice
-#' process_data <- function(x) x  # stub for example
-#' jobs <- slurm_map(data, process_data, .name_by = digest(), .engine = "local")
-#' # Job names will use hash, with identical inputs getting same hash
+#' if (interactive()) {
+#'   # Each unique input gets a unique name
+#'   data <- list(a = 1:10, b = 11:20, a = 1:10)  # Note: 'a' appears twice
+#'   process_data <- function(x) x  # stub for example
+#'   jobs <- slurm_map(data, process_data, .name_by = digest(), .engine = "local")
+#'   # Job names will use hash, with identical inputs getting same hash
+#' }
 #' }
 #' 
 #' @note This function masks `digest::digest` when parade is attached. Prefer
@@ -129,20 +135,22 @@ name_digest <- function(prefix = "job", length = 8) {
 #' 
 #' @examples
 #' \donttest{
-#' # Simple template
-#' files <- c("data1.csv", "data2.csv")
-#' process_file <- function(x, ...) x  # stub for example
-#' jobs <- slurm_map(files, process_file, 
-#'                   .name_by = glue_name("process-{basename(.x)}"),
-#'                   .engine = "local")
-#' 
-#' # With multiple variables (for pmap)
-#' jobs <- slurm_pmap(
-#'   list(file = files, method = c("fast", "slow")),
-#'   function(file, method) process_file(file, method),
-#'   .name_by = glue_name("{tools::file_path_sans_ext(basename(file))}-{method}"),
-#'   .engine = "local"
-#' )
+#' if (interactive()) {
+#'   # Simple template
+#'   files <- c("data1.csv", "data2.csv")
+#'   process_file <- function(x, ...) x  # stub for example
+#'   jobs <- slurm_map(files, process_file,
+#'                     .name_by = glue_name("process-{basename(.x)}"),
+#'                     .engine = "local")
+#'
+#'   # With multiple variables (for pmap)
+#'   jobs <- slurm_pmap(
+#'     list(file = files, method = c("fast", "slow")),
+#'     function(file, method) process_file(file, method),
+#'     .name_by = glue_name("{tools::file_path_sans_ext(basename(file))}-{method}"),
+#'     .engine = "local"
+#'   )
+#' }
 #' }
 #' 
 #' @export
@@ -177,20 +185,22 @@ glue_name <- function(template, .envir = parent.frame()) {
 #' 
 #' @examples
 #' \donttest{
-#' # Equivalent to stem()
-#' files <- c("data1.csv", "data2.csv")
-#' process_file <- function(x) x  # stub for example
-#' jobs <- slurm_map(files, process_file, .name_by = name_by("stem"), .engine = "local")
-#' 
-#' # With arguments
-#' data <- 1:5
-#' process_data <- function(x) x  # stub for example
-#' jobs <- slurm_map(
-#'   data,
-#'   process_data,
-#'   .name_by = name_by("index", prefix = "task"),
-#'   .engine = "local"
-#' )
+#' if (interactive()) {
+#'   # Equivalent to stem()
+#'   files <- c("data1.csv", "data2.csv")
+#'   process_file <- function(x) x  # stub for example
+#'   jobs <- slurm_map(files, process_file, .name_by = name_by("stem"), .engine = "local")
+#'
+#'   # With arguments
+#'   data <- 1:5
+#'   process_data <- function(x) x  # stub for example
+#'   jobs <- slurm_map(
+#'     data,
+#'     process_data,
+#'     .name_by = name_by("index", prefix = "task"),
+#'     .engine = "local"
+#'   )
+#' }
 #' }
 #' 
 #' @export

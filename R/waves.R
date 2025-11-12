@@ -20,15 +20,17 @@
 #' 
 #' @examples
 #' \donttest{
-#' # Submit 100 jobs in waves of 10
-#' jobs <- slurm_map(1:100, ~ .x^2, 
-#'                   .options = in_waves_of(10),
-#'                   .engine = "local")
-#' 
-#' # With delay between waves
-#' jobs <- slurm_map(1:100, ~ .x^2,
-#'                   .options = in_waves_of(10, wait = FALSE, delay = 60),
-#'                   .engine = "local")
+#' if (interactive()) {
+#'   # Submit 100 jobs in waves of 10
+#'   jobs <- slurm_map(1:100, ~ .x^2,
+#'                     .options = in_waves_of(10),
+#'                     .engine = "local")
+#'
+#'   # With delay between waves
+#'   jobs <- slurm_map(1:100, ~ .x^2,
+#'                     .options = in_waves_of(10, wait = FALSE, delay = 60),
+#'                     .engine = "local")
+#' }
 #' }
 #' 
 #' @export
@@ -66,10 +68,12 @@ in_waves_of <- function(size, wait = TRUE, delay = 0) {
 #' 
 #' @examples
 #' \donttest{
-#' # Allow at most 5 jobs running simultaneously
-#' jobs <- slurm_map(1:100, ~ .x^2,
-#'                   .options = max_in_flight(5),
-#'                   .engine = "local")
+#' if (interactive()) {
+#'   # Allow at most 5 jobs running simultaneously
+#'   jobs <- slurm_map(1:100, ~ .x^2,
+#'                     .options = max_in_flight(5),
+#'                     .engine = "local")
+#' }
 #' }
 #' 
 #' @export
@@ -228,16 +232,18 @@ get_running <- function(jobs) {
 #' 
 #' @examples
 #' \donttest{
-#' # Submit in waves of 10 with max 5 concurrent
-#' combined <- flow_control(
-#'   in_waves_of(10),
-#'   max_in_flight(5)
-#' )
-#' 
-#' # Note: Combined policies are currently illustrative; apply individually
-#' # with slurm_map(), e.g.:
-#' # jobs <- slurm_map(1:100, ~ .x^2, .options = in_waves_of(10), .engine = "local")
-#' # jobs <- slurm_map(1:100, ~ .x^2, .options = max_in_flight(5), .engine = "local")
+#' if (interactive()) {
+#'   # Submit in waves of 10 with max 5 concurrent
+#'   combined <- flow_control(
+#'     in_waves_of(10),
+#'     max_in_flight(5)
+#'   )
+#'
+#'   # Note: Combined policies are currently illustrative; apply individually
+#'   # with slurm_map(), e.g.:
+#'   # jobs <- slurm_map(1:100, ~ .x^2, .options = in_waves_of(10), .engine = "local")
+#'   # jobs <- slurm_map(1:100, ~ .x^2, .options = max_in_flight(5), .engine = "local")
+#' }
 #' }
 #' 
 #' @export

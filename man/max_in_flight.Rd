@@ -20,10 +20,12 @@ queuing additional jobs until slots become available.
 }
 \examples{
 \donttest{
-# Allow at most 5 jobs running simultaneously
-jobs <- slurm_map(1:100, ~ .x^2,
-                  .options = max_in_flight(5),
-                  .engine = "local")
+if (interactive()) {
+  # Allow at most 5 jobs running simultaneously
+  jobs <- slurm_map(1:100, ~ .x^2,
+                    .options = max_in_flight(5),
+                    .engine = "local")
+}
 }
 
 }

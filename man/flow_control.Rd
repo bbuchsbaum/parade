@@ -17,16 +17,18 @@ Combine multiple flow control policies to be applied together.
 }
 \examples{
 \donttest{
-# Submit in waves of 10 with max 5 concurrent
-combined <- flow_control(
-  in_waves_of(10),
-  max_in_flight(5)
-)
+if (interactive()) {
+  # Submit in waves of 10 with max 5 concurrent
+  combined <- flow_control(
+    in_waves_of(10),
+    max_in_flight(5)
+  )
 
-# Note: Combined policies are currently illustrative; apply individually
-# with slurm_map(), e.g.:
-# jobs <- slurm_map(1:100, ~ .x^2, .options = in_waves_of(10), .engine = "local")
-# jobs <- slurm_map(1:100, ~ .x^2, .options = max_in_flight(5), .engine = "local")
+  # Note: Combined policies are currently illustrative; apply individually
+  # with slurm_map(), e.g.:
+  # jobs <- slurm_map(1:100, ~ .x^2, .options = in_waves_of(10), .engine = "local")
+  # jobs <- slurm_map(1:100, ~ .x^2, .options = max_in_flight(5), .engine = "local")
+}
 }
 
 }

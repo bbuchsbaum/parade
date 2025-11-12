@@ -19,12 +19,14 @@ Creates a naming function that uses numeric indices for job names.
 }
 \examples{
 \donttest{
-data <- 1:10
-jobs <- slurm_map(data, ~ .x^2, .name_by = index(), .engine = "local")
-# Job names will be: "job-1", "job-2", ..., "job-10"
+if (interactive()) {
+  data <- 1:10
+  jobs <- slurm_map(data, ~ .x^2, .name_by = index(), .engine = "local")
+  # Job names will be: "job-1", "job-2", ..., "job-10"
 
-jobs <- slurm_map(data, ~ .x^2, .name_by = index("task", width = 3), .engine = "local")
-# Job names will be: "task-001", "task-002", ..., "task-010"
+  jobs <- slurm_map(data, ~ .x^2, .name_by = index("task", width = 3), .engine = "local")
+  # Job names will be: "task-001", "task-002", ..., "task-010"
+}
 }
 
 }

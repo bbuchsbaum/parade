@@ -23,11 +23,13 @@ This function masks \code{digest::digest} when parade is attached. Prefer
 }
 \examples{
 \donttest{
-# Each unique input gets a unique name
-data <- list(a = 1:10, b = 11:20, a = 1:10)  # Note: 'a' appears twice
-process_data <- function(x) x  # stub for example
-jobs <- slurm_map(data, process_data, .name_by = digest(), .engine = "local")
-# Job names will use hash, with identical inputs getting same hash
+if (interactive()) {
+  # Each unique input gets a unique name
+  data <- list(a = 1:10, b = 11:20, a = 1:10)  # Note: 'a' appears twice
+  process_data <- function(x) x  # stub for example
+  jobs <- slurm_map(data, process_data, .name_by = digest(), .engine = "local")
+  # Job names will use hash, with identical inputs getting same hash
+}
 }
 
 }
