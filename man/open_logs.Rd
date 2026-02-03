@@ -19,11 +19,16 @@ Quickly open job log files in the system editor or viewer.
 }
 \examples{
 \donttest{
+job <- slurm_call(function(x) x^2, x = 2, engine = "local")
+
+# Use a no-op viewer in non-interactive contexts (e.g. checks/CI)
+noop_viewer <- function(...) invisible(NULL)
+
 # Open output log
-open_logs(job, which = "out")
+open_logs(job, which = "out", viewer = noop_viewer)
 
 # Open both logs
-open_logs(job)
+open_logs(job, viewer = noop_viewer)
 }
 
 }
