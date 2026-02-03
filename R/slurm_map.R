@@ -120,7 +120,7 @@ slurm_map <- function(.x, .f, ...,
                       .packed = FALSE,
                       .workers_per_node = NULL,
                       .chunk_size = NULL,
-                      .parallel_backend = c("callr","auto","multicore","multisession")) {
+                      .parallel_backend = c("auto", "callr", "multicore", "multisession")) {
   
   .engine <- match.arg(.engine)
   
@@ -169,13 +169,14 @@ slurm_map <- function(.x, .f, ...,
     })
     
     # Create submission function
-    submit_fn <- function(spec) {
-      submit_one_job(spec$element, spec$index, .f, ..., 
-                    .args = .args, .name_by = .name_by,
-                    .resources = .resources, .packages = .packages,
-                    .write_result = .write_result, .engine = .engine,
-                    is_script = is_script, .progress = .progress)
-    }
+	    submit_fn <- function(spec) {
+	      submit_one_job(spec$element, spec$index, .f, ..., 
+	                    .args = .args, .name_by = .name_by,
+	                    .resources = .resources, .packages = .packages,
+	                    .write_result = .write_result, .engine = .engine,
+	                    .error_policy = .error_policy,
+	                    is_script = is_script, .progress = .progress)
+	    }
     
     # Apply flow control
     if (inherits(.options, "parade_wave_policy")) {
@@ -219,15 +220,17 @@ slurm_map <- function(.x, .f, ...,
         script_args <- c(element, script_args)
       }
       
-      job <- submit_slurm(
-        script = .f,
-        args = script_args,
-        name = job_name,
-        resources = .resources,
-        env = character(),
-        lib_paths = .libPaths()
-      )
-    } else {
+	      job <- submit_slurm(
+	        script = .f,
+	        args = script_args,
+	        name = job_name,
+	        engine = .engine,
+	        resources = .resources,
+	        env = character(),
+	        lib_paths = .libPaths(),
+	        .error_policy = .error_policy
+	      )
+	    } else {
       # Submit function
       # Build arguments
       call_args <- c(list(element), list(...))
@@ -235,18 +238,19 @@ slurm_map <- function(.x, .f, ...,
         call_args <- c(call_args, .args)
       }
       
-      job <- do.call(slurm_call, c(
-        list(.f = .f),
-        call_args,
-        list(
-          name = job_name,
-          packages = .packages,
-          resources = .resources,
-          write_result = write_result,
-          engine = .engine
-        )
-      ))
-    }
+	      job <- do.call(slurm_call, c(
+	        list(.f = .f),
+	        call_args,
+	        list(
+	          name = job_name,
+	          packages = .packages,
+	          resources = .resources,
+	          write_result = write_result,
+	          engine = .engine,
+	          .error_policy = .error_policy
+	        )
+	      ))
+	    }
     
     # Store index for later reference
     job$.__index__ <- i
@@ -259,14 +263,14 @@ slurm_map <- function(.x, .f, ...,
   }  # End of flow control if-else
   
   # Return as jobset
-  structure(
-    jobs,
-    class = c("parade_jobset", "list"),
-    map_call = match.call(),
-    timestamp = Sys.time(),
-    error_policy = .error_policy
-  )
-}
+	  structure(
+	    jobs,
+	    class = c("parade_jobset", "list"),
+	    map_call = match.call(),
+	    timestamp = Sys.time(),
+	    error_policy = .error_policy
+	  )
+	}
 
 #' Parallel map over multiple lists/vectors via SLURM
 #' 
@@ -400,6 +404,7 @@ slurm_pmap <- function(.l, .f, ...,
 # Helper function to submit a single job (used by flow control)
 submit_one_job <- function(element, index, .f, ..., .args, .name_by, 
                           .resources, .packages, .write_result, .engine,
+                          .error_policy = NULL,
                           is_script, .progress = FALSE) {
   # Generate name
   job_name <- generate_job_name(element, index, .name_by, NULL)
@@ -430,9 +435,11 @@ submit_one_job <- function(element, index, .f, ..., .args, .name_by,
       script = .f,
       args = script_args,
       name = job_name,
+      engine = .engine,
       resources = .resources,
       env = character(),
-      lib_paths = .libPaths()
+      lib_paths = .libPaths(),
+      .error_policy = .error_policy
     )
   } else {
     # Function submission
@@ -449,7 +456,8 @@ submit_one_job <- function(element, index, .f, ..., .args, .name_by,
         packages = .packages,
         resources = .resources,
         write_result = write_result,
-        engine = .engine
+        engine = .engine,
+        .error_policy = .error_policy
       )
     ))
   }
@@ -470,8 +478,9 @@ submit_one_job <- function(element, index, .f, ..., .args, .name_by,
 
 # Helper function to generate job names
 generate_job_name <- function(element, index, name_by, all_elements) {
+  default <- sprintf("job-%d", index)
   if (is.function(name_by)) {
-    return(name_by(element, index))
+    return(.sanitize_job_name(name_by(element, index), default = default))
   }
   
   if (name_by == "auto") {
@@ -484,18 +493,19 @@ generate_job_name <- function(element, index, name_by, all_elements) {
     }
   }
   
-  switch(name_by,
-    index = sprintf("job-%d", index),
+  name <- switch(name_by,
+    index = default,
     stem = {
       if (is.character(element) && length(element) == 1) {
         tools::file_path_sans_ext(basename(element))
       } else {
-        sprintf("job-%d", index)
+        default
       }
     },
     digest = substr(digest::digest(element), 1, 8),
     name_by  # Use as-is if not recognized
   )
+  .sanitize_job_name(name, default = default)
 }
 
 # Packed execution mode for slurm_map ----------------------------------------
@@ -514,11 +524,15 @@ slurm_map_packed <- function(.x, .f, ...,
                               .error_policy = NULL,
                               .workers_per_node = NULL,
                               .chunk_size = NULL,
-                              .parallel_backend = c("callr","auto","multicore","multisession"),
+                              .parallel_backend = c("auto", "callr", "multicore", "multisession"),
                               is_script = FALSE) {
 
   .engine <- match.arg(.engine)
   .parallel_backend <- match.arg(.parallel_backend)
+
+  if (isTRUE(is_script)) {
+    stop("Packed execution for script mapping is not yet implemented")
+  }
 
   # Check for future.apply dependency
   if (.parallel_backend %in% c("multicore","multisession","auto")) {
@@ -526,10 +540,8 @@ slurm_map_packed <- function(.x, .f, ...,
       stop("Packed execution with future backends requires 'future' and 'future.apply'. Install them with: install.packages(c('future','future.apply'))")
     }
   }
-  if (.parallel_backend %in% c("callr","auto")) {
-    if (!requireNamespace("callr", quietly = TRUE) && .parallel_backend == "callr") {
-      stop("Packed execution with callr backend requires the 'callr' package. Install it with: install.packages('callr')")
-    }
+  if (identical(.parallel_backend, "callr") && !requireNamespace("callr", quietly = TRUE)) {
+    stop("Packed execution with callr backend requires the 'callr' package. Install it with: install.packages('callr')")
   }
 
   # Resolve resources first
@@ -557,8 +569,7 @@ slurm_map_packed <- function(.x, .f, ...,
   chunk_specs <- lapply(seq_along(chunk_indices), function(chunk_idx) {
     list(
       chunk_idx = chunk_idx,
-      indices = chunk_indices[[chunk_idx]],
-      elements = .x[chunk_indices[[chunk_idx]]]
+      indices = chunk_indices[[chunk_idx]]
     )
   })
 
@@ -566,7 +577,7 @@ slurm_map_packed <- function(.x, .f, ...,
   submit_chunk <- function(spec) {
     chunk_idx <- spec$chunk_idx
     indices <- spec$indices
-    chunk_elements <- spec$elements
+    chunk_elements <- .x[indices]
     chunk_name <- sprintf("chunk-%d-of-%d", chunk_idx, n_chunks)
     if (is_script) stop("Packed execution for script mapping is not yet implemented. Use function mapping for now.")
     job <- slurm_call(
@@ -584,11 +595,10 @@ slurm_map_packed <- function(.x, .f, ...,
       packages = unique(c(.packages, "parade",
                           if (.parallel_backend %in% c("multicore","multisession","auto")) c("future","future.apply") else character())),
       resources = resources,
-      engine = .engine
+      engine = .engine,
+      .error_policy = .error_policy
     )
     job$.__chunk_idx__ <- chunk_idx
-    job$.__chunk_elements__ <- chunk_elements
-    job$.__chunk_indices__ <- indices
     job$.__is_packed__ <- TRUE
     job
   }
@@ -711,6 +721,7 @@ packed_worker_function <- function(chunk_elements,
     # Prepare package loader expression for child
     results <- vector("list", length(chunk_elements))
     active <- list(); next_i <- 1L
+    pkg_root <- tryCatch(normalizePath(getwd(), mustWork = TRUE), error = function(e) NULL)
     launch_one <- function(idx) {
       element <- chunk_elements[[idx]]; global_index <- chunk_indices[idx]
       job_name <- generate_job_name(element, global_index, name_by, NULL)
@@ -719,10 +730,20 @@ packed_worker_function <- function(chunk_elements,
       # Serialize args for child
       call_args <- c(list(element), worker_args)
       if (!is.null(worker_extra_args)) call_args <- c(call_args, worker_extra_args)
-      callr::r_bg(function(pkgs, worker_fn, call_args, write_tpl, job_name, global_index, run_id, stem_val) {
-        # Load packages
+      callr::r_bg(function(pkgs, worker_fn, call_args, write_tpl, job_name, global_index, run_id, stem_val, pkg_root) {
+        # Load packages (dev-friendly fallback for parade)
+        if ("parade" %in% pkgs) {
+          if (!require("parade", character.only = TRUE, quietly = TRUE)) {
+            if (!is.null(pkg_root) && requireNamespace("pkgload", quietly = TRUE)) {
+              pkgload::load_all(pkg_root, quiet = TRUE)
+            } else {
+              stop("Missing package: parade")
+            }
+          }
+          pkgs <- setdiff(pkgs, "parade")
+        }
         for (p in pkgs) {
-          if (!require(p, character.only = TRUE)) stop(sprintf("Missing package: %s", p))
+          if (!require(p, character.only = TRUE, quietly = TRUE)) stop(sprintf("Missing package: %s", p))
         }
         # Execute
         res <- tryCatch({ do.call(worker_fn, call_args) }, error = function(e) e)
@@ -741,7 +762,7 @@ packed_worker_function <- function(chunk_elements,
         }
       }, args = list(pkgs = pkgs, worker_fn = worker_fn, call_args = call_args,
                      write_tpl = write_result_template, job_name = job_name,
-                     global_index = global_index, run_id = run_id, stem_val = stem_val))
+                     global_index = global_index, run_id = run_id, stem_val = stem_val, pkg_root = pkg_root))
     }
     # Launch initial batch
     while (length(active) < workers && next_i <= length(chunk_elements)) {

@@ -1,5 +1,6 @@
 # Test suite for SLURM statistics functions
 library(testthat)
+skip_if_not_installed("mockery")
 library(mockery)
 
 # Load the package functions

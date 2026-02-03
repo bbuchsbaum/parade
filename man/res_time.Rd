@@ -2,7 +2,7 @@
 % Please edit documentation in R/resource_profiles.R
 \name{res_time}
 \alias{res_time}
-\title{Alias for time() that avoids masking stats::time}
+\title{Set time limit for a resource profile (non-masking)}
 \usage{
 res_time(profile, value)
 }
@@ -15,5 +15,5 @@ res_time(profile, value)
 Updated profile
 }
 \description{
-Alias for time() that avoids masking stats::time
+Use \code{res_time()} in pipelines to avoid masking \code{stats::time()} when \code{parade} is attached.
 }

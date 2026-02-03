@@ -1,3 +1,4 @@
+testthat::skip_if_not_installed("mockery")
 library(mockery)
 
 test_that("slurm_call local engine executes function immediately", {
@@ -173,6 +174,18 @@ test_that("job class hierarchy works correctly", {
   status <- job_status(local_job)
   expect_equal(status$state, "COMPLETED")
   expect_equal(status$kind, "local")
+})
+
+test_that("local slurm_call with continue policy reports FAILED status", {
+  policy <- on_error(action = "continue", collect_errors = TRUE)
+  job <- slurm_call(function() stop("boom"), engine = "local", .error_policy = policy)
+
+  expect_s3_class(job, "parade_local_job")
+  expect_s3_class(job$result, "parade_job_error")
+  expect_true(is.list(job$errors) && length(job$errors) >= 1)
+
+  st <- job_status(job)
+  expect_equal(st$state, "FAILED")
 })
 
 test_that("collect_result works for local jobs", {

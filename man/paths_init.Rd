@@ -19,6 +19,15 @@ Sets up standard directory paths for parade projects, automatically
 detecting HPC environments and configuring appropriate scratch and
 data directories.
 }
+\details{
+\code{profile = "auto"} switches to \code{"hpc"} when scheduler environment variables are
+detected (e.g., SLURM/PBS). On login nodes, those variables may be absent; in
+that case, use \code{paths_init(profile = "hpc")} explicitly.
+
+You can override defaults with environment variables such as \code{PARADE_SCRATCH},
+\code{PARADE_ARTIFACTS}, \code{PARADE_REGISTRY}, and \code{PARADE_DATA}. Empty values are
+treated as unset.
+}
 \examples{
 paths_init(profile = "local")
 paths_init(quiet = TRUE)

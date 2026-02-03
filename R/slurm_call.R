@@ -127,14 +127,51 @@ slurm_call <- function(.f, ...,
         name <- do.call(name_by, args_list)
       }
     }
+    name <- .sanitize_job_name(name %||% "local-call", default = "local-call")
     # Capture the call arguments for potential retry semantics
     call_args <- list(...)
-    result <- do.call(.f, call_args)
+    retries <- 0L
+    result <- NULL
+    error_obj <- NULL
+    errors <- list()
+    if (is.null(.error_policy)) {
+      result <- do.call(.f, call_args)
+    } else {
+      policy <- .error_policy
+      repeat {
+        out <- tryCatch(do.call(.f, call_args), error = identity)
+        if (!inherits(out, "error")) {
+          result <- out
+          break
+        }
+        error_obj <- out
+        if (isTRUE(policy$collect_errors)) errors[[paste0("attempt_", retries + 1L)]] <- out
+        if (identical(policy$action, "stop")) {
+          stop(out)
+        }
+        if (identical(policy$action, "continue")) {
+          result <- structure(list(error = out), class = "parade_job_error")
+          break
+        }
+        # retry
+        if (retries >= (policy$max_retries %||% 0L)) {
+          warning(
+            "Job ", name, " reached maximum retries (", policy$max_retries, ").",
+            call. = FALSE
+          )
+          result <- structure(list(error = out), class = "parade_job_error")
+          break
+        }
+        delay <- calculate_backoff(retries, policy$backoff, policy$backoff_base)
+        if (is.finite(delay) && delay > 0) Sys.sleep(delay)
+        retries <- retries + 1L
+      }
+    }
     
     # Create local job object
-    local_job <- if (!is.null(write_result)) {
+    local_job <- if (!is.null(write_result) && !inherits(result, "parade_job_error")) {
       # Expand macros with derived name for parity with SLURM path
-      result_path <- expand_path_macros(write_result, list(...), name = name %||% "local-call")
+      result_path <- expand_path_macros(write_result, list(...), name = name)
       result_path <- resolve_path(result_path, create = FALSE)
       dir.create(dirname(result_path), recursive = TRUE, showWarnings = FALSE)
       saveRDS(result, result_path)
@@ -144,9 +181,11 @@ slurm_call <- function(.f, ...,
           function_call = TRUE,
           result = result,
           result_path = result_path,
-          name = name %||% "local-call",
+          name = name,
           fn = .f,
-          args = call_args
+          args = call_args,
+          retries = retries,
+          errors = if (length(errors) > 0) errors else NULL
         ),
         class = c("parade_local_job", "parade_job")
       )
@@ -156,9 +195,11 @@ slurm_call <- function(.f, ...,
           kind = "local",
           function_call = TRUE,
           result = result,
-          name = name %||% "local-call",
+          name = name,
           fn = .f,
-          args = call_args
+          args = call_args,
+          retries = retries,
+          errors = if (length(errors) > 0) errors else NULL
         ),
         class = c("parade_local_job", "parade_job")
       )
@@ -204,6 +245,7 @@ slurm_call <- function(.f, ...,
       name <- do.call(name_by, args_list)
     }
   }
+  name <- .sanitize_job_name(name %||% "slurm-call", default = "slurm-call")
   
   # Create staging directory in registry
   root <- resolve_path("registry://slurm-call", create = TRUE)

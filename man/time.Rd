@@ -22,7 +22,7 @@ masks stats::time when parade is attached; use res_time() to avoid masking.
 }
 \examples{
 \donttest{
-resources <- time(profile(), "8:00:00")
+resources <- res_time(profile(), "8:00:00")
 }
 
 }

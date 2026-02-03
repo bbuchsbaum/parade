@@ -1,6 +1,7 @@
 library(testthat)
 devtools::load_all(".", quiet = TRUE)  # Load parade package from source
 library(tibble)
+testthat::skip_if_not_installed("mockery")
 library(mockery)
 library(future)
 
@@ -357,6 +358,8 @@ test_that("submit() with SLURM backend (mocked)", {
   on.exit(cleanup_test_registry(temp_dir))
   
   skip_if_not_installed("mockery")
+  skip_if_not_installed("batchtools")
+  skip_if_not_installed("future.batchtools")
   
   fl <- create_test_flow() |>
     distribute(dist_slurm(by = "group"))
@@ -370,20 +373,19 @@ test_that("submit() with SLURM backend (mocked)", {
     tibble::tibble(job.id = c(1001, 1002))
   )
   
-  with_mock(
-    `batchtools::makeRegistry` = mock_makeRegistry,
-    `batchtools::makeClusterFunctionsSlurm` = mock_makeClusterFunctions,
-    `batchtools::batchMap` = mock_batchMap,
-    `batchtools::submitJobs` = mock_submitJobs,
-    `batchtools::getJobTable` = mock_getJobTable,
-    `requireNamespace` = function(...) TRUE,
+  testthat::with_mocked_bindings(
     {
       handle <- submit(fl, mode = "results")
       
       expect_s3_class(handle, "parade_deferred")
       expect_equal(handle$backend, "slurm")
       expect_equal(handle$jobs, c(1001, 1002))
-    }
+    },
+    `batchtools::makeRegistry` = mock_makeRegistry,
+    `batchtools::makeClusterFunctionsSlurm` = mock_makeClusterFunctions,
+    `batchtools::batchMap` = mock_batchMap,
+    `batchtools::submitJobs` = mock_submitJobs,
+    `batchtools::getJobTable` = mock_getJobTable
   )
 })
 
@@ -531,6 +533,7 @@ test_that("deferred_status() for local backend", {
 
 test_that("deferred_status() for SLURM backend (mocked)", {
   skip_if_not_installed("mockery")
+  skip_if_not_installed("batchtools")
   
   handle <- structure(
     list(
@@ -545,10 +548,7 @@ test_that("deferred_status() for SLURM backend (mocked)", {
     list(pending = 1, started = 2, running = 1, done = 3, error = 0)
   )
   
-  with_mock(
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::getStatus` = mock_getStatus,
-    `requireNamespace` = function(...) TRUE,
+  testthat::with_mocked_bindings(
     {
       status <- deferred_status(handle, detail = FALSE)
       
@@ -558,12 +558,15 @@ test_that("deferred_status() for SLURM backend (mocked)", {
       expect_equal(status$running, 1)
       expect_equal(status$done, 3)
       expect_equal(status$error, 0)
-    }
+    },
+    `batchtools::loadRegistry` = mock_loadRegistry,
+    `batchtools::getStatus` = mock_getStatus
   )
 })
 
 test_that("deferred_status() with detail for SLURM (mocked)", {
   skip_if_not_installed("mockery")
+  skip_if_not_installed("batchtools")
   
   handle <- structure(
     list(
@@ -581,10 +584,7 @@ test_that("deferred_status() with detail for SLURM (mocked)", {
     )
   )
   
-  with_mock(
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::getJobTable` = mock_getJobTable,
-    `requireNamespace` = function(...) TRUE,
+  testthat::with_mocked_bindings(
     {
       status <- deferred_status(handle, detail = TRUE)
       
@@ -592,7 +592,9 @@ test_that("deferred_status() with detail for SLURM (mocked)", {
       expect_equal(nrow(status), 3)
       expect_true("job.id" %in% names(status))
       expect_true("status" %in% names(status))
-    }
+    },
+    `batchtools::loadRegistry` = mock_loadRegistry,
+    `batchtools::getJobTable` = mock_getJobTable
   )
 })
 
@@ -618,6 +620,7 @@ test_that("deferred_await() waits for local jobs", {
 
 test_that("deferred_await() for SLURM backend (mocked)", {
   skip_if_not_installed("mockery")
+  skip_if_not_installed("batchtools")
   
   handle <- structure(
     list(
@@ -630,16 +633,15 @@ test_that("deferred_await() for SLURM backend (mocked)", {
   mock_loadRegistry <- mockery::mock(list())
   mock_waitForJobs <- mockery::mock(NULL)
   
-  with_mock(
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::waitForJobs` = mock_waitForJobs,
-    `requireNamespace` = function(...) TRUE,
+  testthat::with_mocked_bindings(
     {
       result <- deferred_await(handle, timeout = 10, poll = 2)
       
       expect_s3_class(result, "parade_deferred")
       mockery::expect_called(mock_waitForJobs, 1)
-    }
+    },
+    `batchtools::loadRegistry` = mock_loadRegistry,
+    `batchtools::waitForJobs` = mock_waitForJobs
   )
 })
 
@@ -697,6 +699,7 @@ test_that("deferred_cancel() cancels local jobs", {
 
 test_that("deferred_cancel() for SLURM backend (mocked)", {
   skip_if_not_installed("mockery")
+  skip_if_not_installed("batchtools")
   
   handle <- structure(
     list(
@@ -710,22 +713,22 @@ test_that("deferred_cancel() for SLURM backend (mocked)", {
   mock_findRunning <- mockery::mock(c(1, 2, 3))
   mock_killJobs <- mockery::mock(NULL)
   
-  with_mock(
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::findRunning` = mock_findRunning,
-    `batchtools::killJobs` = mock_killJobs,
-    `requireNamespace` = function(...) TRUE,
+  testthat::with_mocked_bindings(
     {
       result <- deferred_cancel(handle, which = "running")
       
       expect_s3_class(result, "parade_deferred")
       mockery::expect_called(mock_killJobs, 1)
-    }
+    },
+    `batchtools::loadRegistry` = mock_loadRegistry,
+    `batchtools::findRunning` = mock_findRunning,
+    `batchtools::killJobs` = mock_killJobs
   )
 })
 
 test_that("deferred_cancel() handles 'all' parameter", {
   skip_if_not_installed("mockery")
+  skip_if_not_installed("batchtools")
   
   handle <- structure(
     list(
@@ -736,24 +739,19 @@ test_that("deferred_cancel() handles 'all' parameter", {
   )
   
   mock_loadRegistry <- mockery::mock(list())
-  mock_getJobIds <- mockery::mock(1:5)
+  mock_findJobs <- mockery::mock(1:5)
   mock_killJobs <- mockery::mock(NULL)
   
-  # Since batchtools is now installed, we can't mock it the same way
-  # Instead, check if the function would be called correctly
-  if (requireNamespace("batchtools", quietly = TRUE)) {
-    # Skip this specific mock test when batchtools is available
-    skip("Skipping mock test when batchtools is installed")
-  } else {
-    local_mocked_bindings(
-      requireNamespace = function(...) TRUE,
-      .package = "base"
-    )
-    
-    result <- deferred_cancel(handle, which = "all")
-    
-    expect_s3_class(result, "parade_deferred")
-  }
+  testthat::with_mocked_bindings(
+    {
+      result <- deferred_cancel(handle, which = "all")
+      expect_s3_class(result, "parade_deferred")
+      mockery::expect_called(mock_killJobs, 1)
+    },
+    `batchtools::loadRegistry` = mock_loadRegistry,
+    `batchtools::findJobs` = mock_findJobs,
+    `batchtools::killJobs` = mock_killJobs
+  )
 })
 
 # ============================================================================
@@ -833,7 +831,7 @@ test_that("deferred_collect() with empty index directory", {
 })
 
 test_that("deferred_collect() for SLURM with results (mocked)", {
-  skip_if_not_installed("mockery")
+  skip_if_not_installed("batchtools")
   
   handle <- structure(
     list(
@@ -845,20 +843,16 @@ test_that("deferred_collect() for SLURM with results (mocked)", {
   
   result1 <- tibble::tibble(x = 1:2, y = 3:4)
   result2 <- tibble::tibble(x = 5:6, y = 7:8)
-  
-  mock_loadRegistry <- mockery::mock(list())
-  mock_reduceResultsList <- mockery::mock(list(result1, result2))
-  
-  with_mock(
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::reduceResultsList` = mock_reduceResultsList,
-    `requireNamespace` = function(...) TRUE,
+
+  testthat::with_mocked_bindings(
     {
       collected <- deferred_collect(handle, how = "results")
-      
+
       expect_s3_class(collected, "tbl_df")
       expect_equal(nrow(collected), 4)
-    }
+    },
+    `batchtools::loadRegistry` = function(...) list(),
+    `batchtools::reduceResultsList` = function(...) list(result1, result2)
   )
 })
 

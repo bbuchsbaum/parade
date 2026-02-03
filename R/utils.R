@@ -176,13 +176,21 @@
           row[[col]] <- list(row[[col]])
         }
       } else {
-        # Try to cast to expected type
-        tryCatch({
-          row[[col]] <- vctrs::vec_cast(row[[col]], ptype[[col]])
-        }, error = function(e) {
-          # On error, use NA of correct type
-          row[[col]] <- ptype[[col]][NA_integer_]
-        })
+        casted <- tryCatch(
+          vctrs::vec_cast(row[[col]], ptype[[col]]),
+          error = function(e) {
+            behavior <- getOption("parade.cast_failure", "warn")
+            msg <- paste0(
+              "Type cast failed for column '", col, "' (expected ",
+              paste(class(ptype[[col]]), collapse = "/"), "): ",
+              conditionMessage(e)
+            )
+            if (identical(behavior, "error")) stop(msg, call. = FALSE)
+            if (!identical(behavior, "silent")) warning(msg, call. = FALSE)
+            ptype[[col]][NA_integer_]
+          }
+        )
+        row[[col]] <- casted
       }
     } else {
       # Add missing columns with NA of correct type
@@ -203,17 +211,16 @@
     if (field %in% names(result)) {
       # Build path for this field
       path <- .build_path(sink, row, stage_id, field)
+      row_key <- .row_key(row)
+      existed_before <- file.exists(path)
       
       # Write data
-      if (sink$overwrite == "skip" && file.exists(path)) {
+      if (sink$overwrite == "skip" && existed_before) {
         # Skip existing file
         next
-      } else if (sink$overwrite == "error" && file.exists(path)) {
+      } else if (sink$overwrite == "error" && existed_before) {
         stop("File already exists: ", path)
       }
-      
-      # Compute checksum BEFORE writing or replacing the field value
-      field_checksum <- if (sink$checksum) digest::digest(result[[field]]) else NA_character_
       
       # Get writer for this field
       writer <- .get_field_writer(sink, field)
@@ -224,14 +231,22 @@
       } else {
         .write_atomic_rds(result[[field]], path, compress = sink$compress %||% "gzip")
       }
+
+      # Compute checksum from written bytes (not the in-memory object)
+      field_checksum <- if (sink$checksum) digest::digest(file = path, algo = "sha256") else NA_character_
+      bytes <- as.integer(file.info(path)$size)
       
       # Write sidecar if requested
       if (sink$sidecar == "json") {
         meta <- list(
+          stage = stage_id,
+          field = field,
+          row_key = row_key,
           sha256 = field_checksum,
-          bytes = file.info(path)$size,
+          bytes = bytes,
           written = TRUE,
-          existed = file.exists(path)
+          existed = existed_before,
+          created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
         )
         .write_sidecar(path, meta)
       }
@@ -239,10 +254,10 @@
       # Replace field with file reference
       result[[field]] <- list(tibble::tibble(
         path = path,
-        bytes = as.integer(file.info(path)$size),
+        bytes = bytes,
         sha256 = field_checksum,
         written = TRUE,
-        existed = file.exists(path)
+        existed = existed_before
       ))
     }
   }

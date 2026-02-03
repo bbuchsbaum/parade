@@ -20,7 +20,7 @@ slurm_map(
   .packed = FALSE,
   .workers_per_node = NULL,
   .chunk_size = NULL,
-  .parallel_backend = c("callr", "auto", "multicore", "multisession")
+  .parallel_backend = c("auto", "callr", "multicore", "multisession")
 )
 }
 \arguments{

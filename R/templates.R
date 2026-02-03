@@ -31,7 +31,7 @@
 scaffold_batch_template <- function(system = c("slurm"),
                                    out = file.path("batchtools", paste0("parade-", match.arg(system), ".tmpl")),
                                    modules = "R",
-                                   exports = c(PARADE_SCRATCH='${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/parade-$SLURM_JOB_ID',
+                                   exports = c(PARADE_SCRATCH='${PARADE_SCRATCH:-${SCRATCH:-${SCRATCHDIR:-${PSCRATCH:-${WORK:-${SLURM_TMPDIR:-${TMPDIR:-/tmp}}}}}}}',
                                                OMP_NUM_THREADS='1', MKL_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1'),
                                    preamble = character(),
                                    overwrite = FALSE) {
@@ -46,9 +46,21 @@ scaffold_batch_template <- function(system = c("slurm"),
 #' @keywords internal
 .template_slurm <- function(modules = "R", exports = NULL, preamble = character()) {
   mod_lines <- character()
-  if (!is.null(modules) && length(modules)) mod_lines <- paste0("module load ", modules) else mod_lines <- c("module purge || true", "module load R || true")
+  if (!is.null(modules) && length(modules)) {
+    .validate_no_newlines(modules, "modules")
+    if (any(grepl("\\s", modules))) stop("modules must not contain whitespace")
+    mod_lines <- paste0("module load ", modules)
+  } else {
+    mod_lines <- c("module purge || true", "module load R || true")
+  }
   exp_lines <- character()
-  if (!is.null(exports) && length(exports)) { nms <- names(exports); if (is.null(nms) || any(nms == "")) stop("`exports` must be a *named* character vector."); exp_lines <- paste0("export ", nms, "=", unname(exports)) }
+  if (!is.null(exports) && length(exports)) {
+    nms <- names(exports)
+    if (is.null(nms) || any(nms == "")) stop("`exports` must be a *named* character vector.")
+    if (any(!grepl("^[A-Za-z_][A-Za-z0-9_]*$", nms))) stop("`exports` names must be valid shell variable identifiers.")
+    .validate_no_newlines(unname(exports), "exports")
+    exp_lines <- paste0("export ", nms, "=", unname(exports))
+  }
   lines <- c(
 "#!/bin/bash",
 "# Template for batchtools + Slurm",

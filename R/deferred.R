@@ -1,4 +1,25 @@
 # Deferred API -------------------------------------------------------------
+# Internal cache for reading shared RDS inputs (flow/chunks) across many chunk
+# executions in a single R process (e.g., sequential, or reused future workers).
+.parade_rds_cache <- new.env(parent = emptyenv())
+
+.read_rds_cached <- function(path) {
+  path_norm <- normalizePath(path, mustWork = TRUE)
+  info <- file.info(path_norm)
+  key <- path_norm
+
+  cached <- .parade_rds_cache[[key]]
+  if (!is.null(cached)) {
+    if (identical(cached$mtime, info$mtime) && identical(cached$size, info$size)) {
+      return(cached$value)
+    }
+  }
+
+  value <- readRDS(path_norm)
+  .parade_rds_cache[[key]] <- list(mtime = info$mtime, size = info$size, value = value)
+  value
+}
+
 #' Submit a flow for deferred execution
 #'
 #' Submits a parade flow for asynchronous execution, either locally using
@@ -39,7 +60,7 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
   }
   chunks_per_job <- max(1L, dist$chunks_per_job %||% 1L); chunks <- split(groups, ceiling(seq_along(groups)/chunks_per_job))
   run_id <- run_id %||% substr(digest::digest(list(Sys.time(), nrow(grid), names(grid))), 1, 8)
-  registry_dir <- registry_dir %||% file.path("registry://", paste0("parade-", run_id))
+  registry_dir <- registry_dir %||% paste0("registry://", paste0("parade-", run_id))
   registry_dir_real <- resolve_path(registry_dir)
   flow_path <- file.path(registry_dir_real, "flow.rds"); chunks_path <- file.path(registry_dir_real, "chunks.rds")
   dir.create(registry_dir_real, recursive = TRUE, showWarnings = FALSE); saveRDS(fl, flow_path); saveRDS(chunks, chunks_path)
@@ -63,20 +84,18 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
       plan_fn <- future.mirai::mirai_multisession
     } else if (!is.null(dist$remote)) {
       # Remote daemons (SSH or SLURM)
-      if (!is.null(dist$url)) {
-        # Evaluate URL expression if it's quoted
-        url <- if (is.language(dist$url)) eval(dist$url) else dist$url
-      } else if (isTRUE(dist$tls)) {
-        url <- mirai::host_url(tls = TRUE, port = dist$port %||% 5555)
-      } else {
-        url <- mirai::local_url(tcp = TRUE, port = dist$port %||% 40491)
-      }
-      
-      # Evaluate the remote config expression
-      remote_config <- eval(dist$remote)
-      mirai::daemons(url = url, remote = remote_config, dispatcher = dist$dispatcher)
-      plan_fn <- future.mirai::mirai_cluster
-    } else {
+	    if (!is.null(dist$url)) {
+	      url <- if (is.function(dist$url)) dist$url() else dist$url
+	    } else if (isTRUE(dist$tls)) {
+	      url <- mirai::host_url(tls = TRUE, port = dist$port %||% 5555)
+	    } else {
+	      url <- mirai::local_url(tcp = TRUE, port = dist$port %||% 40491)
+	    }
+	      
+	      remote_config <- if (is.function(dist$remote)) dist$remote() else dist$remote
+	      mirai::daemons(url = url, remote = remote_config, dispatcher = dist$dispatcher)
+	      plan_fn <- future.mirai::mirai_cluster
+	    } else {
       stop("dist_mirai requires either 'n' for local or 'remote' for distributed execution")
     }
     
@@ -97,7 +116,18 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     # Create futures for chunks (same as local backend)
     fs <- list()
     for (i in seq_along(chunks)) {
-      fs[[i]] <- future::future(parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling))
+      fs[[i]] <- future::future(
+        parade_run_chunk_local(
+          i = i,
+          flow_path = flow_path,
+          chunks_path = chunks_path,
+          index_dir = index_dir_resolved,
+          mode = mode,
+          seed_furrr = seed_furrr,
+          scheduling = scheduling
+        ),
+        seed = TRUE
+      )
     }
     handle$jobs <- fs
   } else {
@@ -109,7 +139,23 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
       "sequential" = future::sequential,
       future::sequential  # fallback
     )
-    future::plan(list(inner)); fs <- list(); for (i in seq_along(chunks)) { fs[[i]] <- future::future(parade_run_chunk_local(i = i, flow_path = flow_path, chunks_path = chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)) }; handle$jobs <- fs
+    future::plan(list(inner))
+    fs <- list()
+    for (i in seq_along(chunks)) {
+      fs[[i]] <- future::future(
+        parade_run_chunk_local(
+          i = i,
+          flow_path = flow_path,
+          chunks_path = chunks_path,
+          index_dir = index_dir_resolved,
+          mode = mode,
+          seed_furrr = seed_furrr,
+          scheduling = scheduling
+        ),
+        seed = TRUE
+      )
+    }
+    handle$jobs <- fs
   }
   handle
 }
@@ -129,7 +175,9 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
 #' @keywords internal
 #' @export
 parade_run_chunk_bt <- function(i, flow_path, chunks_path, index_dir, mode = "index", seed_furrr = TRUE, scheduling = 1) {
-  fl <- readRDS(flow_path); chunks <- readRDS(chunks_path); idx_vec <- chunks[[i]]
+  fl <- .read_rds_cached(flow_path)
+  chunks <- .read_rds_cached(chunks_path)
+  idx_vec <- chunks[[i]]
   .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)
 }
 #' Run a single distributed chunk locally
@@ -141,14 +189,23 @@ parade_run_chunk_bt <- function(i, flow_path, chunks_path, index_dir, mode = "in
 #' @keywords internal
 #' @export
 parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = "index", seed_furrr = TRUE, scheduling = 1) {
-  fl <- readRDS(flow_path); chunks <- readRDS(chunks_path); idx_vec <- chunks[[i]]
+  fl <- .read_rds_cached(flow_path)
+  chunks <- .read_rds_cached(chunks_path)
+  idx_vec <- chunks[[i]]
   .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)
 }
 #' @keywords internal
 .parade_execute_chunk <- function(fl, idx_vec, index_dir, job_id, mode = "index", seed_furrr = TRUE, scheduling = 1) {
-  grid <- fl$grid; dist <- fl$dist; subrows <- unlist(idx_vec, use.names = FALSE); sub <- grid[subrows, , drop = FALSE]; order <- .toposort(fl$stages)
+  grid <- fl$grid
+  dist <- fl$dist %||% list(within = "sequential", workers_within = NULL)
+  within <- dist$within %||% "sequential"
+  if (length(within) != 1L) within <- within[[1]]
+
+  subrows <- unlist(idx_vec, use.names = FALSE)
+  sub <- grid[subrows, , drop = FALSE]
+  order <- .toposort(fl$stages)
   op <- future::plan(); on.exit(future::plan(op), add = TRUE)
-  inner <- switch(dist$within,
+  inner <- switch(within,
     "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
     "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
     "callr" = future::tweak(future.callr::future.callr, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),

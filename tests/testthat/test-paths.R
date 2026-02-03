@@ -3,6 +3,7 @@ library(testthat)
 # Helper function to set up test environment
 setup_test_env <- function() {
   # Clear all parade-related environment variables
+  Sys.unsetenv("PARADE_PROJECT")
   Sys.unsetenv("PBS_O_WORKDIR")
   Sys.unsetenv("PARADE_SCRATCH")
   Sys.unsetenv("PARADE_DATA")
@@ -10,8 +11,14 @@ setup_test_env <- function() {
   Sys.unsetenv("PARADE_REGISTRY")
   Sys.unsetenv("PARADE_CONFIG_DIR")
   Sys.unsetenv("PARADE_CACHE")
+  Sys.unsetenv("SLURM_JOB_ID")
+  Sys.unsetenv("SLURM_CLUSTER_NAME")
+  Sys.unsetenv("SLURM_SUBMIT_DIR")
   Sys.unsetenv("SLURM_TMPDIR")
   Sys.unsetenv("SCRATCH")
+  Sys.unsetenv("SCRATCHDIR")
+  Sys.unsetenv("PSCRATCH")
+  Sys.unsetenv("WORK")
   
   # Clear parade.paths option
   options("parade.paths" = NULL)
@@ -57,30 +64,49 @@ test_that("paths_init respects environment variable precedence", {
   test_slurm <- file.path(temp_project, "slurm_tmp")
   test_tmpdir <- file.path(temp_project, "tmp")
   test_scratch_env <- file.path(temp_project, "scratch_env")
+  test_work <- file.path(temp_project, "work_env")
+  test_scratchdir <- file.path(temp_project, "scratchdir_env")
   
-  # Test PARADE_SCRATCH takes precedence
+  norm <- function(x) normalizePath(x, mustWork = FALSE)
+
+  # Local profile: PARADE_SCRATCH > TMPDIR (ignores SLURM_TMPDIR/SCRATCH)
   Sys.setenv(PARADE_SCRATCH = test_scratch)
   Sys.setenv(SLURM_TMPDIR = test_slurm)
   Sys.setenv(TMPDIR = test_tmpdir)
   Sys.setenv(SCRATCH = test_scratch_env)
+  Sys.setenv(WORK = test_work)
+  Sys.setenv(SCRATCHDIR = test_scratchdir)
   
-  paths <- paths_init(quiet = TRUE)
-  expect_equal(paths$scratch, test_scratch)
+  paths <- paths_init(profile = "local", quiet = TRUE)
+  expect_equal(paths$scratch, norm(test_scratch))
   
-  # Test SLURM_TMPDIR when PARADE_SCRATCH not set
+  # Local profile: TMPDIR when PARADE_SCRATCH not set
   Sys.unsetenv("PARADE_SCRATCH")
-  paths <- paths_init(quiet = TRUE)
-  expect_equal(paths$scratch, test_slurm)
+  paths <- paths_init(profile = "local", quiet = TRUE)
+  expect_equal(paths$scratch, norm(test_tmpdir))
   
-  # Test TMPDIR when neither PARADE_SCRATCH nor SLURM_TMPDIR set
+  # HPC profile: PARADE_SCRATCH > SCRATCH > SCRATCHDIR/PSCRATCH/WORK > SLURM_TMPDIR > TMPDIR
+  Sys.setenv(PARADE_SCRATCH = test_scratch)
+  paths <- paths_init(profile = "hpc", quiet = TRUE)
+  expect_equal(paths$scratch, norm(test_scratch))
+  
+  Sys.unsetenv("PARADE_SCRATCH")
+  paths <- paths_init(profile = "hpc", quiet = TRUE)
+  expect_equal(paths$scratch, norm(test_scratch_env))
+
+  Sys.unsetenv("SCRATCH")
+  paths <- paths_init(profile = "hpc", quiet = TRUE)
+  expect_equal(paths$scratch, norm(test_scratchdir))
+
+  Sys.unsetenv("SCRATCHDIR")
+  Sys.unsetenv("WORK")
+  Sys.unsetenv("PSCRATCH")
+  paths <- paths_init(profile = "hpc", quiet = TRUE)
+  expect_equal(paths$scratch, norm(test_slurm))
+
   Sys.unsetenv("SLURM_TMPDIR")
-  paths <- paths_init(quiet = TRUE)
-  expect_equal(paths$scratch, test_tmpdir)
-  
-  # Test SCRATCH when only it is set
-  Sys.unsetenv("TMPDIR")
-  paths <- paths_init(quiet = TRUE)
-  expect_equal(paths$scratch, test_scratch_env)
+  paths <- paths_init(profile = "hpc", quiet = TRUE)
+  expect_equal(paths$scratch, norm(test_tmpdir))
   
   # Cleanup
   unlink(temp_project, recursive = TRUE)
@@ -95,8 +121,9 @@ test_that("paths_init handles PBS_O_WORKDIR for project path", {
   Sys.setenv(PBS_O_WORKDIR = test_workdir)
   paths <- paths_init(quiet = TRUE)
   
-  expect_equal(paths$project, test_workdir)
-  expect_equal(paths$data, file.path(test_workdir, "data"))
+  norm <- function(x) normalizePath(x, mustWork = FALSE)
+  expect_equal(paths$project, norm(test_workdir))
+  expect_equal(paths$data, norm(file.path(test_workdir, "data")))
   
   # Cleanup
   unlink(temp_project, recursive = TRUE)
@@ -121,13 +148,42 @@ test_that("paths_init handles all PARADE_* environment variables", {
   
   paths <- paths_init(quiet = TRUE)
   
-  expect_equal(paths$data, test_data)
-  expect_equal(paths$artifacts, test_artifacts)
-  expect_equal(paths$registry, test_registry)
-  expect_equal(paths$config, test_config)
-  expect_equal(paths$cache, test_cache)
+  norm <- function(x) normalizePath(x, mustWork = FALSE)
+  expect_equal(paths$data, norm(test_data))
+  expect_equal(paths$artifacts, norm(test_artifacts))
+  expect_equal(paths$registry, norm(test_registry))
+  expect_equal(paths$config, norm(test_config))
+  expect_equal(paths$cache, norm(test_cache))
   
   # Cleanup
+  unlink(temp_project, recursive = TRUE)
+})
+
+test_that("paths_init treats empty PARADE_* env vars as unset", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+
+  test_tmpdir <- file.path(temp_project, "tmp")
+  Sys.setenv(PARADE_SCRATCH = "")
+  Sys.setenv(TMPDIR = test_tmpdir)
+
+  paths <- paths_init(profile = "local", quiet = TRUE)
+  expect_equal(paths$scratch, normalizePath(test_tmpdir, mustWork = FALSE))
+
+  unlink(temp_project, recursive = TRUE)
+})
+
+test_that("paths_init auto profile switches to hpc when scheduler env detected", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+
+  test_scratch_env <- file.path(temp_project, "scratch_env")
+  Sys.setenv(SLURM_JOB_ID = "123")
+  Sys.setenv(SCRATCH = test_scratch_env)
+
+  paths <- paths_init(profile = "auto", quiet = TRUE)
+  expect_equal(paths$scratch, normalizePath(test_scratch_env, mustWork = FALSE))
+
   unlink(temp_project, recursive = TRUE)
 })
 
@@ -345,7 +401,10 @@ test_that("resolve_path handles URI-style paths correctly", {
   
   # Test basic URI resolution
   uri_path <- resolve_path("data://subdir/file.txt")
-  expected_path <- normalizePath(file.path(temp_project, "data", "subdir", "file.txt"), mustWork = FALSE)
+  # Use current working directory as the stable project root. On macOS, setwd()
+  # may resolve /var symlinks to /private/var, so comparing to temp_project can be
+  # fragile when the file does not exist yet.
+  expected_path <- normalizePath(file.path(getwd(), "data", "subdir", "file.txt"), mustWork = FALSE)
   expect_equal(uri_path, expected_path)
   
   # Test directory creation
@@ -373,6 +432,30 @@ test_that("resolve_path handles URI-style paths correctly", {
   }
   
   # Cleanup
+  unlink(temp_project, recursive = TRUE)
+})
+
+test_that("resolve_path rejects alias traversal by default", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+  
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(temp_project)
+  
+  paths_init(quiet = TRUE)
+  
+  expect_error(resolve_path("artifacts://../oops", create = FALSE), "cannot contain")
+  
+  # Backwards-compat escape hatch
+  old_opt <- getOption("parade.paths.allow_escape")
+  options(parade.paths.allow_escape = TRUE)
+  on.exit(options(parade.paths.allow_escape = old_opt), add = TRUE)
+  
+  p <- resolve_path("artifacts://../oops", create = FALSE)
+  expect_type(p, "character")
+  expect_true(nchar(p) > 0)
+  
   unlink(temp_project, recursive = TRUE)
 })
 
@@ -491,6 +574,54 @@ test_that("resolve_path handles edge cases correctly", {
   
   # Cleanup
   unlink(temp_project, recursive = TRUE)
+})
+
+test_that("paths_validate can create missing directories and returns structured results", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(temp_project)
+
+  paths_init(quiet = TRUE)
+  artifacts_root <- file.path(temp_project, "artifacts_root")
+  registry_root <- file.path(temp_project, "registry_root")
+  paths_set(artifacts = artifacts_root, registry = registry_root)
+
+  expect_false(dir.exists(artifacts_root))
+  expect_false(dir.exists(registry_root))
+
+  res <- paths_validate(create = TRUE)
+  expect_type(res, "list")
+  expect_named(res, c("ok", "results", "warnings", "errors"))
+  expect_true(res$ok)
+  expect_true(dir.exists(artifacts_root))
+  expect_true(dir.exists(registry_root))
+})
+
+test_that("paths_validate warns when registry/artifacts are under SLURM_TMPDIR", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+
+  slurm_tmp <- file.path(temp_project, "slurm_tmp")
+  Sys.setenv(SLURM_JOB_ID = "123")
+  Sys.setenv(SLURM_TMPDIR = slurm_tmp)
+
+  paths_init(profile = "hpc", quiet = TRUE)
+  paths_set(
+    artifacts = file.path(slurm_tmp, "parade-artifacts"),
+    registry = file.path(slurm_tmp, "parade-registry")
+  )
+
+  res <- paths_validate(create = FALSE)
+  expect_true(any(grepl("SLURM_TMPDIR", res$warnings)))
+})
+
+test_that("parade_doctor prints a summary and returns validation results", {
+  setup_test_env()
+  paths_init(quiet = TRUE)
+  expect_output(parade_doctor(), "parade doctor")
 })
 
 test_that("paths work correctly with custom cache directory", {

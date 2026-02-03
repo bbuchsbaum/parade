@@ -65,6 +65,10 @@ test_that("local script failure is handled", {
   expect_s3_class(job, "parade_local_job")
   expect_equal(job$status, "FAILED")
   expect_false(job$result$success)
+
+  st <- job_status(job)
+  expect_equal(st$state, "FAILED")
+  expect_equal(st$kind, "local_script")
   
   # Clean up
   unlink(script_file)

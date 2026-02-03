@@ -25,7 +25,7 @@ Generic dry_run; methods exist for flows and defaults
 # Dry run a function
 dry_run(
   function(x) x^2,
-  x = 10,
+  10,
   .name = "test_job",
   .write_result = "results/{name}.rds"
 )

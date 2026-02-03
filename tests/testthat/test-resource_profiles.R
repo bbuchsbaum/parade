@@ -15,7 +15,7 @@ test_that("profile() with name stores name", {
 
 test_that("chaining methods work", {
   p <- profile() %>%
-    time("4:00:00") %>%
+    res_time("4:00:00") %>%
     mem("16G") %>%
     cpus(8) %>%
     gpus(2)
@@ -44,7 +44,7 @@ test_that("partition and account methods work", {
 
 test_that("as.list() extracts resources", {
   p <- profile() %>%
-    time("2:00:00") %>%
+    res_time("2:00:00") %>%
     cpus(4)
   
   res <- as.list(p)
@@ -59,7 +59,7 @@ test_that("profile registry works", {
   
   # Register a profile
   p <- profile() %>%
-    time("1:00:00") %>%
+    res_time("1:00:00") %>%
     cpus(2)
   
   profile_register("test_profile", p)
@@ -106,14 +106,14 @@ test_that("profile_list with details returns data frame", {
   
   profile_register("p1",
     profile() %>%
-      time("1:00:00") %>%
+      res_time("1:00:00") %>%
       mem("8G") %>%
       cpus(4)
   )
   
   profile_register("p2",
     profile() %>%
-      time("2:00:00") %>%
+      res_time("2:00:00") %>%
       gpus(1)
   )
   
@@ -138,13 +138,13 @@ test_that("profile with base inheritance works", {
   
   # Create base profile
   base <- profile() %>%
-    time("1:00:00") %>%
+    res_time("1:00:00") %>%
     mem("8G") %>%
     cpus(4)
   
   # Inherit from object
   extended <- profile(base = base) %>%
-    time("2:00:00")  # Override time
+    res_time("2:00:00")  # Override time
   
   expect_equal(extended$resources$time, "2:00:00")
   expect_equal(extended$resources$memory, "8G")  # Inherited
@@ -240,7 +240,7 @@ test_that("profile_register accepts list", {
 
 test_that("print method works", {
   p <- profile("my_profile") %>%
-    time("1:00:00") %>%
+    res_time("1:00:00") %>%
     cpus(4)
   
   output <- capture.output(print(p))

@@ -54,6 +54,10 @@ parade_config_path <- function(create_dirs = TRUE) {
 #' @examples
 #' config <- parade_config_read()
 parade_config_read <- function(path = NULL) {
+  override <- getOption("parade.config", NULL)
+  if (is.function(override)) override <- override()
+  if (is.list(override)) return(override)
+
   path <- path %||% parade_config_path(create_dirs = FALSE)
   if (!file.exists(path)) return(list())
   tryCatch(jsonlite::read_json(path, simplifyVector = TRUE), error = function(e) list())
@@ -178,6 +182,8 @@ slurm_resources <- function(resources = NULL, profile = "default") {
     merged$cpus_per_task <- merged$cpus
     merged$cpus <- NULL
   }
+
+  .validate_slurm_resource_values(merged)
 
   # Recognized batch_resources arguments
   recognized <- c("partition","time","nodes","ntasks","ntasks_per_node",

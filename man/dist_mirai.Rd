@@ -21,9 +21,12 @@ dist_mirai(
 \arguments{
 \item{n}{Number of local daemons to launch}
 
-\item{url}{Listening URL for remote connections (auto-generated if NULL)}
+\item{url}{Listening URL for remote connections (auto-generated if NULL). May be
+a string or a zero-argument function returning a string.}
 
-\item{remote}{Remote configuration from \code{mirai::ssh_config()} or \code{mirai::cluster_config()}}
+\item{remote}{Remote configuration for \code{mirai::daemons()}. May be a config
+object returned by \code{mirai::ssh_config()}/\code{mirai::cluster_config()}, or a
+zero-argument function returning that config.}
 
 \item{dispatcher}{Use dispatcher for automatic load balancing}
 
@@ -62,9 +65,11 @@ if (requireNamespace("mirai", quietly = TRUE)) {
 
 # SSH remotes (requires configuration)
 \donttest{
-dist_mirai(
-  remote = quote(mirai::ssh_config(c("ssh://node1", "ssh://node2"))),
-  dispatcher = TRUE
-)
+if (requireNamespace("mirai", quietly = TRUE)) {
+  dist_mirai(
+    remote = function() mirai::ssh_config(c("ssh://node1", "ssh://node2")),
+    dispatcher = TRUE
+  )
+}
 }
 }

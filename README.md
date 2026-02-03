@@ -60,7 +60,8 @@ res$rmse         # numeric in-memory
 ## Submit & monitor SLURM jobs from R
 
 ```r
-paths_init()
+# One-command HPC setup (recommended for clusters)
+parade_init_hpc(persist = TRUE)
 
 slurm_defaults_set(
   partition = "general",
@@ -72,7 +73,8 @@ slurm_defaults_set(
 
 job <- submit_slurm("scripts/train.R", args = c("--fold", "1"))
 
-script_status(job)  # quick check
+parade_dashboard(job)  # unified summary (or action = "top" for live UI)
+script_status(job)     # quick check
 script_tail(job, 80)
 script_top(job)     # live CPU/RSS and logs
 
@@ -105,10 +107,20 @@ See [Mirai backend](https://bbuchsbaum.github.io/parade/articles/parade-mirai.ht
 ## Portable paths (laptop ↔ HPC without edits)
 
 Write once, run anywhere:
-- `artifacts://` → `/scratch/$USER/parade-artifacts` on SLURM, tempdir on laptops
+- `artifacts://` → `$PARADE_SCRATCH/parade-artifacts` (preferred) or `$SCRATCH/parade-artifacts` on SLURM; falls back to `$SLURM_TMPDIR` (node-local) or tempdir
 - `data://`, `project://`, `scratch://`, `registry://`, `config://`, `cache://`
 
 Configure via `paths_set()` or env vars (`PARADE_ARTIFACTS`, `PARADE_SCRATCH`, …). See [Smart Path Management](https://bbuchsbaum.github.io/parade/articles/parade-paths.html).
+
+## Artifact catalog (discoverability)
+
+```r
+# List artifacts under your artifacts root (uses sink sidecars when present)
+artifact_catalog()
+
+# Search by stage/field/row_key/path substring
+artifact_catalog_search(query = "fit")
+```
 
 ## Why not {targets} / {drake} / {furrr}?
 

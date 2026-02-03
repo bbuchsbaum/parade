@@ -1,4 +1,5 @@
 library(testthat)
+skip_if_not_installed("mockery")
 library(mockery)
 
 test_that("in_waves_of creates wave policy", {

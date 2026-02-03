@@ -53,6 +53,26 @@ test_that("parade::pred() creates proper type objects", {
   expect_equal(spec_fn$cost, "light")
 })
 
+test_that("pred(timeout=) limits long-running predicates", {
+  if (.Platform$OS.type == "windows") {
+    skip("pred(timeout=) uses best-effort time limits on Windows; skip timing-sensitive test")
+  }
+  spec <- parade::pred(function(x) { Sys.sleep(2); TRUE }, timeout = 0.2)
+  start <- Sys.time()
+  ok <- parade:::.parade_check_type(1, spec, mode = "full")
+  elapsed <- as.numeric(difftime(Sys.time(), start, units = "secs"))
+
+  expect_false(ok)
+  expect_lt(elapsed, 2)
+  expect_silent(Sys.sleep(0.05))
+})
+
+test_that("pred(timeout=) validates inputs", {
+  expect_error(parade::pred(function(x) TRUE, timeout = 0), "positive")
+  expect_error(parade::pred(function(x) TRUE, timeout = -1), "positive")
+  expect_error(parade::pred(function(x) TRUE, timeout = NA_real_), "positive")
+})
+
 test_that("parade::neurovol() creates proper type objects", {
   # Basic neurovol
   spec <- parade::neurovol()

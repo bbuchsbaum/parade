@@ -124,7 +124,7 @@ sink_quick <- function(fields,
       rel_path <- paste0(rel_path, ext)
     }
     
-    file.path(base_dir, rel_path)
+    .sink_safe_join(base_dir, rel_path)
   }
   
   # Create sink spec with custom writer

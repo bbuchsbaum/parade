@@ -1,42 +1,4 @@
 # Scaffold job helpers -----------------------------------------------------
-#' Create a basic SLURM batch template
-#'
-#' @param path Path where template should be created (temp file if NULL)
-#' @return Path to created template file (invisibly)
-#' @export
-#' @examples
-#' template_path <- scaffold_batch_template()
-scaffold_batch_template <- function(path = NULL) {
-  if (is.null(path)) {
-    path <- file.path(tempdir(), "parade_template.tmpl")
-  }
-  
-  template_content <- c(
-    "#!/bin/bash",
-    "",
-    "## Template for batchtools",
-    "## You can customize this file as needed",
-    "",
-    "#SBATCH --job-name=<%= job.name %>",
-    "#SBATCH --output=<%= job.name %>-%j.out",
-    "#SBATCH --error=<%= job.name %>-%j.err",
-    "#SBATCH --time=<%= resources$time %>",
-    "#SBATCH --ntasks=1",
-    "#SBATCH --cpus-per-task=<%= resources$cpus_per_task %>",
-    "#SBATCH --mem=<%= resources$mem %>",
-    "",
-    "## Load modules if needed",
-    "module load R || true",
-    "",
-    "## Run the R script",
-    "Rscript '<%= rscript %>'"
-  )
-  
-  writeLines(template_content, path)
-  message("Template created at: ", path)
-  invisible(path)
-}
-
 #' Generate scaffold scripts for SLURM flow execution
 #'
 #' Creates a set of helper scripts for submitting, monitoring, and collecting
@@ -62,9 +24,20 @@ scaffold_flow_job <- function(flow,
                               modules = NULL,
                               exports = NULL) {
   stopifnot(inherits(flow, "parade_flow"))
+  name <- .sanitize_job_name(name, default = "parade_job")
+  if (!is.null(modules) && length(modules) > 0) {
+    .validate_no_newlines(modules, "modules")
+    if (any(grepl("\\s", modules))) stop("modules must not contain whitespace")
+  }
+  if (is.list(exports) && length(exports) > 0) {
+    .validate_no_newlines(unname(exports), "exports")
+    if (any(!grepl("^[A-Za-z_][A-Za-z0-9_]*$", names(exports)))) {
+      stop("exports names must be valid shell variable identifiers.")
+    }
+  }
   
   if (is.null(registry_dir)) {
-    registry_dir <- file.path("registry://", name)
+    registry_dir <- paste0("registry://", name)
   }
   
   # Create scripts directory

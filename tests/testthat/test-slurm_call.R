@@ -1,3 +1,4 @@
+testthat::skip_if_not_installed("mockery")
 library(mockery)
 
 test_that("slurm_call submits a function successfully", {

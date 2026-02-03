@@ -79,6 +79,46 @@ sink_spec <- function(fields, dir, template = NULL, format = "rds", formats = NU
 `%||%` <- function(a,b) if (!is.null(a)) a else b
 .row_key <- function(row) digest::digest(row, algo = "sha1")
 .resolve_dir <- function(dir, row, stage_name, field) if (is.function(dir)) resolve_path(dir(row=row, stage=stage_name, field=field)) else resolve_path(dir)
+
+.sink_is_absolute_path <- function(path) {
+  if (!is.character(path) || length(path) != 1L || is.na(path)) return(FALSE)
+  # Unix absolute
+  if (grepl("^/", path)) return(TRUE)
+  # Windows drive or UNC
+  if (grepl("^[A-Za-z]:[\\\\/]", path)) return(TRUE)
+  if (grepl("^\\\\\\\\", path)) return(TRUE)
+  FALSE
+}
+
+.sink_has_parent_ref <- function(path) {
+  if (!is.character(path) || length(path) != 1L || is.na(path)) return(FALSE)
+  grepl("(^|[\\\\/])\\.\\.([\\\\/]|$)", path)
+}
+
+.sink_safe_join <- function(base_dir, rel_path) {
+  if (!is.character(base_dir) || length(base_dir) != 1L || !nzchar(base_dir)) {
+    stop("Invalid base_dir")
+  }
+  if (!is.character(rel_path) || length(rel_path) != 1L || is.na(rel_path) || !nzchar(rel_path)) {
+    stop("Invalid rel_path")
+  }
+  if (.sink_is_absolute_path(rel_path)) {
+    stop("Sink template produced an absolute path: ", rel_path)
+  }
+  if (.sink_has_parent_ref(rel_path)) {
+    stop("Sink template produced a path outside base dir: ", rel_path)
+  }
+
+  base_norm <- normalizePath(base_dir, mustWork = FALSE)
+  candidate <- normalizePath(file.path(base_norm, rel_path), mustWork = FALSE)
+
+  base_prefix <- paste0(base_norm, .Platform$file.sep)
+  if (!(identical(candidate, base_norm) || startsWith(candidate, base_prefix))) {
+    stop("Sink template produced a path outside base dir: ", rel_path)
+  }
+  candidate
+}
+
 .build_path <- function(spec, row, stage_name, field) {
   # Check if sink_quick created a custom build_path_fn
   if (!is.null(spec$build_path_fn)) {
@@ -106,7 +146,7 @@ sink_spec <- function(fields, dir, template = NULL, format = "rds", formats = NU
     path
   }
   
-  file.path(base, rel)
+  .sink_safe_join(base, as.character(rel))
 }
 #' @importFrom stats runif
 .write_atomic_rds <- function(x, path, compress="gzip") { 
@@ -117,10 +157,18 @@ sink_spec <- function(fields, dir, template = NULL, format = "rds", formats = NU
   if (identical(compress, "gz")) compress <- "gzip"
   saveRDS(x, file=tmp, compress=compress)
   ok <- file.rename(tmp, path)
-  if (!isTRUE(ok)) { 
-    ok2 <- file.copy(tmp, path, overwrite=TRUE)
-    if (!isTRUE(ok2)) stop(sprintf("Atomic write failed for %s", path))
-    unlink(tmp) 
+  if (!isTRUE(ok)) {
+    if (isTRUE(getOption("parade.atomic_copy_fallback", FALSE))) {
+      warning("Atomic rename failed; falling back to copy (non-atomic): ", path, call. = FALSE)
+      ok2 <- file.copy(tmp, path, overwrite = TRUE)
+      if (!isTRUE(ok2)) stop(sprintf("Atomic write failed for %s", path))
+      unlink(tmp)
+    } else {
+      stop(
+        "Atomic rename failed for ", path,
+        ". To allow a non-atomic copy fallback, set options(parade.atomic_copy_fallback = TRUE)."
+      )
+    }
   }
   invisible(path) 
 }

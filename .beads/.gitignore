@@ -1,0 +1,12 @@
+# Volatile local Beads runtime artifacts
+beads.db*
+bd.sock
+daemon.lock
+daemon.log
+daemon.pid
+
+# Local-only interaction logs
+interactions.jsonl
+
+# Local state
+last-touched

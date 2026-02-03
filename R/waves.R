@@ -106,7 +106,8 @@ apply_waves <- function(jobs, submit_fn, wave_policy, progress = TRUE) {
   wave_size <- wave_policy$size
   n_waves <- ceiling(n_jobs / wave_size)
   
-  submitted <- list()
+  submitted <- vector("list", n_jobs)
+  submitted_i <- 0L
   
   if (progress) {
     pb <- txtProgressBar(min = 0, max = n_jobs, style = 3)
@@ -118,17 +119,18 @@ apply_waves <- function(jobs, submit_fn, wave_policy, progress = TRUE) {
     wave_indices <- wave_start:wave_end
     
     # Submit jobs in this wave
-    wave_jobs <- list()
-    for (i in wave_indices) {
+    wave_jobs <- vector("list", length(wave_indices))
+    for (k in seq_along(wave_indices)) {
+      i <- wave_indices[[k]]
       job <- submit_fn(jobs[[i]])
-      wave_jobs <- c(wave_jobs, list(job))
+      wave_jobs[[k]] <- job
+      submitted_i <- submitted_i + 1L
+      submitted[[submitted_i]] <- job
       
       if (progress) {
         setTxtProgressBar(pb, i)
       }
     }
-    
-    submitted <- c(submitted, wave_jobs)
     
     # Handle wave completion
     if (wave < n_waves) {  # Not the last wave
@@ -169,15 +171,18 @@ apply_concurrency_limit <- function(jobs, submit_fn, concurrency_policy,
   max_concurrent <- concurrency_policy$max
   poll_interval <- concurrency_policy$poll
   
-  submitted <- list()
+  submitted <- vector("list", n_jobs)
+  submitted_i <- 0L
   pending_indices <- seq_len(n_jobs)
   
   if (progress) {
     pb <- txtProgressBar(min = 0, max = n_jobs, style = 3)
   }
   
-  while (length(pending_indices) > 0 || length(get_running(submitted)) > 0) {
-    running <- get_running(submitted)
+  current_submitted <- function() if (submitted_i == 0L) list() else submitted[seq_len(submitted_i)]
+
+  while (length(pending_indices) > 0 || length(get_running(current_submitted())) > 0) {
+    running <- get_running(current_submitted())
     n_running <- length(running)
     
     # Submit more jobs if we have capacity
@@ -186,11 +191,12 @@ apply_concurrency_limit <- function(jobs, submit_fn, concurrency_policy,
       pending_indices <- pending_indices[-1]
       
       job <- submit_fn(jobs[[i]])
-      submitted <- c(submitted, list(job))
+      submitted_i <- submitted_i + 1L
+      submitted[[submitted_i]] <- job
       n_running <- n_running + 1
       
       if (progress) {
-        setTxtProgressBar(pb, length(submitted))
+        setTxtProgressBar(pb, submitted_i)
       }
     }
     
@@ -204,7 +210,7 @@ apply_concurrency_limit <- function(jobs, submit_fn, concurrency_policy,
     close(pb)
   }
   
-  submitted
+  current_submitted()
 }
 
 #' Get currently running jobs from a list

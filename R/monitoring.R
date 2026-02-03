@@ -155,7 +155,7 @@ open_logs.parade_jobset <- function(job, which = c("both", "out", "err"),
 #' # Explain a function submission
 #' explain(
 #'   function(x) x^2,
-#'   x = 10,
+#'   10,
 #'   .resources = "gpu"
 #' )
 #' 
@@ -215,8 +215,11 @@ explain.default <- function(x, ..., .resources = NULL, .packages = character(),
     args <- list(...)
     if (length(args) > 0) {
       cat("\nArguments:\n")
-      for (name in names(args)) {
-        cat("  ", name, " = ", deparse(args[[name]], width.cutoff = 60)[1], "\n", sep = "")
+      arg_names <- names(args)
+      for (i in seq_along(args)) {
+        nm <- if (!is.null(arg_names)) arg_names[[i]] else ""
+        label <- if (!nzchar(nm)) paste0("[[", i, "]]") else nm
+        cat("  ", label, " = ", deparse(args[[i]], width.cutoff = 60)[1], "\n", sep = "")
       }
     }
     
@@ -288,7 +291,7 @@ explain.default <- function(x, ..., .resources = NULL, .packages = character(),
 #' # Dry run a function
 #' dry_run(
 #'   function(x) x^2,
-#'   x = 10,
+#'   10,
 #'   .name = "test_job",
 #'   .write_result = "results/{name}.rds"
 #' )

@@ -12,18 +12,55 @@
 #' @examples
 #' paths_init(profile = "local")
 #' paths_init(quiet = TRUE)
-paths_init <- function(profile = c("auto","local","hpc"), quiet = FALSE) {
-  profile <- match.arg(profile); env <- Sys.getenv
-  project <- env("PBS_O_WORKDIR", unset = getwd())
-  scratch <- env("PARADE_SCRATCH", unset = env("SLURM_TMPDIR", unset = env("TMPDIR", unset = env("SCRATCH", unset = tempdir()))))
-  data <- env("PARADE_DATA", unset = file.path(project, "data"))
-  artifacts <- env("PARADE_ARTIFACTS", unset = file.path(scratch, "parade-artifacts"))
-  registry <- env("PARADE_REGISTRY", unset = file.path(scratch, "parade-registry"))
-  config <- env("PARADE_CONFIG_DIR", unset = file.path(project, ".parade"))
-  cache <- env("PARADE_CACHE", unset = tools::R_user_dir("parade", which = "cache"))
-  paths <- list(project=project, scratch=scratch, data=data, artifacts=artifacts, registry=registry, config=config, cache=cache)
+#' @details
+#' `profile = "auto"` switches to `"hpc"` when scheduler environment variables are
+#' detected (e.g., SLURM/PBS). On login nodes, those variables may be absent; in
+#' that case, use `paths_init(profile = "hpc")` explicitly.
+#'
+#' You can override defaults with environment variables such as `PARADE_SCRATCH`,
+#' `PARADE_ARTIFACTS`, `PARADE_REGISTRY`, and `PARADE_DATA`. Empty values are
+#' treated as unset.
+paths_init <- function(profile = c("auto", "local", "hpc"), quiet = FALSE) {
+  profile <- match.arg(profile)
+  if (identical(profile, "auto")) profile <- if (.is_hpc_env()) "hpc" else "local"
+
+  project <- .default_project_root(profile = profile)
+  config_dir_default <- .env_nonempty("PARADE_CONFIG_DIR") %||% file.path(project, ".parade")
+  cfg <- .paths_config_read(project = project, config_dir = config_dir_default)
+
+  # Allow persisted project/scratch defaults when scheduler submit-dir isn't present.
+  if (is.null(.env_nonempty("PARADE_PROJECT")) && !.has_scheduler_project_dir()) {
+    project <- .cfg_nonempty(cfg, "project") %||% project
+  }
+
+  config_dir_default <- .env_nonempty("PARADE_CONFIG_DIR") %||% file.path(project, ".parade")
+  cfg <- .paths_config_read(project = project, config_dir = config_dir_default)
+
+  scratch <- .env_nonempty("PARADE_SCRATCH") %||% .cfg_nonempty(cfg, "scratch") %||% .default_scratch_root(profile = profile)
+
+  data <- .env_nonempty("PARADE_DATA") %||% .cfg_nonempty(cfg, "data") %||% file.path(project, "data")
+  artifacts <- .env_nonempty("PARADE_ARTIFACTS") %||% .cfg_nonempty(cfg, "artifacts") %||% file.path(scratch, "parade-artifacts")
+  registry <- .env_nonempty("PARADE_REGISTRY") %||% .cfg_nonempty(cfg, "registry") %||% file.path(scratch, "parade-registry")
+  config <- .env_nonempty("PARADE_CONFIG_DIR") %||% .cfg_nonempty(cfg, "config") %||% file.path(project, ".parade")
+  cache <- .env_nonempty("PARADE_CACHE") %||% .cfg_nonempty(cfg, "cache") %||% tools::R_user_dir("parade", which = "cache")
+
+  paths <- list(
+    project = .normalize_root(project),
+    scratch = .normalize_root(scratch),
+    data = .normalize_root(data),
+    artifacts = .normalize_root(artifacts),
+    registry = .normalize_root(registry),
+    config = .normalize_root(config),
+    cache = .normalize_root(cache)
+  )
+
   options("parade.paths" = paths)
-  if (!quiet) message("parade paths: ", paste(names(paths), vapply(paths, normalizePath, "", mustWork = FALSE), sep="=", collapse = "; "))
+
+  if (!quiet) {
+    msg_paths <- vapply(paths, function(p) normalizePath(p, mustWork = FALSE), character(1))
+    message("parade paths: ", paste(names(msg_paths), msg_paths, sep = "=", collapse = "; "))
+  }
+
   invisible(paths)
 }
 #' Get current parade path configuration
@@ -42,6 +79,141 @@ paths_get <- function() getOption("parade.paths", paths_init(quiet = TRUE))
 #' @examples
 #' paths_set(data = "/custom/data", artifacts = "/tmp/artifacts")
 paths_set <- function(...) { x <- rlang::list2(...); cur <- paths_get(); for (nm in names(x)) cur[[nm]] <- x[[nm]]; options("parade.paths" = cur); invisible(cur) }
+
+.env_nonempty <- function(name, unset = NULL) {
+  x <- Sys.getenv(name, unset = "")
+  x <- trimws(x)
+  if (!nzchar(x)) return(unset)
+  x
+}
+
+.env_first_nonempty <- function(names, unset = NULL) {
+  for (nm in names) {
+    value <- .env_nonempty(nm)
+    if (!is.null(value)) return(value)
+  }
+  unset
+}
+
+.has_scheduler_project_dir <- function() {
+  any(nzchar(Sys.getenv(c("SLURM_SUBMIT_DIR", "PBS_O_WORKDIR", "SGE_O_WORKDIR", "LSB_SUBCWD"), unset = "")))
+}
+
+.is_hpc_env <- function() {
+  any(nzchar(Sys.getenv(c(
+    "SLURM_JOB_ID",
+    "SLURM_CLUSTER_NAME",
+    "SLURM_SUBMIT_DIR",
+    "PBS_JOBID",
+    "PBS_O_WORKDIR",
+    "SGE_JOB_ID",
+    "SGE_O_WORKDIR",
+    "LSB_JOBID",
+    "LSB_SUBCWD"
+  ), unset = "")))
+}
+
+.default_project_root <- function(profile) {
+  if (identical(profile, "hpc")) {
+    .env_first_nonempty(c(
+      "PARADE_PROJECT",
+      "SLURM_SUBMIT_DIR",
+      "PBS_O_WORKDIR",
+      "SGE_O_WORKDIR",
+      "LSB_SUBCWD"
+    ), unset = getwd())
+  } else {
+    .env_nonempty("PARADE_PROJECT") %||% getwd()
+  }
+}
+
+.default_scratch_root <- function(profile) {
+  if (identical(profile, "hpc")) {
+    # Prefer shared scratch over node-local scratch so artifacts/registry remain visible.
+    .env_first_nonempty(c(
+      "SCRATCH",
+      "SCRATCHDIR",
+      "PSCRATCH",
+      "WORK",
+      "SLURM_TMPDIR",
+      "TMPDIR"
+    ), unset = tempdir())
+  } else {
+    .env_first_nonempty(c("TMPDIR"), unset = tempdir())
+  }
+}
+
+.normalize_root <- function(path) {
+  if (!is.character(path) || length(path) != 1L) {
+    stop("Path must be a length-1 character value", call. = FALSE)
+  }
+  path <- trimws(path)
+  if (!nzchar(path)) stop("Path cannot be empty", call. = FALSE)
+  normalizePath(path.expand(path), mustWork = FALSE)
+}
+
+.cfg_nonempty <- function(cfg, key) {
+  if (is.null(cfg) || !is.list(cfg) || is.null(cfg$paths)) return(NULL)
+  val <- cfg$paths[[key]] %||% NULL
+  if (!is.character(val) || length(val) != 1L) return(NULL)
+  val <- trimws(val)
+  if (!nzchar(val)) return(NULL)
+  val
+}
+
+.paths_config_read <- function(project, config_dir) {
+  env_file <- .env_nonempty("PARADE_CONFIG")
+  candidates <- character()
+  if (!is.null(env_file)) {
+    candidates <- c(candidates, env_file)
+  }
+  if (is.character(project) && length(project) == 1L && nzchar(project)) {
+    candidates <- c(candidates, file.path(project, "parade.json"))
+  }
+  if (is.character(config_dir) && length(config_dir) == 1L && nzchar(config_dir)) {
+    candidates <- c(candidates, file.path(config_dir, "parade.json"))
+  }
+
+  for (path in unique(candidates)) {
+    if (!file.exists(path)) next
+    cfg <- tryCatch(jsonlite::read_json(path, simplifyVector = TRUE), error = function(e) NULL)
+    if (is.list(cfg)) return(cfg)
+  }
+
+  list()
+}
+
+.path_is_absolute <- function(path) {
+  if (!is.character(path) || length(path) != 1L) return(FALSE)
+  if (!nzchar(path)) return(FALSE)
+  if (grepl(sprintf("^%s", .Platform$file.sep), path)) return(TRUE)
+  # Windows drive letters / UNC
+  grepl("^[A-Za-z]:[\\\\/]", path) || grepl("^[\\\\/]{2}", path)
+}
+
+.path_has_parent_ref <- function(path) {
+  if (!is.character(path) || length(path) != 1L) return(FALSE)
+  any(strsplit(path, "[/\\\\]+", perl = TRUE)[[1]] %in% "..")
+}
+
+.alias_join <- function(root, rel, allow_escape = FALSE) {
+  if (!isTRUE(allow_escape)) {
+    if (.path_is_absolute(rel)) stop("Alias path must be relative, got: ", rel, call. = FALSE)
+    if (.path_has_parent_ref(rel)) stop("Alias path cannot contain '..': ", rel, call. = FALSE)
+  }
+
+  root_norm <- normalizePath(root, mustWork = FALSE)
+  out <- normalizePath(file.path(root_norm, rel), mustWork = FALSE)
+
+  if (!isTRUE(allow_escape)) {
+    prefix <- paste0(root_norm, .Platform$file.sep)
+    if (!(identical(out, root_norm) || startsWith(out, prefix))) {
+      stop("Resolved alias path escapes root: ", out, call. = FALSE)
+    }
+  }
+
+  out
+}
 #' Resolve a path using configured aliases
 #'
 #' @param alias Path alias ("project", "data", "artifacts", etc.)
@@ -58,7 +230,9 @@ paths_set <- function(...) { x <- rlang::list2(...); cur <- paths_get(); for (nm
 path_here <- function(alias, ..., create = TRUE) { 
   roots <- paths_get()
   if (!alias %in% names(roots)) stop("Unknown alias: ", alias)
-  p <- file.path(roots[[alias]], file.path(...))
+  rel <- file.path(...)
+  allow_escape <- isTRUE(getOption("parade.paths.allow_escape", FALSE))
+  p <- .alias_join(roots[[alias]], rel, allow_escape = allow_escape)
   if (isTRUE(create)) .ensure_target_dir(p)
   normalizePath(p, mustWork = FALSE) 
 }

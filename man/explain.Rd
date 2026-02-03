@@ -26,7 +26,7 @@ Generic explain; methods exist for flows and defaults
 # Explain a function submission
 explain(
   function(x) x^2,
-  x = 10,
+  10,
   .resources = "gpu"
 )
 

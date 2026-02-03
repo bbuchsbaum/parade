@@ -46,21 +46,25 @@ submit_slurm <- function(script,
                          env = character(),
                          lib_paths = .libPaths(),
                          rscript = file.path(R.home("bin"), "Rscript"),
-                         wd = dirname(normalizePath(script)),
+                         wd = NULL,
                          .as_jobset = FALSE,
                          .error_policy = NULL) {
   engine <- match.arg(engine)
   
-  # Check batchtools requirement for SLURM engine first
-  if (engine == "slurm" && !requireNamespace("batchtools", quietly = TRUE)) {
-    stop("submit_slurm() requires 'batchtools'.")
+  if (!is.character(script) || length(script) != 1) {
+    stop("`script` must be a single file path.", call. = FALSE)
   }
-  
   if (!file.exists(script)) stop("Script not found: ", script)
+  script <- normalizePath(script, mustWork = TRUE)
+  wd <- wd %||% dirname(script)
   name <- name %||% tools::file_path_sans_ext(basename(script))
+  name <- .sanitize_job_name(name, default = "script")
   
   # Route to local execution if requested
   if (engine == "local") {
+    policy <- .error_policy
+    retries <- 0L
+    errors <- list()
     handle <- submit_script_local(
       script = script,
       args = args,
@@ -70,6 +74,41 @@ submit_slurm <- function(script,
       rscript = rscript,
       wd = wd
     )
+
+    if (!is.null(policy)) {
+      repeat {
+        if (identical(handle$status, "COMPLETED")) break
+
+        err <- handle$result$error %||% simpleError("Local script execution failed")
+        errors[[paste0("attempt_", retries + 1L)]] <- err
+
+        if (identical(policy$action, "stop")) stop(err)
+        if (identical(policy$action, "continue")) break
+
+        if (retries >= (policy$max_retries %||% 0L)) {
+          warning(
+            "Job ", name, " reached maximum retries (", policy$max_retries, ").",
+            call. = FALSE
+          )
+          break
+        }
+
+        delay <- calculate_backoff(retries, policy$backoff, policy$backoff_base)
+        if (is.finite(delay) && delay > 0) Sys.sleep(delay)
+        retries <- retries + 1L
+        handle <- submit_script_local(
+          script = script,
+          args = args,
+          name = name,
+          env = env,
+          lib_paths = lib_paths,
+          rscript = rscript,
+          wd = wd
+        )
+      }
+    }
+    handle$retries <- retries
+    if (length(errors) > 0 && isTRUE(policy$collect_errors)) handle$errors <- errors
     
     # Store error policy if provided
     if (!is.null(.error_policy)) {
@@ -89,7 +128,7 @@ submit_slurm <- function(script,
   # resolve defaults and normalize resources
   resources <- slurm_resources(resources = resources, profile = "default")
   tmpl_path <- resolve_path(template %||% slurm_template_default(), create = FALSE)
-  reg_path <- registry_dir %||% file.path("registry://", paste0("script-", run_id))
+  reg_path <- registry_dir %||% paste0("registry://", paste0("script-", run_id))
   reg_dir <- normalizePath(resolve_path(reg_path, create = FALSE), mustWork = FALSE)
   dir.create(dirname(reg_dir), recursive = TRUE, showWarnings = FALSE)
   if (dir.exists(reg_dir)) {
@@ -99,11 +138,14 @@ submit_slurm <- function(script,
     )
   }
   if (!file.exists(tmpl_path)) stop("Template not found: ", tmpl_path)
+  if (!requireNamespace("batchtools", quietly = TRUE)) {
+    stop("submit_slurm() requires 'batchtools'.")
+  }
   cf <- batchtools::makeClusterFunctionsSlurm(tmpl_path)
   reg <- bt_make_registry(reg_dir = reg_dir, cf = cf)
-  batchtools::batchMap(fun = parade_run_script_bt, i = 1L,
-                       more.args = list(script = normalizePath(script), args = args, env = env, lib_paths = lib_paths, rscript = rscript, wd = wd),
-                       reg = reg)
+		  batchtools::batchMap(fun = parade_run_script_bt, i = 1L,
+		                       more.args = list(script = script, args = args, env = env, lib_paths = lib_paths, rscript = rscript, wd = wd),
+		                       reg = reg)
   # Submit job; support older batchtools versions without job.name argument
   submit_formals <- try(names(formals(batchtools::submitJobs)), silent = TRUE)
   if (!inherits(submit_formals, "try-error") && "job.name" %in% submit_formals) {
@@ -124,7 +166,7 @@ submit_slurm <- function(script,
   }
 
   handle <- list(kind = "script",
-                 script = normalizePath(script),
+                 script = script,
                  args = args,
                  name = name,
                  run_id = run_id,
@@ -349,14 +391,15 @@ submit_script_local <- function(script,
                                 env = character(),
                                 lib_paths = .libPaths(),
                                 rscript = file.path(R.home("bin"), "Rscript"),
-                                wd = dirname(normalizePath(script))) {
+                                wd = dirname(normalizePath(script, mustWork = TRUE))) {
   
   if (!file.exists(script)) {
     stop("Script not found: ", script)
   }
   
   name <- name %||% tools::file_path_sans_ext(basename(script))
-  script_path <- normalizePath(script)
+  name <- .sanitize_job_name(name, default = "script")
+  script_path <- normalizePath(script, mustWork = TRUE)
   
   # Create a temporary directory for output
   output_dir <- tempfile(pattern = paste0("local_script_", name, "_"))

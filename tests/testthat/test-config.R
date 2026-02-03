@@ -1,5 +1,6 @@
 # Test suite for configuration management functions
 library(testthat)
+skip_if_not_installed("mockery")
 library(mockery)
 library(withr)
 
@@ -120,6 +121,17 @@ test_that("parade_config_read reads valid JSON", {
   
   result <- parade_config_read()
   expect_equal(result, test_config)
+})
+
+test_that("parade_config_read uses injected config override when set", {
+  test_config <- list(slurm = list(template = "/override.tmpl"))
+  withr::local_options(list(parade.config = test_config))
+  expect_equal(parade_config_read(), test_config)
+})
+
+test_that("parade_config_read accepts injected config factory function", {
+  withr::local_options(list(parade.config = function() list(custom = TRUE)))
+  expect_equal(parade_config_read(), list(custom = TRUE))
 })
 
 test_that("parade_config_read returns empty list for missing file", {

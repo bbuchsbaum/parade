@@ -1,5 +1,6 @@
 # Test suite for script job submission functions
 library(testthat)
+skip_if_not_installed("mockery")
 library(mockery)
 library(withr)
 
@@ -29,7 +30,8 @@ create_mock_registry <- function() {
     file.dir = tempdir(),
     cluster.functions = list(name = "Slurm"),
     packages = character(),
-    seed = 123
+    seed = 123,
+    writeable = TRUE
   )
 }
 
@@ -48,6 +50,8 @@ create_mock_job_table <- function(job_id = 1L, status = "submitted") {
 }
 
 test_that("submit_slurm submits a script successfully", {
+  skip_if_not_installed("batchtools")
+
   # Create test script
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
@@ -115,6 +119,18 @@ test_that("submit_slurm submits a script successfully", {
   expect_equal(result$template, "/mock/template.tmpl")
 })
 
+test_that("submit_slurm sanitizes unsafe job names", {
+  script_path <- tempfile(fileext = ".R")
+  writeLines("cat('ok')", script_path)
+  on.exit(unlink(script_path), add = TRUE)
+
+  job <- submit_slurm(script_path, engine = "local", name = "bad name\n../evil")
+  expect_false(grepl("[\r\n]", job$name))
+  expect_false(grepl("[/\\\\]", job$name))
+  expect_match(job$name, "^[A-Za-z0-9_.+-]+$")
+  unlink(job$output_dir, recursive = TRUE)
+})
+
 test_that("submit_slurm handles missing script error", {
   stub(submit_slurm, "requireNamespace", TRUE)
   expect_error(
@@ -143,6 +159,8 @@ test_that("submit_slurm handles missing template error", {
 })
 
 test_that("submit_slurm uses default values when not specified", {
+  skip_if_not_installed("batchtools")
+
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
   reg_root <- file.path(test_dir, "registry")
@@ -235,6 +253,8 @@ test_that("parade_run_script_bt handles script failure", {
 })
 
 test_that("script_status returns job status correctly", {
+  skip_if_not_installed("batchtools")
+
   # Create mock job handle
   job <- structure(
     list(
@@ -284,6 +304,8 @@ test_that("script_status validates job handle", {
 })
 
 test_that("script_await waits for job completion", {
+  skip_if_not_installed("batchtools")
+
   job <- structure(
     list(
       kind = "script",
@@ -314,6 +336,8 @@ test_that("script_await validates job handle", {
 })
 
 test_that("script_cancel cancels running jobs", {
+  skip_if_not_installed("batchtools")
+
   job <- structure(
     list(
       kind = "script",
@@ -496,6 +520,8 @@ test_that("print.parade_script_job displays job information", {
 })
 
 test_that("submit_slurm saves metadata files", {
+  skip_if_not_installed("batchtools")
+
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
   reg_root <- file.path(test_dir, "registry")
@@ -556,6 +582,8 @@ test_that("submit_slurm saves metadata files", {
 })
 
 test_that("submit_slurm handles custom working directory", {
+  skip_if_not_installed("batchtools")
+
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
   custom_wd <- file.path(test_dir, "custom_wd")
@@ -586,6 +614,8 @@ test_that("submit_slurm handles custom working directory", {
 })
 
 test_that("submit_slurm handles custom environment variables", {
+  skip_if_not_installed("batchtools")
+
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
   
@@ -616,6 +646,8 @@ test_that("submit_slurm handles custom environment variables", {
 })
 
 test_that("submit_slurm handles custom library paths", {
+  skip_if_not_installed("batchtools")
+
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
   
@@ -666,11 +698,23 @@ test_that("parade_run_script_bt handles NULL status from system2", {
 })
 
 test_that("submit_slurm requires batchtools package", {
+  test_dir <- withr::local_tempdir()
+  script_path <- create_test_script(test_dir)
+  template_path <- file.path(test_dir, "template.tmpl")
+  writeLines("#!/bin/bash\n", template_path)
+
+  reg_root <- file.path(test_dir, "registry")
+  dir.create(reg_root, recursive = TRUE)
+
   # Mock requireNamespace to return FALSE
   stub(submit_slurm, "requireNamespace", FALSE)
-  
+
   expect_error(
-    submit_slurm("dummy.R"),
+    submit_slurm(
+      script = script_path,
+      template = template_path,
+      registry_dir = file.path(reg_root, "script-need-batchtools")
+    ),
     "requires 'batchtools'"
   )
 })

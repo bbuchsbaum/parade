@@ -11,7 +11,7 @@
   out <- .run_cmd("squeue", c("-j", as.character(job_id), "-h", "-o", "%T|%M|%l|%C|%D|%R|%N"))
   # If command failed or output malformed, return unknowns
   st <- attr(out, "status") %||% 0L
-  if (length(out) == 0L || st != 0L || !grepl("\\|", out[[1]], fixed = TRUE)) {
+  if (length(out) == 0L || st != 0L || !grepl("|", out[[1]], fixed = TRUE)) {
     return(list(state = "UNKNOWN", time = NA_real_, timelimit = NA_real_, cpus = NA_real_, nodes = NA_real_, reason = NA_character_, nodelist = NA_character_))
   }
   parts <- strsplit(out[[1]], "|", fixed = TRUE)[[1]]
@@ -88,7 +88,7 @@ script_metrics <- function(job) {
   # Prefer SLURM batch id if available
   sid <- job$batch_id
   if (is.null(sid) || is.na(sid) || !nzchar(as.character(sid))) {
-    # Fallback: try to resolve from registry
+    # Fallback: try to resolve from registry when available
     if (requireNamespace("batchtools", quietly = TRUE) && !is.null(job$registry_dir)) {
       reg <- try(batchtools::loadRegistry(job$registry_dir, writeable = FALSE), silent = TRUE)
       if (!inherits(reg, "try-error")) {
@@ -97,6 +97,10 @@ script_metrics <- function(job) {
         if (nrow(row) >= 1 && !is.na(row$batch.id[[1]])) sid <- row$batch.id[[1]]
       }
     }
+  }
+  if (is.null(sid) || is.na(sid) || !nzchar(as.character(sid))) {
+    # Historical handles may store the SLURM id in job_id
+    sid <- job$job_id
   }
   # If we still don't have a valid batch id, return NA metrics
   # Validate that batch_id looks like a job ID (numeric or contains only digits)

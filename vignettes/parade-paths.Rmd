@@ -59,10 +59,46 @@ saveRDS(results, resolve_path("artifacts://outputs/results.rds"))
 The `artifacts://` prefix is a **portable alias** that parade automatically translates:
 
 - **On your laptop**: → `/var/folders/.../parade-artifacts/`
-- **On SLURM cluster**: → `/scratch/$USER/parade-artifacts/`
+- **On SLURM cluster**: → `$PARADE_SCRATCH/parade-artifacts/` (preferred) or `$SCRATCH/parade-artifacts/` (common). If neither is set, it falls back to `$SLURM_TMPDIR` (node-local scratch).
 - **On your collaborator's machine**: → whatever their appropriate storage location is
 
 No more broken paths. No more rewriting code for different systems.
+
+## HPC quickstart (recommended)
+
+On clusters, the main “gotcha” is **node-local scratch**: `SLURM_TMPDIR` is often local to the compute node running a job. If you put `registry://` or `artifacts://` there, other jobs (or your login node) may not be able to see the files.
+
+The recommended setup is:
+
+1. Point Parade at **shared scratch** (site-specific).
+2. Initialize paths in **HPC mode** (especially on login nodes).
+3. Run the built-in doctor once to confirm everything is writable.
+
+```sh
+# In your shell (recommended for most clusters)
+export PARADE_SCRATCH="/scratch/$USER"   # or your site's shared scratch
+```
+
+```r
+library(parade)
+
+# On login nodes, scheduler env vars may not be present, so be explicit:
+paths_init(profile = "hpc")
+parade_doctor(create = TRUE)
+```
+
+Or use the one-command helper (creates paths, scaffolds a SLURM template, and can persist to `parade.json`):
+
+```r
+parade_init_hpc(persist = TRUE)
+```
+
+If you prefer not to create directories automatically, use:
+
+```r
+paths_init(profile = "hpc")
+paths_validate(create = FALSE)
+```
 
 ## Quick Start: Your First Portable Analysis
 
@@ -75,6 +111,9 @@ library(parade)
 
 # Auto-detect your environment and set up paths
 paths_init()
+
+# Tip (HPC): on a login node or if your scheduler env isn't set, use:
+# paths_init(profile = "hpc"); parade_doctor(create = TRUE)
 
 # See where your aliases point
 paths_get()
@@ -105,9 +144,9 @@ saveRDS(big_model, resolve_path("artifacts://models/final.rds"))
 # Saves to: /var/folders/temp/parade-artifacts/models/final.rds
 
 # On HPC cluster (same code!)
-paths_init()
+paths_init(profile = "hpc")
 saveRDS(big_model, resolve_path("artifacts://models/final.rds"))
-# Saves to: /scratch/alice/parade-artifacts/models/final.rds
+# Saves to: $PARADE_SCRATCH/parade-artifacts/models/final.rds (or $SCRATCH/parade-artifacts/...)
 ```
 
 That's it! Your code now works on any system without modification.

@@ -11,7 +11,7 @@ submit_script_local(
   env = character(),
   lib_paths = .libPaths(),
   rscript = file.path(R.home("bin"), "Rscript"),
-  wd = dirname(normalizePath(script))
+  wd = dirname(normalizePath(script, mustWork = TRUE))
 )
 }
 \arguments{

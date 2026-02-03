@@ -1,5 +1,6 @@
 # Integration tests for parade package workflows
 library(testthat)
+skip_if_not_installed("mockery")
 library(mockery)
 library(withr)
 

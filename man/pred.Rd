@@ -4,12 +4,14 @@
 \alias{pred}
 \title{Create a predicate-based type specification}
 \usage{
-pred(fn, cost = c("light", "full"))
+pred(fn, cost = c("light", "full"), timeout = NULL)
 }
 \arguments{
 \item{fn}{Function or formula that returns TRUE for valid values}
 
 \item{cost}{Performance cost: "light" (default) or "full"}
+
+\item{timeout}{Optional elapsed-time limit (seconds) for the predicate.}
 }
 \value{
 A parade_ptype_pred object for schema validation

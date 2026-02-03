@@ -91,10 +91,23 @@ job_status <- function(x) {
 
 #' @export
 job_status.parade_local_job <- function(x) {
+  kind <- x$kind %||% "local"
+  state <- "COMPLETED"
+  # For local script jobs, preserve explicit status
+  if (!is.null(x$status) && is.character(x$status) && length(x$status) == 1) {
+    state <- toupper(x$status)
+    if (state %in% c("ERROR", "FAIL", "FAILED")) state <- "FAILED"
+  } else if (inherits(x$result, "parade_job_error")) {
+    state <- "FAILED"
+  } else if (is.list(x$result) && isFALSE(x$result$success) && !is.null(x$result$error)) {
+    # submit_script_local returns list(success=FALSE, error=...)
+    state <- "FAILED"
+  }
+
   tibble::tibble(
     name = x$name,
-    state = "COMPLETED",
-    kind = "local",
+    state = state,
+    kind = kind,
     result_available = !is.null(x$result) || !is.null(x$result_path)
   )
 }

@@ -15,20 +15,20 @@
 #' \donttest{
 #' # Basic profile without pipes
 #' resources <- profile()
-#' resources <- time(resources, "4:00:00")
+#' resources <- res_time(resources, "4:00:00")
 #' resources <- mem(resources, "16G")
 #' resources <- cpus(resources, 8)
 #'
 #' # Named profile for reuse
 #' gpu_profile <- profile("gpu_analysis")
-#' gpu_profile <- time(gpu_profile, "12:00:00")
+#' gpu_profile <- res_time(gpu_profile, "12:00:00")
 #' gpu_profile <- mem(gpu_profile, "64G")
 #' gpu_profile <- cpus(gpu_profile, 16)
 #' gpu_profile <- gpus(gpu_profile, 2)
 #'
 #' # Inherit from existing profile and override time only
 #' extended <- profile(base = gpu_profile)
-#' extended <- time(extended, "24:00:00")
+#' extended <- res_time(extended, "24:00:00")
 #' }
 #' 
 #' @export
@@ -67,7 +67,7 @@ profile <- function(name = NULL, base = NULL) {
 #' 
 #' @examples
 #' \donttest{
-#' resources <- time(profile(), "8:00:00")
+#' resources <- res_time(profile(), "8:00:00")
 #' }
 #' 
 #' @note masks stats::time when parade is attached; use res_time() to avoid masking.
@@ -78,8 +78,14 @@ time <- function(profile, value) {
 
 #' @export
 time.parade_profile <- function(profile, value) {
-  profile$resources$time <- value
-  profile
+  if (isTRUE(getOption("parade.warn_deprecated_time", TRUE))) {
+    rlang::warn(
+      "parade::time() (resource profiles) is deprecated and masks stats::time(). Use res_time() instead.",
+      class = "parade_deprecated_time",
+      frequency = "once"
+    )
+  }
+  res_time(profile, value)
 }
 
 #' Set memory limit for a resource profile
@@ -187,12 +193,22 @@ account <- function(profile, value) {
 
 # Aliases that avoid masking -------------------------------------------------
 
-#' Alias for time() that avoids masking stats::time
+#' Set time limit for a resource profile (non-masking)
+#'
+#' Use `res_time()` in pipelines to avoid masking `stats::time()` when `parade` is attached.
 #'
 #' @inheritParams time
 #' @return Updated profile
 #' @export
-res_time <- function(profile, value) time(profile, value)
+res_time <- function(profile, value) {
+  UseMethod("res_time")
+}
+
+#' @export
+res_time.parade_profile <- function(profile, value) {
+  profile$resources$time <- value
+  profile
+}
 
 #' Alias for mem()
 #'
@@ -286,14 +302,14 @@ print.parade_profile <- function(x, ...) {
 #' \donttest{
 #' # Register a standard compute profile
 #' standard <- profile()
-#' standard <- time(standard, "4:00:00")
+#' standard <- res_time(standard, "4:00:00")
 #' standard <- mem(standard, "8G")
 #' standard <- cpus(standard, 4)
 #' profile_register("standard", standard)
 #'
 #' # Register a GPU profile
 #' gpu <- profile()
-#' gpu <- time(gpu, "12:00:00")
+#' gpu <- res_time(gpu, "12:00:00")
 #' gpu <- mem(gpu, "32G")
 #' gpu <- cpus(gpu, 8)
 #' gpu <- gpus(gpu, 1)
@@ -384,7 +400,7 @@ profile_list <- function(details = FALSE) {
 #' 
 #' # Use as base for new profile
 #' extended <- profile(base = gpu_profile)
-#' extended <- time(extended, "24:00:00")
+#' extended <- res_time(extended, "24:00:00")
 #' }
 #' 
 #' @export
@@ -442,7 +458,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   # Quick test profile
   profile_register("test",
     profile() %>%
-      time("0:30:00") %>%
+      res_time("0:30:00") %>%
       mem("4G") %>%
       cpus(2),
     overwrite = overwrite
@@ -451,7 +467,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   # Standard compute profile
   profile_register("standard",
     profile() %>%
-      time("4:00:00") %>%
+      res_time("4:00:00") %>%
       mem("8G") %>%
       cpus(4),
     overwrite = overwrite
@@ -460,7 +476,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   # High memory profile
   profile_register("highmem",
     profile() %>%
-      time("8:00:00") %>%
+      res_time("8:00:00") %>%
       mem("64G") %>%
       cpus(8),
     overwrite = overwrite
@@ -469,7 +485,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   # GPU profile
   profile_register("gpu",
     profile() %>%
-      time("12:00:00") %>%
+      res_time("12:00:00") %>%
       mem("32G") %>%
       cpus(8) %>%
       gpus(1),
@@ -479,7 +495,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   # Long running profile
   profile_register("long",
     profile() %>%
-      time("2-00:00:00") %>%
+      res_time("2-00:00:00") %>%
       mem("16G") %>%
       cpus(4),
     overwrite = overwrite

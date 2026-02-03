@@ -184,12 +184,21 @@ retry.parade_jobset <- function(jobs, policy = NULL, which = "failed") {
 #' 
 #' @keywords internal
 calculate_backoff <- function(attempts, strategy, base) {
-  switch(strategy,
+  attempts <- suppressWarnings(as.integer(attempts %||% 0L))
+  if (is.na(attempts) || attempts < 0L) attempts <- 0L
+  base <- suppressWarnings(as.numeric(base %||% 0))
+  if (is.na(base) || base < 0) base <- 0
+  max_delay <- suppressWarnings(as.numeric(getOption("parade.backoff_max", 86400)))
+  if (is.na(max_delay) || max_delay <= 0) max_delay <- 86400
+
+  delay <- switch(strategy,
     none = 0,
     linear = attempts * base,
     exponential = base * (2^attempts),
     0
   )
+  if (!is.finite(delay) || delay < 0) delay <- max_delay
+  min(delay, max_delay)
 }
 
 #' Get unique job identifier

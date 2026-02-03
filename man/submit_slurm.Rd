@@ -15,7 +15,7 @@ submit_slurm(
   env = character(),
   lib_paths = .libPaths(),
   rscript = file.path(R.home("bin"), "Rscript"),
-  wd = dirname(normalizePath(script)),
+  wd = NULL,
   .as_jobset = FALSE,
   .error_policy = NULL
 )

@@ -1,18 +1,19 @@
 library(testthat)
+skip_if_not_installed("mockery")
 library(mockery)
 
 test_that("explain shows job details", {
   output <- capture.output({
     explain(
       function(x) x^2,
-      x = 10,
+      10,
       .resources = list(time = "1:00:00", cpus = 4),
       .packages = c("dplyr", "ggplot2")
     )
   })
   
   expect_match(paste(output, collapse = "\n"), "Type: Function submission")
-  expect_match(paste(output, collapse = "\n"), "x = 10")
+  expect_match(paste(output, collapse = "\n"), "\\[\\[1\\]\\] = 10")
   expect_match(paste(output, collapse = "\n"), "dplyr")
   expect_match(paste(output, collapse = "\n"), "time: 1:00:00")
   expect_match(paste(output, collapse = "\n"), "cpus: 4")
@@ -42,7 +43,7 @@ test_that("dry_run simulates submission", {
   output <- capture.output({
     result <- dry_run(
       function(x) x^2,
-      x = 10,
+      10,
       .name = "test_job",
       .write_result = "results/{name}.rds"
     )

@@ -1,3 +1,4 @@
+testthat::skip_if_not_installed("mockery")
 library(mockery)
 
 test_that("sink writes sidecar with checksum and bytes", {
@@ -22,19 +23,40 @@ test_that("sink writes sidecar with checksum and bytes", {
   meta_path <- paste0(ref$path, ".json")
   expect_true(file.exists(meta_path))
   meta <- jsonlite::read_json(meta_path, simplifyVector = TRUE)
+  expect_equal(meta$stage, "s")
+  expect_equal(meta$field, "obj")
+  expect_true(is.character(meta$row_key) && grepl("^[0-9a-f]{40}$", meta$row_key))
   expect_true(meta$bytes > 0)
-  # checksum matches in-memory value reloaded
-  obj_loaded <- readRDS(ref$path)
-  expect_equal(digest::digest(obj_loaded), meta$sha256)
+  expect_equal(digest::digest(file = ref$path, algo = "sha256"), meta$sha256)
 })
 
-test_that(".write_atomic_rds falls back when rename fails", {
+test_that(".write_atomic_rds errors when rename fails (unless fallback enabled)", {
   writer <- parade:::.write_atomic_rds
   # Force file.rename to fail
   stub(writer, "file.rename", function(...) FALSE)
   p <- tempfile(fileext = ".rds")
-  expect_silent(writer(list(a = 1L), p))
+  expect_error(writer(list(a = 1L), p), "Atomic rename failed")
+
+  old <- getOption("parade.atomic_copy_fallback")
+  on.exit(options(parade.atomic_copy_fallback = old), add = TRUE)
+  options(parade.atomic_copy_fallback = TRUE)
+  expect_warning(writer(list(a = 1L), p), "falling back to copy")
   expect_true(file.exists(p))
+})
+
+test_that("sink templates cannot escape base dir", {
+  base_dir <- file.path(tempdir(), paste0("parade-sink-traversal-", as.integer(runif(1, 1, 1e6))))
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+
+  spec <- sink_spec(fields = "x", dir = base_dir, template = "../oops/{.row_key}", overwrite = "overwrite")
+  row <- tibble::tibble(x = 1)
+  expect_error(parade:::.build_path(spec, row, "stage", "x"), "outside base dir")
+
+  spec2 <- sink_spec(fields = "x", dir = base_dir, template = "/tmp/oops/{.row_key}", overwrite = "overwrite")
+  expect_error(parade:::.build_path(spec2, row, "stage", "x"), "absolute path")
+
+  quick <- sink_quick("x", dir = base_dir, template = "../oops/{.row_key}", write = "rds", overwrite = "overwrite")
+  expect_error(parade:::.build_path(quick, row, "stage", "x"), "outside base dir")
 })
 
 test_that("per-field formats are honored", {

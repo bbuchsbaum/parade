@@ -243,9 +243,17 @@ has_sink_format <- function(name) {
   # Atomic rename
   ok <- file.rename(tmp, path)
   if (!isTRUE(ok)) {
-    ok2 <- file.copy(tmp, path, overwrite = TRUE)
-    if (!isTRUE(ok2)) stop(sprintf("Atomic write failed for %s", path))
-    unlink(tmp)
+    if (isTRUE(getOption("parade.atomic_copy_fallback", FALSE))) {
+      warning("Atomic rename failed; falling back to copy (non-atomic): ", path, call. = FALSE)
+      ok2 <- file.copy(tmp, path, overwrite = TRUE)
+      if (!isTRUE(ok2)) stop(sprintf("Atomic write failed for %s", path))
+      unlink(tmp)
+    } else {
+      stop(
+        "Atomic rename failed for ", path,
+        ". To allow a non-atomic copy fallback, set options(parade.atomic_copy_fallback = TRUE)."
+      )
+    }
   }
   invisible(path)
 }

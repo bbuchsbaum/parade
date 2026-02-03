@@ -7,8 +7,11 @@
 #' task execution without R's connection limits.
 #'
 #' @param n Number of local daemons to launch
-#' @param url Listening URL for remote connections (auto-generated if NULL)
-#' @param remote Remote configuration from `mirai::ssh_config()` or `mirai::cluster_config()`
+#' @param url Listening URL for remote connections (auto-generated if NULL). May be
+#'   a string or a zero-argument function returning a string.
+#' @param remote Remote configuration for `mirai::daemons()`. May be a config
+#'   object returned by `mirai::ssh_config()`/`mirai::cluster_config()`, or a
+#'   zero-argument function returning that config.
 #' @param dispatcher Use dispatcher for automatic load balancing
 #' @param tls Use TLS encryption for connections
 #' @param port Port number for connections (auto-selected if NULL)
@@ -32,10 +35,12 @@
 #' 
 #' # SSH remotes (requires configuration)
 #' \donttest{
-#' dist_mirai(
-#'   remote = quote(mirai::ssh_config(c("ssh://node1", "ssh://node2"))),
-#'   dispatcher = TRUE
-#' )
+#' if (requireNamespace("mirai", quietly = TRUE)) {
+#'   dist_mirai(
+#'     remote = function() mirai::ssh_config(c("ssh://node1", "ssh://node2")),
+#'     dispatcher = TRUE
+#'   )
+#' }
 #' }
 dist_mirai <- function(
   n = NULL,
@@ -59,6 +64,13 @@ dist_mirai <- function(
   
   if (!is.null(n) && !is.null(remote)) {
     stop("dist_mirai: specify either 'n' (local) or 'remote' (distributed), not both")
+  }
+
+  if (is.language(url)) {
+    stop("dist_mirai(url=) no longer accepts quoted expressions; pass a string or a function().")
+  }
+  if (is.language(remote)) {
+    stop("dist_mirai(remote=) no longer accepts quoted expressions; pass a config object or a function().")
   }
   
   structure(
@@ -149,22 +161,12 @@ use_mirai_slurm <- function(n, partition = NULL, time = NULL,
   
   opts_string <- paste(opts, collapse = "\n")
   
-  # Create cluster config as quoted expression
-  # This will be evaluated at runtime when mirai is available
-  remote_config <- substitute(
-    mirai::cluster_config(command = "sbatch", options = opts_string),
-    list(opts_string = opts_string)
-  )
+  remote_config <- function() {
+    mirai::cluster_config(command = "sbatch", options = opts_string)
+  }
   
   # Build URL configuration
-  url_config <- if (tls) {
-    substitute(
-      mirai::host_url(tls = TRUE, port = port),
-      list(port = port)
-    )
-  } else {
-    NULL
-  }
+  url_config <- if (tls) function() mirai::host_url(tls = TRUE, port = port) else NULL
   
   dist_mirai(
     remote = remote_config,
@@ -202,28 +204,14 @@ use_mirai_slurm <- function(n, partition = NULL, time = NULL,
 use_mirai_ssh <- function(remotes, tunnel = TRUE, port = NULL) {
   port <- port %||% 40491
   
-  # Create SSH config as quoted expression
   remote_config <- if (tunnel) {
-    substitute(
-      mirai::ssh_config(remotes, tunnel = TRUE),
-      list(remotes = remotes)
-    )
+    function() mirai::ssh_config(remotes, tunnel = TRUE)
   } else {
-    substitute(
-      mirai::ssh_config(remotes),
-      list(remotes = remotes)
-    )
+    function() mirai::ssh_config(remotes)
   }
   
   # URL configuration for tunneling
-  url_config <- if (tunnel) {
-    substitute(
-      mirai::local_url(tcp = TRUE, port = port),
-      list(port = port)
-    )
-  } else {
-    NULL
-  }
+  url_config <- if (tunnel) function() mirai::local_url(tcp = TRUE, port = port) else NULL
   
   dist_mirai(
     remote = remote_config,

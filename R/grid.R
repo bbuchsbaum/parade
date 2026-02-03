@@ -74,11 +74,10 @@ grid <- function(..., .filter = NULL, .add_metadata = TRUE) {
   # Add metadata if requested
   if (.add_metadata && nrow(params) > 0) {
     params$.grid_id <- seq_len(nrow(params))
-    params$.grid_hash <- vapply(
-      seq_len(nrow(params)),
-      function(i) substr(digest::digest(params[i, , drop = FALSE]), 1, 8),
-      character(1)
-    )
+    cols <- names(params)
+    key_parts <- lapply(cols, function(nm) paste0(nm, "=", as.character(params[[nm]])))
+    keys <- do.call(paste, c(key_parts, sep = "\x1e"))
+    params$.grid_hash <- substr(vapply(keys, digest::digest, character(1)), 1, 8)
   }
   
   # Reset row names

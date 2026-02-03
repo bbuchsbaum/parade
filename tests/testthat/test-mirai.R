@@ -72,8 +72,8 @@ test_that("use_mirai_slurm creates SLURM configuration", {
   expect_equal(d$port, 5555)
   expect_true(d$dispatcher)
   
-  # Check that remote is a quoted expression
-  expect_true(is.language(d$remote))
+  # remote is a thunk that builds a mirai cluster config
+  expect_true(is.function(d$remote))
   
   # With additional options
   d2 <- use_mirai_slurm(
@@ -112,8 +112,8 @@ test_that("use_mirai_ssh creates SSH configuration", {
   expect_true(!is.null(d2$remote))
   expect_equal(d2$port, 50000)
   
-  # Check that remote is a quoted expression
-  expect_true(is.language(d1$remote))
+  # remote is a thunk that builds a mirai cluster config
+  expect_true(is.function(d1$remote))
 })
 
 test_that("mirai backend integrates with flow", {

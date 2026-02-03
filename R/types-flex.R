@@ -84,6 +84,7 @@ one_of <- function(...) {
 #'
 #' @param fn Function or formula that returns TRUE for valid values
 #' @param cost Performance cost: "light" (default) or "full"
+#' @param timeout Optional elapsed-time limit (seconds) for the predicate.
 #' @return A parade_ptype_pred object for schema validation
 #' @export
 #' @examples
@@ -92,7 +93,7 @@ one_of <- function(...) {
 #' 
 #' # Heavy check - only runs in full validation mode
 #' schema(img = pred(~ validate_dimensions(.), cost = "full"))
-pred <- function(fn, cost = c("light", "full")) {
+pred <- function(fn, cost = c("light", "full"), timeout = NULL) {
   cost <- match.arg(cost)
   fn <- if (inherits(fn, "formula")) {
     # Convert formula to function
@@ -100,7 +101,13 @@ pred <- function(fn, cost = c("light", "full")) {
   } else {
     match.fun(fn)
   }
-  structure(list(fn = fn, cost = cost), class = "parade_ptype_pred")
+  if (!is.null(timeout)) {
+    if (!is.numeric(timeout) || length(timeout) != 1L || is.na(timeout) || timeout <= 0) {
+      stop("timeout must be a positive number of seconds")
+    }
+    timeout <- as.numeric(timeout)
+  }
+  structure(list(fn = fn, cost = cost, timeout = timeout), class = "parade_ptype_pred")
 }
 
 # Validation Functions -------------------------------------------------------
@@ -116,7 +123,13 @@ pred <- function(fn, cost = c("light", "full")) {
 #' @keywords internal
 .parade_check_type <- function(x, spec, mode = c("light", "full")) {
   mode <- match.arg(mode)
-  UseMethod(".parade_check_type", spec)
+  for (cls in class(spec)) {
+    method <- get0(paste0(".parade_check_type.", cls), inherits = TRUE)
+    if (!is.null(method) && !identical(method, .parade_check_type)) {
+      return(method(x, spec, mode))
+    }
+  }
+  .parade_check_type.default(x, spec, mode)
 }
 
 #' @keywords internal
@@ -158,6 +171,27 @@ pred <- function(fn, cost = c("light", "full")) {
   }
   
   # Run the predicate
+  if (!is.null(spec$timeout)) {
+    # Best-effort timeout: on Unix, run predicate in a forked process and kill it
+    # if it exceeds the budget. On Windows, fall back to setTimeLimit.
+    if (.Platform$OS.type != "windows") {
+      job <- parallel::mcparallel(spec$fn(x), silent = TRUE)
+      deadline <- Sys.time() + spec$timeout
+      poll <- max(0.01, min(0.05, spec$timeout / 10))
+      repeat {
+        out <- parallel::mccollect(job, wait = FALSE)
+        if (length(out) > 0L) return(isTRUE(out[[1]]))
+        if (Sys.time() >= deadline) {
+          tools::pskill(job$pid)
+          parallel::mccollect(job, wait = FALSE)
+          return(FALSE)
+        }
+        Sys.sleep(poll)
+      }
+    }
+    setTimeLimit(cpu = spec$timeout, elapsed = spec$timeout, transient = TRUE)
+    on.exit(setTimeLimit(cpu = Inf, elapsed = Inf, transient = TRUE), add = TRUE)
+  }
   result <- tryCatch(
     spec$fn(x),
     error = function(e) FALSE
