@@ -208,22 +208,29 @@ test_that("conditional format registration works", {
     expect_false(has_sink_format("feather"))
   }
   
-  # qs format should be registered only if qs is available
-  if (requireNamespace("qs", quietly = TRUE)) {
-    expect_true(has_sink_format("qs"))
-    
-    fmt <- get_sink_format("qs")
-    expect_equal(fmt$ext, ".qs")
-    
+  # qs2 format should be registered only if qs2 is available (preferred)
+  if (requireNamespace("qs2", quietly = TRUE)) {
+    expect_true(has_sink_format("qs2"))
+
+    fmt <- get_sink_format("qs2")
+    expect_equal(fmt$ext, ".qs2")
+
     # Test roundtrip
-    tmp <- tempfile()
+    tmp <- tempfile(fileext = ".qs2")
     fmt$writer(mtcars, tmp)
     expect_true(file.exists(tmp))
     data <- fmt$reader(tmp)
     expect_equal(data, mtcars)
     unlink(tmp)
   } else {
-    expect_false(has_sink_format("qs"))
+    expect_false(has_sink_format("qs2"))
+  }
+
+  # Legacy qs format (only if installed and qs2 isn't installed)
+  if (!requireNamespace("qs2", quietly = TRUE) && requireNamespace("qs", quietly = TRUE)) {
+    expect_true(has_sink_format("qs"))
+    fmt <- get_sink_format("qs")
+    expect_equal(fmt$ext, ".qs")
   }
   
   # readr formats

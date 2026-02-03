@@ -19,14 +19,14 @@
 #' @export
 #' @examples
 #' # Register a custom format
-#' register_sink_format("qs",
-#'   writer = function(x, path, ...) qs::qsave(x, path, ...),
-#'   reader = function(path, ...) qs::qread(path, ...),
-#'   ext = ".qs"
+#' register_sink_format("qs2",
+#'   writer = function(x, path, ...) qs2::qs_save(x, path, ...),
+#'   reader = function(path, ...) qs2::qs_read(path, ...),
+#'   ext = ".qs2"
 #' )
 #' 
 #' # Use in sink
-#' sink_quick("data", write = "qs")
+#' sink_quick("data", write = "qs2")
 register_sink_format <- function(name, writer, reader, ext = NULL, atomic = TRUE) {
   stopifnot(
     is.character(name) && length(name) == 1L,
@@ -179,8 +179,21 @@ has_sink_format <- function(name) {
     )
   }
   
-  # qs (if available) - ultra fast serialization
-  if (requireNamespace("qs", quietly = TRUE)) {
+  # qs2 (if available) - ultra fast serialization
+  if (requireNamespace("qs2", quietly = TRUE)) {
+    register_sink_format("qs2",
+      writer = function(x, path, ...) {
+        dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+        qs2::qs_save(x, path, ...)
+        invisible(path)
+      },
+      reader = function(path, ...) {
+        qs2::qs_read(path, ...)
+      },
+      ext = ".qs2",
+      atomic = TRUE
+    )
+  } else if (requireNamespace("qs", quietly = TRUE)) {
     register_sink_format("qs",
       writer = function(x, path, ...) {
         dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
