@@ -39,6 +39,6 @@ You can override defaults with environment variables such as
 
 ``` r
 paths_init(profile = "local")
-#> parade paths: project=/home/runner/work/parade/parade/docs/reference; scratch=/tmp/RtmplgaOUj; data=/home/runner/work/parade/parade/docs/reference/data; artifacts=/tmp/RtmplgaOUj/parade-artifacts; registry=/tmp/RtmplgaOUj/parade-registry; config=/home/runner/work/parade/parade/docs/reference/.parade; cache=/home/runner/.cache/R/parade
+#> parade paths: project=/home/runner/work/parade/parade/docs/reference; scratch=/tmp/RtmpkrYvnZ; data=/home/runner/work/parade/parade/docs/reference/data; artifacts=/tmp/RtmpkrYvnZ/parade-artifacts; registry=/tmp/RtmpkrYvnZ/parade-registry; config=/home/runner/work/parade/parade/docs/reference/.parade; cache=/home/runner/.cache/R/parade
 paths_init(quiet = TRUE)
 ```

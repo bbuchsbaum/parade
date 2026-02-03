@@ -75,25 +75,20 @@ results <- collect(local_jobs)
 
 # \donttest{
 # Note: The following example requires a SLURM cluster environment
-# Map over multiple arguments
-files <- c("a.csv", "b.csv", "c.csv")
-methods <- c("fast", "slow", "fast")
-thresholds <- c(0.1, 0.2, 0.15)
-process_file <- function(file, ...) file  # stub for example
+if (Sys.which("squeue") != "") {
+  # Map over multiple arguments
+  files <- c("a.csv", "b.csv", "c.csv")
+  methods <- c("fast", "slow", "fast")
+  thresholds <- c(0.1, 0.2, 0.15)
+  process_file <- function(file, ...) file  # stub for example
 
-jobs <- slurm_pmap(
-  list(file = files, method = methods, threshold = thresholds),
-  function(file, method, threshold) {
-    process_file(file, method = method, threshold = threshold)
-  },
-  .name_by = function(...) paste0("proc-", tools::file_path_sans_ext(basename(..1)))
-)
-#> No readable configuration file found
-#> Created registry in '/tmp/RtmplgaOUj/parade-registry/script-0ba5d809' using cluster functions 'Interactive'
-#> Adding 1 jobs ...
-#> Error: Listing of jobs failed (exit code 127);
-#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
-#> output:
-#> command not found
+  jobs <- slurm_pmap(
+    list(file = files, method = methods, threshold = thresholds),
+    function(file, method, threshold) {
+      process_file(file, method = method, threshold = threshold)
+    },
+    .name_by = function(...) paste0("proc-", tools::file_path_sans_ext(basename(..1)))
+  )
+}
 # }
 ```

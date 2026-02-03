@@ -44,15 +44,9 @@ The jobset (invisibly)
 ``` r
 # \donttest{
 # Note: This example requires a SLURM cluster environment
-jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
-#> No readable configuration file found
-#> Created registry in '/tmp/RtmplgaOUj/parade-registry/script-54370143' using cluster functions 'Interactive'
-#> Adding 1 jobs ...
-#> Error: Listing of jobs failed (exit code 127);
-#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
-#> output:
-#> command not found
-progress(jobs)  # Shows progress bar
-#> Error: object 'jobs' not found
+if (Sys.which("squeue") != "") {
+  jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
+  progress(jobs)  # Shows progress bar
+}
 # }
 ```

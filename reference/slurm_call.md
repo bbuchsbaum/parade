@@ -147,48 +147,33 @@ local_job$result
 
 # \donttest{
 # Note: The following examples require a SLURM cluster environment
-# Simple function submission
-job <- slurm_call(
-  function(x) x^2,
-  x = 10,
-  name = "square-10"
-)
-#> No readable configuration file found
-#> Created registry in '/tmp/RtmplgaOUj/parade-registry/script-b37003ea' using cluster functions 'Interactive'
-#> Adding 1 jobs ...
-#> Error: Listing of jobs failed (exit code 127);
-#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
-#> output:
-#> command not found
+if (Sys.which("squeue") != "") {
+  # Simple function submission
+  job <- slurm_call(
+    function(x) x^2,
+    x = 10,
+    name = "square-10"
+  )
 
-# With packages and result saving
-job <- slurm_call(
-  function(n) {
-    matrix(rnorm(n * n), nrow = n)
-  },
-  n = 1000,
-  packages = c("stats"),
-  write_result = "artifacts://random_matrix.rds",
-  resources = list(mem = "8G", time = "10min")
-)
-#> No readable configuration file found
-#> Created registry in '/tmp/RtmplgaOUj/parade-registry/script-00d163f7' using cluster functions 'Interactive'
-#> Adding 1 jobs ...
-#> Error: Listing of jobs failed (exit code 127);
-#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
-#> output:
-#> command not found
+  # With packages and result saving
+  job <- slurm_call(
+    function(n) {
+      matrix(rnorm(n * n), nrow = n)
+    },
+    n = 1000,
+    packages = c("stats"),
+    write_result = "artifacts://random_matrix.rds",
+    resources = list(mem = "8G", time = "10min")
+  )
 
-# Monitor the job
-script_tail(job)
-#> Error: object 'job' not found
-script_await(job)
-#> Error: object 'job' not found
+  # Monitor the job
+  script_tail(job)
+  script_await(job)
 
-# Load saved result
-if (!is.null(job$result_path)) {
-  result <- readRDS(job$result_path)
+  # Load saved result
+  if (!is.null(job$result_path)) {
+    result <- readRDS(job$result_path)
+  }
 }
-#> Error: object 'job' not found
 # }
 ```

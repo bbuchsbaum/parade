@@ -98,14 +98,9 @@ including retry logic, failure thresholds, and recovery strategies.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Use with job submission</span></span></span>
 <span class="r-in"><span><span class="va">risky_function</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0.5</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Random error"</span><span class="op">)</span> <span class="kw">else</span> <span class="va">x</span><span class="op">^</span><span class="fl">2</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">risky_function</span>, .error_policy <span class="op">=</span> <span class="va">policy</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> No readable configuration file found</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Created registry in '/tmp/RtmplgaOUj/parade-registry/script-9dfdb655' using cluster functions 'Interactive'</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Adding 1 jobs ...</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> Listing of jobs failed (exit code 127);</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> output:</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> command not found</span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">Sys.which</a></span><span class="op">(</span><span class="st">"squeue"</span><span class="op">)</span> <span class="op">!=</span> <span class="st">""</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_map.html">slurm_map</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">risky_function</span>, .error_policy <span class="op">=</span> <span class="va">policy</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

@@ -7,10 +7,10 @@
   },
   "paths": {
     "project": "/home/runner/work/parade/parade/docs/reference",
-    "scratch": "/tmp/RtmplgaOUj",
+    "scratch": "/tmp/RtmpkrYvnZ",
     "data": "/home/runner/work/parade/parade/docs/reference/data",
-    "artifacts": "/tmp/RtmplgaOUj/parade-artifacts",
-    "registry": "/tmp/RtmplgaOUj/parade-registry",
+    "artifacts": "/tmp/RtmpkrYvnZ/parade-artifacts",
+    "registry": "/tmp/RtmpkrYvnZ/parade-registry",
     "config": "/home/runner/work/parade/parade/docs/reference/.parade",
     "cache": "/home/runner/.cache/R/parade"
   }

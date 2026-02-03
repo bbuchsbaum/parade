@@ -105,8 +105,8 @@ sink_quick("result", write = "rds")
 #>     saveRDS(x, file = path, compress = compress, ...)
 #>     invisible(path)
 #> }
-#> <bytecode: 0x5614bbd37770>
-#> <environment: 0x5614bbd3d230>
+#> <bytecode: 0x5616e9f8f168>
+#> <environment: 0x5616e9f96b48>
 #> 
 #> $reader
 #> function (file, refhook = NULL) 
@@ -122,7 +122,7 @@ sink_quick("result", write = "rds")
 #>     else stop("bad 'file' argument")
 #>     .Internal(unserializeFromConn(con, refhook))
 #> }
-#> <bytecode: 0x5614af3d47a0>
+#> <bytecode: 0x5616dd62c7a0>
 #> <environment: namespace:base>
 #> 
 #> $overwrite
@@ -159,8 +159,8 @@ sink_quick("result", write = "rds")
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x5614c0a83d28>
-#> <environment: 0x5614c22bd0f0>
+#> <bytecode: 0x5616eb0a3cb0>
+#> <environment: 0x5616e8d7b218>
 #> 
 #> $compress
 #> [1] "gzip"
@@ -191,15 +191,15 @@ sink_quick("data",
 #> {
 #>     .write_atomic_generic(writer, x, path, ...)
 #> }
-#> <bytecode: 0x5614c0a84150>
-#> <environment: 0x5614c3cd19b0>
+#> <bytecode: 0x5616eb0a3888>
+#> <environment: 0x5616e8ce28f0>
 #> 
 #> $reader
 #> function (file, header = TRUE, sep = ",", quote = "\"", dec = ".", 
 #>     fill = TRUE, comment.char = "", ...) 
 #> read.table(file = file, header = header, sep = sep, quote = quote, 
 #>     dec = dec, fill = fill, comment.char = comment.char, ...)
-#> <bytecode: 0x5614c3cd2670>
+#> <bytecode: 0x5616e8cdad50>
 #> <environment: namespace:utils>
 #> 
 #> $overwrite
@@ -236,8 +236,8 @@ sink_quick("data",
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x5614c0a83d28>
-#> <environment: 0x5614c3cd19b0>
+#> <bytecode: 0x5616eb0a3cb0>
+#> <environment: 0x5616e8ce28f0>
 #> 
 #> $compress
 #> NULL
@@ -268,8 +268,8 @@ sink_quick("tbl",
 #> {
 #>     .write_atomic_generic(writer, x, path, ...)
 #> }
-#> <bytecode: 0x5614c0a84150>
-#> <environment: 0x5614c48277f0>
+#> <bytecode: 0x5616eb0a3888>
+#> <environment: 0x5616e8c69e18>
 #> 
 #> $reader
 #> function (path, ...) 
@@ -277,8 +277,8 @@ sink_quick("tbl",
 #>     .path <- path
 #>     eval(expr, envir = environment())
 #> }
-#> <bytecode: 0x5614c495bed8>
-#> <environment: 0x5614c482b940>
+#> <bytecode: 0x5616f04e16b0>
+#> <environment: 0x5616e8c660b8>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -314,8 +314,8 @@ sink_quick("tbl",
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x5614c0a83d28>
-#> <environment: 0x5614c48277f0>
+#> <bytecode: 0x5616eb0a3cb0>
+#> <environment: 0x5616e8c69e18>
 #> 
 #> $compress
 #> NULL
@@ -344,16 +344,16 @@ sink_quick(c("model", "metrics"), write = "parquet")
 #>     arrow::write_parquet(x, sink = path, ...)
 #>     invisible(path)
 #> }
-#> <bytecode: 0x5614bbd3c768>
-#> <environment: 0x5614bbd3d230>
+#> <bytecode: 0x5616e9f90330>
+#> <environment: 0x5616e9f96b48>
 #> 
 #> $reader
 #> function (path, ...) 
 #> {
 #>     as.data.frame(arrow::read_parquet(path, ...))
 #> }
-#> <bytecode: 0x5614bbd3c030>
-#> <environment: 0x5614bbd3d230>
+#> <bytecode: 0x5616e9f93a28>
+#> <environment: 0x5616e9f96b48>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -389,8 +389,8 @@ sink_quick(c("model", "metrics"), write = "parquet")
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x5614c0a83d28>
-#> <environment: 0x5614c3baf688>
+#> <bytecode: 0x5616eb0a3cb0>
+#> <environment: 0x5616e8badb48>
 #> 
 #> $compress
 #> NULL

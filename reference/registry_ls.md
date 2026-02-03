@@ -33,21 +33,15 @@ Data frame of jobs
 # List all jobs
 registry_ls()
 #>              name      status             created
-#> 5 script-54370143 NO_JOB_FILE 2026-02-03 03:07:47
-#> 7      slurm-call NO_JOB_FILE 2026-02-03 03:07:47
-#> 6 script-9dfdb655 NO_JOB_FILE 2026-02-03 03:07:39
-#> 2 parade-391d1dbb NO_JOB_FILE 2026-02-03 03:07:22
-#> 4 parade-8f02ee0c NO_JOB_FILE 2026-02-03 03:07:20
-#> 1 parade-12909063 NO_JOB_FILE 2026-02-03 03:07:17
-#> 3 parade-75930534 NO_JOB_FILE 2026-02-03 03:07:14
+#> 3 parade-edce474c NO_JOB_FILE 2026-02-03 03:14:19
+#> 1 parade-5f890be8 NO_JOB_FILE 2026-02-03 03:14:16
+#> 2 parade-ab80a148 NO_JOB_FILE 2026-02-03 03:14:13
+#> 4 parade-fa4739ba NO_JOB_FILE 2026-02-03 03:14:10
 #>                                              path
-#> 5 /tmp/RtmplgaOUj/parade-registry/script-54370143
-#> 7      /tmp/RtmplgaOUj/parade-registry/slurm-call
-#> 6 /tmp/RtmplgaOUj/parade-registry/script-9dfdb655
-#> 2 /tmp/RtmplgaOUj/parade-registry/parade-391d1dbb
-#> 4 /tmp/RtmplgaOUj/parade-registry/parade-8f02ee0c
-#> 1 /tmp/RtmplgaOUj/parade-registry/parade-12909063
-#> 3 /tmp/RtmplgaOUj/parade-registry/parade-75930534
+#> 3 /tmp/RtmpkrYvnZ/parade-registry/parade-edce474c
+#> 1 /tmp/RtmpkrYvnZ/parade-registry/parade-5f890be8
+#> 2 /tmp/RtmpkrYvnZ/parade-registry/parade-ab80a148
+#> 4 /tmp/RtmpkrYvnZ/parade-registry/parade-fa4739ba
 
 # List jobs matching pattern
 registry_ls(pattern = "analysis_*")
@@ -58,20 +52,14 @@ registry_ls(pattern = "analysis_*")
 # List most recent 10 jobs
 registry_ls(limit = 10)
 #>              name      status             created
-#> 5 script-54370143 NO_JOB_FILE 2026-02-03 03:07:47
-#> 7      slurm-call NO_JOB_FILE 2026-02-03 03:07:47
-#> 6 script-9dfdb655 NO_JOB_FILE 2026-02-03 03:07:39
-#> 2 parade-391d1dbb NO_JOB_FILE 2026-02-03 03:07:22
-#> 4 parade-8f02ee0c NO_JOB_FILE 2026-02-03 03:07:20
-#> 1 parade-12909063 NO_JOB_FILE 2026-02-03 03:07:17
-#> 3 parade-75930534 NO_JOB_FILE 2026-02-03 03:07:14
+#> 3 parade-edce474c NO_JOB_FILE 2026-02-03 03:14:19
+#> 1 parade-5f890be8 NO_JOB_FILE 2026-02-03 03:14:16
+#> 2 parade-ab80a148 NO_JOB_FILE 2026-02-03 03:14:13
+#> 4 parade-fa4739ba NO_JOB_FILE 2026-02-03 03:14:10
 #>                                              path
-#> 5 /tmp/RtmplgaOUj/parade-registry/script-54370143
-#> 7      /tmp/RtmplgaOUj/parade-registry/slurm-call
-#> 6 /tmp/RtmplgaOUj/parade-registry/script-9dfdb655
-#> 2 /tmp/RtmplgaOUj/parade-registry/parade-391d1dbb
-#> 4 /tmp/RtmplgaOUj/parade-registry/parade-8f02ee0c
-#> 1 /tmp/RtmplgaOUj/parade-registry/parade-12909063
-#> 3 /tmp/RtmplgaOUj/parade-registry/parade-75930534
+#> 3 /tmp/RtmpkrYvnZ/parade-registry/parade-edce474c
+#> 1 /tmp/RtmpkrYvnZ/parade-registry/parade-5f890be8
+#> 2 /tmp/RtmpkrYvnZ/parade-registry/parade-ab80a148
+#> 4 /tmp/RtmpkrYvnZ/parade-registry/parade-fa4739ba
 # }
 ```
