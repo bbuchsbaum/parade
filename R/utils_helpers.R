@@ -15,7 +15,7 @@
 #' @examples
 #' \donttest{
 #' # Check specific packages
-#' guard_packages(c("dplyr", "ggplot2"))
+#' guard_packages(c("dplyr", "tibble"))
 #' 
 #' # Auto-detect from function (skip on CRAN checks)
 #' \dontrun{
