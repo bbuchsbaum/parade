@@ -4,10 +4,13 @@
 \alias{paths_init}
 \title{Initialize parade path configuration}
 \usage{
-paths_init(profile = c("auto", "local", "hpc"), quiet = FALSE)
+paths_init(profile = c("auto", "local", "hpc"), create = FALSE, quiet = FALSE)
 }
 \arguments{
 \item{profile}{Path profile: "auto" (default), "local", or "hpc"}
+
+\item{create}{Whether to create missing directories for configured roots
+(never creates \code{project})}
 
 \item{quiet}{Whether to suppress initialization messages}
 }
@@ -21,8 +24,9 @@ data directories.
 }
 \details{
 \code{profile = "auto"} switches to \code{"hpc"} when scheduler environment variables are
-detected (e.g., SLURM/PBS). On login nodes, those variables may be absent; in
-that case, use \code{paths_init(profile = "hpc")} explicitly.
+detected (e.g., SLURM/PBS) or when common scratch variables (\code{SCRATCH}, \code{WORK},
+etc.) are set. On some login nodes, scheduler variables may be absent; in that
+case, you can also use \code{paths_init(profile = "hpc")} explicitly.
 
 You can override defaults with environment variables such as \code{PARADE_SCRATCH},
 \code{PARADE_ARTIFACTS}, \code{PARADE_REGISTRY}, and \code{PARADE_DATA}. Empty values are

@@ -19,7 +19,7 @@ find_file_arg <- function(args) {
 
 #' Expand path macros in a string
 #' 
-#' Replaces {stem}, {name}, {run}, {date} and other macros in paths
+#' Replaces `{stem}`, `{name}`, `{run}`, `{date}` and other macros in paths
 #' 
 #' @param path Path string with potential macros
 #' @param args Arguments list for context

@@ -187,6 +187,19 @@ test_that("paths_init auto profile switches to hpc when scheduler env detected",
   unlink(temp_project, recursive = TRUE)
 })
 
+test_that("paths_init auto profile switches to hpc when scratch env detected", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+
+  test_scratch_env <- file.path(temp_project, "scratch_env")
+  Sys.setenv(SCRATCH = test_scratch_env)
+
+  paths <- paths_init(profile = "auto", quiet = TRUE)
+  expect_equal(paths$scratch, normalizePath(test_scratch_env, mustWork = FALSE))
+
+  unlink(temp_project, recursive = TRUE)
+})
+
 test_that("paths_init profile argument accepts valid values", {
   setup_test_env()
   
@@ -197,6 +210,45 @@ test_that("paths_init profile argument accepts valid values", {
   
   # Test invalid profile
   expect_error(paths_init(profile = "invalid", quiet = TRUE))
+})
+
+test_that("paths_init(create = TRUE) creates configured directories (except project)", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(temp_project)
+
+  Sys.setenv(PARADE_SCRATCH = file.path(temp_project, "scratch"))
+  paths <- paths_init(profile = "local", create = TRUE, quiet = TRUE)
+
+  expect_true(dir.exists(paths$data))
+  expect_true(dir.exists(paths$artifacts))
+  expect_true(dir.exists(paths$registry))
+  expect_true(dir.exists(paths$config))
+  # cache location is OS/user specific; just ensure it resolves
+  expect_true(is.character(paths$cache) && nzchar(paths$cache))
+
+  unlink(temp_project, recursive = TRUE)
+})
+
+test_that("paths_export returns bash exports for configured aliases", {
+  setup_test_env()
+  temp_project <- create_temp_project()
+
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(temp_project)
+
+  Sys.setenv(PARADE_SCRATCH = file.path(temp_project, "scratch"))
+  paths_init(profile = "local", quiet = TRUE)
+
+  lines <- paths_export(header = FALSE)
+  expect_true(any(grepl("^export PARADE_PROJECT=", lines)))
+  expect_true(any(grepl("^export PARADE_SCRATCH=", lines)))
+
+  unlink(temp_project, recursive = TRUE)
 })
 
 test_that("paths_init sets global option correctly", {
@@ -373,8 +425,17 @@ test_that("path_here handles empty subdirectory paths", {
   on.exit(setwd(old_wd))
   setwd(temp_project)
   
-  paths <- paths_init(quiet = TRUE)
-  
+  # Use a unique scratch root to keep this test isolated from other tests that
+  # may have created default tempdir-based artifacts.
+  Sys.setenv(PARADE_SCRATCH = file.path(temp_project, "scratch"))
+  paths <- paths_init(profile = "local", quiet = TRUE)
+
+  # No subdirectories: should resolve to the alias root and should not create
+  # the directory when create = FALSE.
+  artifacts_root <- path_here("artifacts", create = FALSE)
+  expect_equal(artifacts_root, normalizePath(paths$artifacts, mustWork = FALSE))
+  expect_false(dir.exists(artifacts_root))
+
   # Path with no subdirectories should return the alias root
   # Use "." to represent current directory within the alias
   data_root <- path_here("data", ".")

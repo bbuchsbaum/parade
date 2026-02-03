@@ -456,50 +456,40 @@ profile_clear <- function() {
 #' @export
 profile_init_defaults <- function(overwrite = FALSE) {
   # Quick test profile
-  profile_register("test",
-    profile() %>%
-      res_time("0:30:00") %>%
-      mem("4G") %>%
-      cpus(2),
-    overwrite = overwrite
-  )
+  p_test <- profile()
+  p_test <- res_time(p_test, "0:30:00")
+  p_test <- mem(p_test, "4G")
+  p_test <- cpus(p_test, 2)
+  profile_register("test", p_test, overwrite = overwrite)
   
   # Standard compute profile
-  profile_register("standard",
-    profile() %>%
-      res_time("4:00:00") %>%
-      mem("8G") %>%
-      cpus(4),
-    overwrite = overwrite
-  )
+  p_standard <- profile()
+  p_standard <- res_time(p_standard, "4:00:00")
+  p_standard <- mem(p_standard, "8G")
+  p_standard <- cpus(p_standard, 4)
+  profile_register("standard", p_standard, overwrite = overwrite)
   
   # High memory profile
-  profile_register("highmem",
-    profile() %>%
-      res_time("8:00:00") %>%
-      mem("64G") %>%
-      cpus(8),
-    overwrite = overwrite
-  )
+  p_highmem <- profile()
+  p_highmem <- res_time(p_highmem, "8:00:00")
+  p_highmem <- mem(p_highmem, "64G")
+  p_highmem <- cpus(p_highmem, 8)
+  profile_register("highmem", p_highmem, overwrite = overwrite)
   
   # GPU profile
-  profile_register("gpu",
-    profile() %>%
-      res_time("12:00:00") %>%
-      mem("32G") %>%
-      cpus(8) %>%
-      gpus(1),
-    overwrite = overwrite
-  )
+  p_gpu <- profile()
+  p_gpu <- res_time(p_gpu, "12:00:00")
+  p_gpu <- mem(p_gpu, "32G")
+  p_gpu <- cpus(p_gpu, 8)
+  p_gpu <- gpus(p_gpu, 1)
+  profile_register("gpu", p_gpu, overwrite = overwrite)
   
   # Long running profile
-  profile_register("long",
-    profile() %>%
-      res_time("2-00:00:00") %>%
-      mem("16G") %>%
-      cpus(4),
-    overwrite = overwrite
-  )
+  p_long <- profile()
+  p_long <- res_time(p_long, "2-00:00:00")
+  p_long <- mem(p_long, "16G")
+  p_long <- cpus(p_long, 4)
+  profile_register("long", p_long, overwrite = overwrite)
   
   invisible(NULL)
 }

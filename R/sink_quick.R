@@ -10,7 +10,7 @@
 #' @param read Optional function or formula for reading (inferred from format if NULL)
 #' @param ext File extension including dot (e.g., ".csv"), inferred from format if NULL
 #' @param dir Base directory for artifacts (default: "artifacts://_quick")
-#' @param template Glue template for file paths (default: "{.stage}/{.field}/{.row_key}")
+#' @param template Glue template for file paths (default: `{.stage}/{.field}/{.row_key}`)
 #' @param autoload Whether to automatically load artifacts (default: FALSE for quick sinks)
 #' @param overwrite Overwrite policy: "skip", "overwrite", or "error"
 #' @param sidecar Sidecar metadata format: "json" or "none"

@@ -109,7 +109,7 @@ parade_dashboard <- function(x,
         for (i in seq_len(show_n)) {
           row <- artifacts[i, , drop = FALSE]
           where <- row$path[[1]]
-          label <- paste(na.omit(c(row$stage[[1]], row$field[[1]])), collapse = "/")
+          label <- paste(stats::na.omit(c(row$stage[[1]], row$field[[1]])), collapse = "/")
           if (!nzchar(label)) label <- "(unknown)"
           cat(sprintf("- %s: %s\n", label, where))
         }
@@ -119,4 +119,3 @@ parade_dashboard <- function(x,
 
   invisible(list(jobset = js, status = st, artifacts = artifacts))
 }
-

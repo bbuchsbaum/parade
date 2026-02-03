@@ -149,11 +149,3 @@ ctr_field <- function(name, class = NULL, length = 1L, predicate = NULL, min = N
   stopifnot(is.character(name), length(name) == 1L)
   structure(list(name = name, class = class, length = length, predicate = predicate, min = min, max = max, choices = choices, allow_na = allow_na, allow_null = allow_null), class = "parade_ctr_field")
 }
-#' Create a parameter grid using tidyr::crossing
-#'
-#' @param ... Named vectors or lists to cross
-#' @return A tibble with all parameter combinations
-#' @keywords internal
-#' @examples
-#' grid <- param_grid(x = 1:3, method = c("A", "B"))
-param_grid <- function(...) tidyr::crossing(...)

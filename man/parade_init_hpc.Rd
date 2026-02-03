@@ -55,9 +55,16 @@ A one-command setup helper for running parade on HPC clusters. This function:
 \examples{
 \donttest{
 # Minimal HPC init (best-effort autodetect)
-parade_init_hpc(quiet = TRUE)
+parade_init_hpc(quiet = TRUE, persist = FALSE, template = FALSE, create = FALSE)
 
-# With explicit shared scratch (recommended)
-parade_init_hpc(scratch = "/scratch/$USER", persist = TRUE)
+# With explicit scratch + a temp template path (safe outside a cluster)
+parade_init_hpc(
+  scratch = tempdir(),
+  persist = FALSE,
+  create = FALSE,
+  template = TRUE,
+  template_path = tempfile(fileext = ".tmpl"),
+  overwrite_template = TRUE
+)
 }
 }

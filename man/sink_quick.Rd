@@ -30,7 +30,7 @@ sink_quick(
 
 \item{dir}{Base directory for artifacts (default: "artifacts://_quick")}
 
-\item{template}{Glue template for file paths (default: "{.stage}/{.field}/{.row_key}")}
+\item{template}{Glue template for file paths (default: \code{{.stage}/{.field}/{.row_key}})}
 
 \item{autoload}{Whether to automatically load artifacts (default: FALSE for quick sinks)}
 

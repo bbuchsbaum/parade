@@ -91,34 +91,19 @@ grid <- function(..., .filter = NULL, .add_metadata = TRUE) {
   }
 }
 
-#' Create a parameter grid from lists of values
-#' 
-#' @description
-#' Alternative interface for creating parameter grids from a list.
-#' 
-#' @param params Named list of parameter values
-#' @param filter Optional filter function
-#' @param add_metadata Whether to add metadata columns
-#' @return Data frame with one row per parameter combination
-#' 
-#' @examples
-#' \donttest{
-#' params_list <- list(
-#'   alpha = c(0.1, 0.5, 1.0),
-#'   beta = c(1, 2),
-#'   method = c("lm", "glm")
-#' )
-#' 
-#' params <- param_grid(params_list)
-#' }
-#' 
+#' Create a parameter grid for flows
+#'
+#' Convenience wrapper for generating a Cartesian product of parameters without
+#' adding metadata columns. For grids with filtering or metadata, use [grid()].
+#'
+#' @param ... Named vectors or lists to cross
+#' @return A tibble with all parameter combinations
 #' @export
-param_grid <- function(params, filter = NULL, add_metadata = TRUE) {
-  if (!is.list(params)) {
-    stop("params must be a list")
-  }
-  
-  do.call(grid, c(params, list(.filter = filter, .add_metadata = add_metadata)))
+#' @examples
+#' param_grid(subject = c("s01", "s02"), session = 1:2)
+#' param_grid(alpha = c(0.1, 1.0), beta = c(1, 2, 3))
+param_grid <- function(...) {
+  grid(..., .add_metadata = FALSE)
 }
 
 #' Convert formula to function (simplified version)

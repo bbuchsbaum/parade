@@ -11,3 +11,4 @@ docs
 *.Rcheck/
 *.tar.gz
 .Rd2pdf*
+tests/testthat/registry:/

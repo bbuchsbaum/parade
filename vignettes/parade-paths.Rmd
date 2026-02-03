@@ -1,8 +1,10 @@
 ---
 title: 'Smart Path Management: Write Once, Run Anywhere'
 output: rmarkdown::html_vignette
-vignette: '%\VignetteIndexEntry{3. Smart Path Management: Write Once, Run Anywhere}
-  %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}'
+vignette: >
+  %\VignetteIndexEntry{3. Smart Path Management: Write Once, Run Anywhere}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
 css: albers.css
@@ -17,13 +19,16 @@ includes:
 ---
 
 ```{r setup, include = FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  eval = FALSE
 )
 ```
+
+> Note: Code evaluation is disabled in this vignette to keep builds fast and
+> environment-agnostic. Copy code into an interactive R session to run locally
+> or on your cluster.
 
 ## The Problem: Hardcoded Paths Break Your Code
 
@@ -82,8 +87,9 @@ export PARADE_SCRATCH="/scratch/$USER"   # or your site's shared scratch
 ```r
 library(parade)
 
-# On login nodes, scheduler env vars may not be present, so be explicit:
-paths_init(profile = "hpc")
+# Auto-detects HPC on compute nodes (scheduler vars), and on many login nodes
+# when common scratch variables (SCRATCH/WORK/etc.) are set:
+paths_init(profile = "auto", create = TRUE)
 parade_doctor(create = TRUE)
 ```
 
@@ -91,6 +97,13 @@ Or use the one-command helper (creates paths, scaffolds a SLURM template, and ca
 
 ```r
 parade_init_hpc(persist = TRUE)
+```
+
+To make the configuration easy to reuse in SLURM scripts, you can also generate
+shell exports:
+
+```r
+cat(paste(paths_export(), collapse = "\n"))
 ```
 
 If you prefer not to create directories automatically, use:

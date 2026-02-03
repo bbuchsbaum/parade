@@ -17,6 +17,6 @@ expand_path_macros(path, args = list(), name = NULL, index = NULL)
 Expanded path string
 }
 \description{
-Replaces {stem}, {name}, {run}, {date} and other macros in paths
+Replaces \code{{stem}}, \code{{name}}, \code{{run}}, \code{{date}} and other macros in paths
 }
 \keyword{internal}
