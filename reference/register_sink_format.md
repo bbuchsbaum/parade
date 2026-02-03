@@ -40,14 +40,16 @@ Invisibly returns the format name
 
 ``` r
 # Register a custom format
-register_sink_format("qs2",
-  writer = function(x, path, ...) qs2::qs_save(x, path, ...),
-  reader = function(path, ...) qs2::qs_read(path, ...),
-  ext = ".qs2"
-)
+if (requireNamespace("qs2", quietly = TRUE)) {
+  register_sink_format("qs2",
+    writer = function(x, path, ...) qs2::qs_save(x, path, ...),
+    reader = function(path, ...) qs2::qs_read(path, ...),
+    ext = ".qs2"
+  )
 
-# Use in sink
-sink_quick("data", write = "qs2")
+  # Use in sink
+  sink_quick("data", write = "qs2")
+}
 #> $fields
 #> [1] "data"
 #> 
@@ -63,12 +65,12 @@ sink_quick("data", write = "qs2")
 #> $writer
 #> function (x, path, ...) 
 #> qs2::qs_save(x, path, ...)
-#> <environment: 0x55e5e7561450>
+#> <environment: 0x55dbed8a8f00>
 #> 
 #> $reader
 #> function (path, ...) 
 #> qs2::qs_read(path, ...)
-#> <environment: 0x55e5e7561450>
+#> <environment: 0x55dbed8a8f00>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -104,8 +106,8 @@ sink_quick("data", write = "qs2")
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x55e5e9e6a408>
-#> <environment: 0x55e5ea916318>
+#> <bytecode: 0x55dbf04151d8>
+#> <environment: 0x55dbf0416c28>
 #> 
 #> $compress
 #> NULL

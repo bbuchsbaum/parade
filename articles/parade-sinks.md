@@ -387,7 +387,6 @@ recent_large <- manifest("artifacts://analysis") |>
     format = tools::file_ext(path),
     data = map(path, ~ {
       if (grepl("\\.qs2$", .x) && requireNamespace("qs2", quietly = TRUE)) qs2::qs_read(.x)
-      else if (grepl("\\.qs$", .x) && requireNamespace("qs", quietly = TRUE)) qs::qread(.x)
       else if (grepl("\\.parquet$", .x)) arrow::read_parquet(.x)
       else readRDS(.x)
     })

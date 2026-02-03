@@ -63,7 +63,7 @@ policy <- on_error(
 risky_function <- function(x) if (runif(1) > 0.5) stop("Random error") else x^2
 jobs <- slurm_map(1:10, risky_function, .error_policy = policy)
 #> No readable configuration file found
-#> Created registry in '/tmp/Rtmpq6Ieyj/parade-registry/script-c46011f1' using cluster functions 'Interactive'
+#> Created registry in '/tmp/RtmpMVTrN8/parade-registry/script-1fb227bf' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
 #> Error: Listing of jobs failed (exit code 127);
 #> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
