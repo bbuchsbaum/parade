@@ -38,5 +38,5 @@ directories are created so the file itself remains writable.
 path_here("data", "input", "file.csv")
 #> [1] "/home/runner/work/parade/parade/docs/reference/data/input/file.csv"
 path_here("artifacts", create = FALSE)
-#> [1] "/tmp/RtmpPgNTUD/parade-artifacts"
+#> [1] "/tmp/RtmpZ0gHww/parade-artifacts"
 ```
