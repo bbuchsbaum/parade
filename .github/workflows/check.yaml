@@ -45,6 +45,8 @@ jobs:
       - name: Install dependencies (ubuntu devel)
         if: matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'devel'
         run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev
           Rscript -e 'install.packages(c("remotes","rcmdcheck"), repos = "https://cloud.r-project.org")'
           Rscript -e 'remotes::install_deps(dependencies = c("Depends","Imports","LinkingTo"), repos = "https://cloud.r-project.org")'
           Rscript -e 'install.packages(c("testthat","mockery","knitr","rmarkdown"), repos = "https://cloud.r-project.org")'
