@@ -30,14 +30,16 @@ dist_mirai(
 
 - url:
 
-  Listening URL for remote connections (auto-generated if NULL)
+  Listening URL for remote connections (auto-generated if NULL). May be
+  a string or a zero-argument function returning a string.
 
 - remote:
 
-  Remote configuration from
-  [`mirai::ssh_config()`](https://mirai.r-lib.org/reference/ssh_config.html)
-  or
-  [`mirai::cluster_config()`](https://mirai.r-lib.org/reference/cluster_config.html)
+  Remote configuration for
+  [`mirai::daemons()`](https://mirai.r-lib.org/reference/daemons.html).
+  May be a config object returned by
+  [`mirai::ssh_config()`](https://mirai.r-lib.org/reference/ssh_config.html)/[`mirai::cluster_config()`](https://mirai.r-lib.org/reference/cluster_config.html),
+  or a zero-argument function returning that config.
 
 - dispatcher:
 
@@ -128,10 +130,12 @@ if (requireNamespace("mirai", quietly = TRUE)) {
 
 # SSH remotes (requires configuration)
 # \donttest{
-dist_mirai(
-  remote = quote(mirai::ssh_config(c("ssh://node1", "ssh://node2"))),
-  dispatcher = TRUE
-)
+if (requireNamespace("mirai", quietly = TRUE)) {
+  dist_mirai(
+    remote = function() mirai::ssh_config(c("ssh://node1", "ssh://node2")),
+    dispatcher = TRUE
+  )
+}
 #> $backend
 #> [1] "mirai"
 #> 
@@ -145,7 +149,9 @@ dist_mirai(
 #> NULL
 #> 
 #> $remote
+#> function () 
 #> mirai::ssh_config(c("ssh://node1", "ssh://node2"))
+#> <environment: 0x55a731806ba0>
 #> 
 #> $dispatcher
 #> [1] TRUE

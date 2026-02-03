@@ -34,7 +34,7 @@ Invisible NULL
 # \donttest{
 # Register a standard compute profile
 standard <- profile()
-standard <- time(standard, "4:00:00")
+standard <- res_time(standard, "4:00:00")
 standard <- mem(standard, "8G")
 standard <- cpus(standard, 4)
 profile_register("standard", standard)
@@ -42,7 +42,7 @@ profile_register("standard", standard)
 
 # Register a GPU profile
 gpu <- profile()
-gpu <- time(gpu, "12:00:00")
+gpu <- res_time(gpu, "12:00:00")
 gpu <- mem(gpu, "32G")
 gpu <- cpus(gpu, 8)
 gpu <- gpus(gpu, 1)

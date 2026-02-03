@@ -26,8 +26,8 @@ A function suitable for use with `.name_by` parameter
 ## Note
 
 This function masks
-[`digest::digest`](https://rdrr.io/pkg/digest/man/digest.html) when
-parade is attached. Prefer
+[`digest::digest`](https://eddelbuettel.github.io/digest/man/digest.html)
+when parade is attached. Prefer
 [`name_digest()`](https://bbuchsbaum.github.io/parade/reference/name_digest.md)
 as an explicit alias to avoid confusion.
 
@@ -35,10 +35,12 @@ as an explicit alias to avoid confusion.
 
 ``` r
 # \donttest{
-# Each unique input gets a unique name
-data <- list(a = 1:10, b = 11:20, a = 1:10)  # Note: 'a' appears twice
-process_data <- function(x) x  # stub for example
-jobs <- slurm_map(data, process_data, .name_by = digest(), .engine = "local")
-# Job names will use hash, with identical inputs getting same hash
+if (interactive()) {
+  # Each unique input gets a unique name
+  data <- list(a = 1:10, b = 11:20, a = 1:10)  # Note: 'a' appears twice
+  process_data <- function(x) x  # stub for example
+  jobs <- slurm_map(data, process_data, .name_by = digest(), .engine = "local")
+  # Job names will use hash, with identical inputs getting same hash
+}
 # }
 ```

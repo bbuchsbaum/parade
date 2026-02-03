@@ -5,7 +5,7 @@ Validates using a custom function with performance hints.
 ## Usage
 
 ``` r
-pred(fn, cost = c("light", "full"))
+pred(fn, cost = c("light", "full"), timeout = NULL)
 ```
 
 ## Arguments
@@ -17,6 +17,10 @@ pred(fn, cost = c("light", "full"))
 - cost:
 
   Performance cost: "light" (default) or "full"
+
+- timeout:
+
+  Optional elapsed-time limit (seconds) for the predicate.
 
 ## Value
 

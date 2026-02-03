@@ -1,13 +1,5 @@
 # SLURM script submission and monitoring from R
 
-> Requires **parade ≥ 0.11.0** for basic features, **≥ 0.12.0** for
-> function submission with
-> [`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md).
-
-> Note: Code evaluation is disabled to keep builds fast and avoid
-> interacting with live cluster resources during checks. Copy code into
-> an interactive session with SLURM access to run.
-
 ## Overview
 
 **parade** provides a comprehensive suite of tools to submit any R
@@ -37,17 +29,23 @@ management.
 
 ``` r
 library(parade)
-paths_init()
+
+# Recommended (HPC): one-command setup
+parade_init_hpc(persist = TRUE)
+
+# Manual alternative:
+# paths_init(profile = "hpc")
+# parade_doctor(create = TRUE)
 
 # Optional: Configure site defaults
 # Note: mem=NA means use cluster default memory allocation
-slurm_defaults_set(partition="general", time="2h", cpus_per_task=16, mem=NA, persist=TRUE)
-slurm_template_set("registry://templates/parade-slurm.tmpl")
+slurm_defaults_set(partition="general", time="2h", cpus_per_task=16, mem=NA, persist=TRUE)  # Saves your preferred SLURM resources for future submissions
+slurm_template_set("registry://templates/parade-slurm.tmpl")  # Points parade at the batchtools template stored under the registry alias
 
 # Submit a script file
 job <- submit_slurm("scripts/train.R", args = c("--fold", "1"))
 
-# Or submit a function directly (requires parade ≥ 0.12.0)
+# Or submit a function directly
 job <- slurm_call(
   function(fold) {
     # Your training code here
@@ -62,6 +60,9 @@ job <- slurm_call(
 
 # Quick status check
 script_status(job)
+
+# Unified dashboard (summary; use action="top" for interactive monitoring)
+parade_dashboard(job)
 
 # View recent log output
 script_tail(job, 80)
@@ -322,7 +323,7 @@ job <- slurm_call(my_function, x = 1, resources = "highmem")
 
 # Create custom profiles with chaining
 my_profile <- profile() %>%
-  time("8:00:00") %>%
+  res_time("8:00:00") %>%
   mem("32G") %>%
   cpus(16) %>%
   partition("compute")
@@ -332,7 +333,7 @@ job <- slurm_call(my_function, x = 1, resources = my_profile)
 # Register profiles for reuse
 profile_register("ml_training",
   profile() %>%
-    time("24:00:00") %>%
+    res_time("24:00:00") %>%
     mem("64G") %>%
     cpus(32) %>%
     gpus(2)

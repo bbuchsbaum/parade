@@ -77,7 +77,8 @@ res$rmse         # numeric in-memory
 ## Submit & monitor SLURM jobs from R
 
 ``` r
-paths_init()
+# One-command HPC setup (recommended for clusters)
+parade_init_hpc(persist = TRUE)
 
 slurm_defaults_set(
   partition = "general",
@@ -89,7 +90,8 @@ slurm_defaults_set(
 
 job <- submit_slurm("scripts/train.R", args = c("--fold", "1"))
 
-script_status(job)  # quick check
+parade_dashboard(job)  # unified summary (or action = "top" for live UI)
+script_status(job)     # quick check
 script_tail(job, 80)
 script_top(job)     # live CPU/RSS and logs
 
@@ -133,14 +135,25 @@ for patterns and tradeoffs.
 ## Portable paths (laptop ↔︎ HPC without edits)
 
 Write once, run anywhere: - `artifacts://` →
-`/scratch/$USER/parade-artifacts` on SLURM, tempdir on laptops -
-`data://`, `project://`, `scratch://`, `registry://`, `config://`,
-`cache://`
+`$PARADE_SCRATCH/parade-artifacts` (preferred) or
+`$SCRATCH/parade-artifacts` on SLURM; falls back to `$SLURM_TMPDIR`
+(node-local) or tempdir - `data://`, `project://`, `scratch://`,
+`registry://`, `config://`, `cache://`
 
 Configure via
 [`paths_set()`](https://bbuchsbaum.github.io/parade/reference/paths_set.md)
 or env vars (`PARADE_ARTIFACTS`, `PARADE_SCRATCH`, …). See [Smart Path
 Management](https://bbuchsbaum.github.io/parade/articles/parade-paths.html).
+
+## Artifact catalog (discoverability)
+
+``` r
+# List artifacts under your artifacts root (uses sink sidecars when present)
+artifact_catalog()
+
+# Search by stage/field/row_key/path substring
+artifact_catalog_search(query = "fit")
+```
 
 ## Why not {targets} / {drake} / {furrr}?
 
@@ -172,6 +185,20 @@ fan-out/fan-in.
 PRs welcome! Please: - follow tidyverse style (lintr + styler), - add
 tests for new user-facing behavior, - update roxygen and a NEWS entry.
 
+## Albers theme
+
+This package uses the albersdown theme. Vignettes are styled with
+`vignettes/albers.css` and a local `vignettes/albers.js`; the palette
+family is provided via `params$family` (default ‘red’). The pkgdown site
+uses `template: { package: albersdown }`.
+
+## Albers theme
+
+This package uses the albersdown theme. Vignettes are styled with
+`vignettes/albers.css` and a local `vignettes/albers.js`; the palette
+family is provided via `params$family` (default ‘red’). The pkgdown site
+uses `template: { package: albersdown }`.
+
 # Package index
 
 ## All functions
@@ -191,6 +218,12 @@ tests for new user-facing behavior, - update roxygen and a NEWS entry.
 - [`artifact()`](https://bbuchsbaum.github.io/parade/reference/artifact.md)
   : Alias for file_ref function
 
+- [`artifact_catalog()`](https://bbuchsbaum.github.io/parade/reference/artifact_catalog.md)
+  : Artifact catalog utilities
+
+- [`artifact_catalog_search()`](https://bbuchsbaum.github.io/parade/reference/artifact_catalog_search.md)
+  : Search an artifact catalog
+
 - [`as.list(`*`<parade_profile>`*`)`](https://bbuchsbaum.github.io/parade/reference/as.list.parade_profile.md)
   : Convert profile to list for slurm_resources()
 
@@ -201,7 +234,7 @@ tests for new user-facing behavior, - update roxygen and a NEWS entry.
   : Convert jobset to tibble
 
 - [`await()`](https://bbuchsbaum.github.io/parade/reference/await.md) :
-  Wait for all jobs in a jobset to complete
+  Wait for jobs to complete
 
 - [`balance_by()`](https://bbuchsbaum.github.io/parade/reference/balance_by.md)
   : Balance work across groups
@@ -423,7 +456,7 @@ tests for new user-facing behavior, - update roxygen and a NEWS entry.
   :
 
   Alias for digest-based naming that avoids masking
-  [`digest::digest`](https://rdrr.io/pkg/digest/man/digest.html)
+  [`digest::digest`](https://eddelbuettel.github.io/digest/man/digest.html)
 
 - [`neurovol()`](https://bbuchsbaum.github.io/parade/reference/neurovol.md)
   : Neuroimaging volume type specification
@@ -464,6 +497,15 @@ tests for new user-facing behavior, - update roxygen and a NEWS entry.
 - [`parade_config_write()`](https://bbuchsbaum.github.io/parade/reference/parade_config_write.md)
   : Write parade configuration
 
+- [`parade_dashboard()`](https://bbuchsbaum.github.io/parade/reference/parade_dashboard.md)
+  : Unified dashboard for parade jobs
+
+- [`parade_doctor()`](https://bbuchsbaum.github.io/parade/reference/parade_doctor.md)
+  : Quick setup checks for parade
+
+- [`parade_init_hpc()`](https://bbuchsbaum.github.io/parade/reference/parade_init_hpc.md)
+  : Initialize parade for HPC use
+
 - [`parade_options()`](https://bbuchsbaum.github.io/parade/reference/parade_options.md)
   : Global parade options (get/set)
 
@@ -490,6 +532,9 @@ tests for new user-facing behavior, - update roxygen and a NEWS entry.
 
 - [`paths_set()`](https://bbuchsbaum.github.io/parade/reference/paths_set.md)
   : Set specific parade paths
+
+- [`paths_validate()`](https://bbuchsbaum.github.io/parade/reference/paths_validate.md)
+  : Validate parade path configuration
 
 - [`pending()`](https://bbuchsbaum.github.io/parade/reference/pending.md)
   : Select pending jobs
@@ -579,7 +624,7 @@ tests for new user-facing behavior, - update roxygen and a NEWS entry.
   : Alias for partition()
 
 - [`res_time()`](https://bbuchsbaum.github.io/parade/reference/res_time.md)
-  : Alias for time() that avoids masking stats::time
+  : Set time limit for a resource profile (non-masking)
 
 - [`resolve_path()`](https://bbuchsbaum.github.io/parade/reference/resolve_path.md)
   : Resolve paths with URI-style aliases
@@ -594,7 +639,7 @@ tests for new user-facing behavior, - update roxygen and a NEWS entry.
   : Select running jobs
 
 - [`scaffold_batch_template()`](https://bbuchsbaum.github.io/parade/reference/scaffold_batch_template.md)
-  : Create a basic SLURM batch template
+  : Create a batch job template file
 
 - [`scaffold_flow_job()`](https://bbuchsbaum.github.io/parade/reference/scaffold_flow_job.md)
   : Generate scaffold scripts for SLURM flow execution

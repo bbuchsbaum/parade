@@ -24,10 +24,21 @@ paths_init(profile = c("auto", "local", "hpc"), quiet = FALSE)
 
 Named list of configured paths (invisibly)
 
+## Details
+
+`profile = "auto"` switches to `"hpc"` when scheduler environment
+variables are detected (e.g., SLURM/PBS). On login nodes, those
+variables may be absent; in that case, use `paths_init(profile = "hpc")`
+explicitly.
+
+You can override defaults with environment variables such as
+`PARADE_SCRATCH`, `PARADE_ARTIFACTS`, `PARADE_REGISTRY`, and
+`PARADE_DATA`. Empty values are treated as unset.
+
 ## Examples
 
 ``` r
 paths_init(profile = "local")
-#> parade paths: project=/home/runner/work/parade/parade/docs/reference; scratch=/tmp/Rtmp1lhwei; data=/home/runner/work/parade/parade/docs/reference/data; artifacts=/tmp/Rtmp1lhwei/parade-artifacts; registry=/tmp/Rtmp1lhwei/parade-registry; config=/home/runner/work/parade/parade/docs/reference/.parade; cache=/home/runner/.cache/R/parade
+#> parade paths: project=/home/runner/work/parade/parade/docs/reference; scratch=/tmp/RtmpRBH8lf; data=/home/runner/work/parade/parade/docs/reference/data; artifacts=/tmp/RtmpRBH8lf/parade-artifacts; registry=/tmp/RtmpRBH8lf/parade-registry; config=/home/runner/work/parade/parade/docs/reference/.parade; cache=/home/runner/.cache/R/parade
 paths_init(quiet = TRUE)
 ```

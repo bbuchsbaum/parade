@@ -11,7 +11,7 @@ in common cases.
 dist_slurm_profile(
   profile,
   by = NULL,
-  within = c("multisession", "sequential"),
+  within = c("multisession", "multicore", "callr", "sequential"),
   workers_within = NULL,
   template = slurm_template(),
   chunks_per_job = 1L
@@ -36,8 +36,8 @@ dist_slurm_profile(
 
 - within:
 
-  Execution strategy within each SLURM job: "multisession" or
-  "sequential".
+  Execution strategy within each SLURM job: "multisession", "multicore",
+  "callr", or "sequential".
 
 - workers_within:
 
@@ -62,6 +62,11 @@ A `parade_dist` object suitable for
 # Create SLURM distribution using a profile
 if (FALSE) { # \dontrun{
 dist <- dist_slurm_profile("standard", by = "group")
+} # }
+
+# Use multicore for within-job parallelism
+if (FALSE) { # \dontrun{
+dist <- dist_slurm_profile("highmem", within = "multicore", workers_within = 16)
 } # }
 
 # Configuration example (no execution)

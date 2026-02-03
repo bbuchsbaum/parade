@@ -15,7 +15,7 @@ collect(x, simplify = TRUE, ...)
 
 - x:
 
-  A parade_jobset object
+  A `parade_jobset` object
 
 - ...:
 

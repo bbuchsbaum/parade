@@ -61,8 +61,8 @@ sink_quick("data", write = my_format$writer, read = my_format$reader)
 #> {
 #>     .write_atomic_generic(writer, x, path, ...)
 #> }
-#> <bytecode: 0x556617d33e58>
-#> <environment: 0x55661dda2318>
+#> <bytecode: 0x55a73ee3a1e0>
+#> <environment: 0x55a73f28bc08>
 #> 
 #> $reader
 #> function (path, ...) 
@@ -70,8 +70,8 @@ sink_quick("data", write = my_format$writer, read = my_format$reader)
 #>     .path <- path
 #>     eval(expr, envir = environment())
 #> }
-#> <bytecode: 0x55661dd3f910>
-#> <environment: 0x55661dd42400>
+#> <bytecode: 0x55a73f4a21f8>
+#> <environment: 0x55a73f4a0eb8>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -105,10 +105,10 @@ sink_quick("data", write = my_format$writer, read = my_format$reader)
 #>     if (!grepl("\\.[A-Za-z0-9]+$", rel_path) && nzchar(ext)) {
 #>         rel_path <- paste0(rel_path, ext)
 #>     }
-#>     file.path(base_dir, rel_path)
+#>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x556617d304c0>
-#> <environment: 0x55661dda2318>
+#> <bytecode: 0x55a73ee39db8>
+#> <environment: 0x55a73f28bc08>
 #> 
 #> $compress
 #> NULL

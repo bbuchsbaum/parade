@@ -1,6 +1,8 @@
-# Alias for time() that avoids masking stats::time
+# Set time limit for a resource profile (non-masking)
 
-Alias for time() that avoids masking stats::time
+Use `res_time()` in pipelines to avoid masking
+[`stats::time()`](https://rdrr.io/r/stats/time.html) when `parade` is
+attached.
 
 ## Usage
 

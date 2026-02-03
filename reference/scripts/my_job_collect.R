@@ -3,7 +3,7 @@
 library(parade)
 paths_init(quiet = TRUE)
 
-registry_dir <- 'registry:///my_job'
+registry_dir <- 'registry://my_job'
 d_path <- file.path(registry_dir, 'deferred.rds')
 
 if (!file.exists(d_path)) {

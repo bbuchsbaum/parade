@@ -12,7 +12,7 @@ status(x, ...)
 
 - x:
 
-  A parade_jobset object
+  A `parade_jobset` object
 
 - ...:
 

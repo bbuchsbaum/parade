@@ -46,7 +46,12 @@ processing, returning just file references:
 
 ``` r
 library(parade)
-paths_init()  # Initialize smart path aliases (artifacts://, etc.)
+
+# Local dev:
+paths_init()
+
+# HPC (recommended):
+# parade_init_hpc(persist = TRUE)
 
 # Define what should go to disk
 results <- flow(subjects) |>
@@ -69,7 +74,7 @@ results <- flow(subjects) |>
 
 # Now results$model contains file paths, not huge objects!
 print(results$model[[1]])
-#> $path: "/scratch/alice/parade-artifacts/brain_models/model_1.rds"
+#> $path: "$PARADE_SCRATCH/parade-artifacts/brain_models/model_1.rds"
 #> $bytes: 524288000
 #> $sha256: "abc123..."
 
@@ -155,20 +160,33 @@ cat("Model for sample_5 is at:", results$model[[5]]$path)
 The `artifacts://` prefix is a smart alias that adapts to your
 environment:
 
-| Environment      | Artifacts Path                     | Why                       |
-|------------------|------------------------------------|---------------------------|
-| **Your laptop**  | `/tmp/parade-artifacts/`           | Uses system temp          |
-| **HPC cluster**  | `/scratch/$USER/parade-artifacts/` | Uses fast scratch storage |
-| **Custom setup** | Whatever you configure             | Full control              |
+| Environment      | Artifacts Path                                                                  | Why                         |
+|------------------|---------------------------------------------------------------------------------|-----------------------------|
+| **Your laptop**  | `/tmp/parade-artifacts/`                                                        | Uses system temp            |
+| **HPC cluster**  | `$PARADE_SCRATCH/parade-artifacts/` (preferred) or `$SCRATCH/parade-artifacts/` | Uses shared scratch storage |
+| **Custom setup** | Whatever you configure                                                          | Full control                |
 
 ``` r
 # Check where artifacts will go
 paths_get()$artifacts
-#> "/scratch/alice/parade-artifacts"  # on HPC
+#> "$PARADE_SCRATCH/parade-artifacts"  # on HPC
 #> "/var/folders/xy/temp/parade-artifacts"  # on Mac
 
 # Configure custom location if needed
 paths_set(artifacts = "/fast/storage/my_outputs")
+```
+
+### Discoverability: catalog and search
+
+Artifacts are just files, but Parade can help you **discover** them by
+scanning the sink sidecars (`*.json`) for provenance metadata.
+
+``` r
+# List artifacts under your artifacts root
+artifact_catalog()
+
+# Search by stage/field/row_key/path
+artifact_catalog_search(query = "fit_model")
 ```
 
 ### Directory Organization

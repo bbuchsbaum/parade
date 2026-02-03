@@ -104,8 +104,8 @@ sink_spec("result", dir = "artifacts://results")
 #>     saveRDS(x, file = path, compress = compress, ...)
 #>     invisible(path)
 #> }
-#> <bytecode: 0x556617a66cd8>
-#> <environment: 0x556617a6e6b8>
+#> <bytecode: 0x55a73a0dcea0>
+#> <environment: 0x55a73a0e1e70>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -133,7 +133,7 @@ sink_spec("result", dir = "artifacts://results")
 #>     else stop("bad 'file' argument")
 #>     .Internal(unserializeFromConn(con, refhook))
 #> }
-#> <bytecode: 0x55660b8e0770>
+#> <bytecode: 0x55a72d7837a0>
 #> <environment: namespace:base>
 #> 
 #> $autoload
@@ -166,8 +166,8 @@ sink_spec(c("model", "metrics"), dir = "/tmp/output", compress = "xz")
 #>     saveRDS(x, file = path, compress = compress, ...)
 #>     invisible(path)
 #> }
-#> <bytecode: 0x556617a66cd8>
-#> <environment: 0x556617a6e6b8>
+#> <bytecode: 0x55a73a0dcea0>
+#> <environment: 0x55a73a0e1e70>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -195,7 +195,7 @@ sink_spec(c("model", "metrics"), dir = "/tmp/output", compress = "xz")
 #>     else stop("bad 'file' argument")
 #>     .Internal(unserializeFromConn(con, refhook))
 #> }
-#> <bytecode: 0x55660b8e0770>
+#> <bytecode: 0x55a72d7837a0>
 #> <environment: namespace:base>
 #> 
 #> $autoload
@@ -256,7 +256,7 @@ sink_spec(c("data", "model"), dir = "output",
 #>     else stop("bad 'file' argument")
 #>     .Internal(unserializeFromConn(con, refhook))
 #> }
-#> <bytecode: 0x55660b8e0770>
+#> <bytecode: 0x55a72d7837a0>
 #> <environment: namespace:base>
 #> 
 #> $autoload

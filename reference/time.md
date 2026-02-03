@@ -31,6 +31,6 @@ masking.
 
 ``` r
 # \donttest{
-resources <- time(profile(), "8:00:00")
+resources <- res_time(profile(), "8:00:00")
 # }
 ```

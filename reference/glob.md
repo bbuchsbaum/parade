@@ -36,9 +36,10 @@ scripts <- glob("scripts/*.R")
 #> Warning: No files found matching pattern: scripts/*.R
 
 # Use with slurm_map
-files <- glob("data/*.rds")
-#> Warning: No files found matching pattern: data/*.rds
-process_file <- function(x) x  # stub for example
-jobs <- slurm_map(files, process_file, .engine = "local")
+if (interactive()) {
+  files <- glob("data/*.rds")
+  process_file <- function(x) x  # stub for example
+  jobs <- slurm_map(files, process_file, .engine = "local")
+}
 # }
 ```

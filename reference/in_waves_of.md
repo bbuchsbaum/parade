@@ -51,14 +51,16 @@ for the internal implementation.
 
 ``` r
 # \donttest{
-# Submit 100 jobs in waves of 10
-jobs <- slurm_map(1:100, ~ .x^2, 
-                  .options = in_waves_of(10),
-                  .engine = "local")
+if (interactive()) {
+  # Submit 100 jobs in waves of 10
+  jobs <- slurm_map(1:100, ~ .x^2,
+                    .options = in_waves_of(10),
+                    .engine = "local")
 
-# With delay between waves
-jobs <- slurm_map(1:100, ~ .x^2,
-                  .options = in_waves_of(10, wait = FALSE, delay = 60),
-                  .engine = "local")
+  # With delay between waves
+  jobs <- slurm_map(1:100, ~ .x^2,
+                    .options = in_waves_of(10, wait = FALSE, delay = 60),
+                    .engine = "local")
+}
 # }
 ```

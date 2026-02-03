@@ -1,6 +1,6 @@
-# Wait for all jobs in a jobset to complete
+# Wait for jobs to complete
 
-Wait for all jobs in a jobset to complete
+Wait for jobs to complete
 
 ## Usage
 
@@ -15,7 +15,7 @@ await(x, timeout = Inf, poll = 10, .progress = NULL, ...)
 
 - x:
 
-  A parade_jobset object
+  A `parade_jobset` or parade job object
 
 - ...:
 
@@ -35,7 +35,7 @@ await(x, timeout = Inf, poll = 10, .progress = NULL, ...)
 
 ## Value
 
-The jobset (invisibly)
+The jobset/job (invisibly)
 
 ## Methods (by class)
 

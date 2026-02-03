@@ -89,8 +89,11 @@ jobs <- slurm_pmap(
   .name_by = function(...) paste0("proc-", tools::file_path_sans_ext(basename(..1)))
 )
 #> No readable configuration file found
-#> Created registry in '/tmp/Rtmp1lhwei/parade-registry/script-a59dda75' using cluster functions 'Interactive'
+#> Created registry in '/tmp/RtmpRBH8lf/parade-registry/script-527c85a3' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
-#> Error in batchtools::submitJobs(resources = resources, reg = reg, ids = 1L,     job.name = name): unused argument (job.name = name)
+#> Error: Listing of jobs failed (exit code 127);
+#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
+#> output:
+#> command not found
 # }
 ```

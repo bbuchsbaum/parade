@@ -32,6 +32,5 @@ fl <- flow(grid) |>
   distribute(dist_local(by = "group"))
 deferred <- submit(fl)
 deferred_cancel(deferred, which = "running")
-#> Warning: UNRELIABLE VALUE: Future (<unnamed-4>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore".
 # }
 ```

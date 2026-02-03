@@ -33,7 +33,6 @@ fl <- flow(grid) |>
 deferred <- submit(fl)
 # Wait for completion with a finite timeout to avoid hanging
 deferred_await(deferred, timeout = 600)
-#> Warning: UNRELIABLE VALUE: Future (<unnamed-6>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore".
 results <- deferred_collect(deferred)
 # }
 ```

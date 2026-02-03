@@ -7,7 +7,7 @@ Configure local parallel execution using the future framework.
 ``` r
 dist_local(
   by = NULL,
-  within = c("multisession", "sequential"),
+  within = c("multisession", "multicore", "callr", "sequential"),
   workers_within = NULL,
   chunks_per_job = 1L
 )
@@ -21,7 +21,8 @@ dist_local(
 
 - within:
 
-  Execution strategy: "multisession" or "sequential"
+  Execution strategy: "multisession", "multicore", "callr", or
+  "sequential"
 
 - workers_within:
 
@@ -47,6 +48,27 @@ dist_local(by = "group", within = "multisession")
 #> 
 #> $within
 #> [1] "multisession"
+#> 
+#> $workers_within
+#> NULL
+#> 
+#> $chunks_per_job
+#> [1] 1
+#> 
+#> $slurm
+#> NULL
+#> 
+#> attr(,"class")
+#> [1] "parade_dist"
+dist_local(by = "group", within = "multicore")
+#> $backend
+#> [1] "local"
+#> 
+#> $by
+#> [1] "group"
+#> 
+#> $within
+#> [1] "multicore"
 #> 
 #> $workers_within
 #> NULL

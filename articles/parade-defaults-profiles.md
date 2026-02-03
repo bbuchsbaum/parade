@@ -490,6 +490,51 @@ safe_submit <- function(script, profile_name) {
 
 ## Troubleshooting
 
+## Under the Hood: where profiles live
+
+When you call `slurm_defaults_set(...)` parade updates two places:
+
+1.  The current R session via the `parade.slurm.defaults` option so
+    subsequent
+    [`slurm_resources()`](https://bbuchsbaum.github.io/parade/reference/slurm_resources.md)
+    calls in the same session see the changes immediately.
+2.  (Optionally) The on-disk config stored at
+    `file.path(paths_get()$config, "parade.json")` when
+    `persist = TRUE`. This makes the profile available to future
+    sessions and collaborators who share the project.
+
+Internally the JSON looks like:
+
+``` json
+{
+  "slurm": {
+    "defaults": {
+      "default": {"partition": "compute", "time": "2h"},
+      "gpu_training": {"partition": "gpu", "gres": "gpu:2"}
+    },
+    "template": "registry://templates/parade-slurm.tmpl"
+  }
+}
+```
+
+`slurm_resources(profile = "...")` merges the stored defaults with any
+inline overrides you pass, then normalizes the result via
+`batchtools::batch_resources()`. The final list travels with each
+[`submit_slurm()`](https://bbuchsbaum.github.io/parade/reference/submit_slurm.md)/[`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md)
+call into batchtools’ registry, where it ultimately feeds the SLURM
+template.
+
+### Relationship to `slurm_template_set()`
+
+[`slurm_template_set()`](https://bbuchsbaum.github.io/parade/reference/slurm_template_set.md)
+merely remembers which batchtools template file to use (also inside the
+same JSON config). Templates stay completely decoupled from profiles:
+profiles define what resources you request, while the template dictates
+*how* those resources are rendered into `#SBATCH` lines. Keeping them
+separate means you can swap templates (e.g., different clusters or
+accounting directives) without touching your resource presets, and vice
+versa.
+
 ### Issue: “Profile not found”
 
 ``` r

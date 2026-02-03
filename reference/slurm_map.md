@@ -19,7 +19,11 @@ slurm_map(
   .engine = c("slurm", "local"),
   .progress = FALSE,
   .options = NULL,
-  .error_policy = NULL
+  .error_policy = NULL,
+  .packed = FALSE,
+  .workers_per_node = NULL,
+  .chunk_size = NULL,
+  .parallel_backend = c("auto", "callr", "multicore", "multisession")
 )
 ```
 
@@ -73,6 +77,27 @@ slurm_map(
 
   Error handling policy for job failures
 
+- .packed:
+
+  Logical; if TRUE, pack multiple tasks into single SLURM jobs for
+  efficient node utilization (default: FALSE)
+
+- .workers_per_node:
+
+  Integer; number of parallel workers per node when packed (defaults to
+  resources\$cpus_per_task if present, else 1)
+
+- .chunk_size:
+
+  Integer; number of tasks per packed job (defaults to
+  .workers_per_node)
+
+- .parallel_backend:
+
+  Backend for within-node parallelism when `.packed = TRUE`. One of:
+  "callr", "multicore", "multisession", or "auto". Ignored when
+  `.packed = FALSE`. Defaults to "callr" for strong isolation.
+
 ## Value
 
 A `parade_jobset` object containing all submitted jobs
@@ -95,6 +120,34 @@ The `.name_by` parameter controls job naming:
 - "digest": Use content hash
 
 - function: Custom naming function receiving element and index
+
+**Packed Execution for HPC Efficiency:**
+
+Use `.packed = TRUE` to pack multiple tasks into single SLURM jobs for
+better node utilization on HPC systems. This is critical when admins
+expect full-node allocations:
+
+- **Standard mode** (`.packed = FALSE`): 1000 files → 1000 SLURM jobs →
+  likely 1000 nodes
+
+- **Packed mode** (`.packed = TRUE`, `.workers_per_node = 20`): 1000
+  files → 50 SLURM jobs → 50 nodes, each using 20 cores
+
+Packed mode automatically:
+
+- Chunks inputs into batches
+
+- Requests appropriate `cpus_per_task`
+
+- Runs tasks in parallel per node using the selected backend
+  (`.parallel_backend`): "callr" (default, most isolated), "multicore"
+  (HPC Linux), or "multisession"
+
+- Works with flow control via `.options` (e.g.,
+  [`max_in_flight()`](https://bbuchsbaum.github.io/parade/reference/max_in_flight.md))
+
+- Preserves element-level naming and result writing with `{stem}`,
+  `{run}` macros
 
 ## Examples
 
@@ -121,6 +174,21 @@ if (Sys.which("squeue") != "") {
   numbers <- 1:10
   jobs <- slurm_map(numbers, ~ .x^2 + .x,
                     .name_by = "index")
+
+  # PACKED EXECUTION: Process 1000 files using 20 cores per node
+  # This submits ~50 jobs instead of 1000, making HPC admins happy
+  files <- glob("data/*.csv")
+  jobs <- slurm_map(
+    files,
+    ~ read.csv(.x)[1:5, ],
+    .name_by = "stem",
+    .write_result = path$artifacts("results/{run}/{stem}.rds"),
+    .packed = TRUE,
+    .workers_per_node = 20,
+    .resources = list(cpus_per_task = 20, mem = "64G", time = "4h")
+  )
+  # Track progress and collect element-level results
+  results <- jobs |> progress() |> collect()  # Returns 1000 results
 
   # Wait for all jobs and collect results
   results <- jobs |> await() |> collect()

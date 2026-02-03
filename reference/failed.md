@@ -12,7 +12,7 @@ failed(x, stage = NULL, ...)
 
 - x:
 
-  A parade_jobset object
+  A `parade_jobset` object
 
 - stage:
 

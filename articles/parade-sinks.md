@@ -111,7 +111,7 @@ system. Choose the optimal format for your use case:
 | Format      | Speed     | Size     | Type Support  | Package Required | Use Case                  |
 |-------------|-----------|----------|---------------|------------------|---------------------------|
 | **rds**     | Fast      | Medium   | All R objects | None             | Default, R-only workflows |
-| **qs**      | Fastest   | Smallest | All R objects | qs               | High-performance R        |
+| **qs2**     | Fastest   | Smallest | All R objects | qs2              | High-performance R        |
 | **parquet** | Fast      | Small    | Data frames   | arrow            | Cross-language, columnar  |
 | **feather** | Very fast | Medium   | Data frames   | arrow            | Fast interchange          |
 | **csv**     | Slow      | Large    | Data frames   | None             | Universal compatibility   |
@@ -122,7 +122,7 @@ system. Choose the optimal format for your use case:
 ``` r
 # List all registered formats
 list_sink_formats()
-# [1] "csv" "feather" "json" "parquet" "qs" "rds" "readr_csv" "tsv"
+# [1] "csv" "feather" "json" "parquet" "qs2" "rds" "readr_csv" "tsv"
 
 # Check if a specific format is available
 has_sink_format("parquet")  # TRUE if arrow is installed
@@ -152,11 +152,16 @@ sink <- sink_spec(
 multi_sink <- sink_spec(
   fields = c("data", "model", "config"),
   dir = "artifacts://mixed",
-  formats = list(
-    data = "parquet",    # Fast columnar format for data
-    model = "qs",        # Ultra-fast R serialization for models
-    config = "json"      # Human-readable for configuration
-  )
+  # Prefer qs2 when installed, otherwise fall back to rds
+  # (keeps this vignette runnable even without qs2 installed)
+  formats = {
+    fast_r <- if (has_sink_format("qs2")) "qs2" else "rds"
+    list(
+      data = "parquet",    # Fast columnar format for data
+      model = fast_r,      # Fast R serialization for models
+      config = "json"      # Human-readable for configuration
+    )
+  }
 )
 ```
 
@@ -315,7 +320,7 @@ fl <- flow(grid, seed_col = "seed") |>
       fields = c("raw_data", "summary", "metadata"),
       dir = "artifacts://analysis",
       formats = list(
-        raw_data = "qs",      # Fast for large matrices
+        raw_data = if (has_sink_format("qs2")) "qs2" else "rds",  # Fast for large matrices
         summary = "csv",      # Readable, shareable
         metadata = "json"     # Human-readable config
       )
@@ -381,7 +386,8 @@ recent_large <- manifest("artifacts://analysis") |>
   mutate(
     format = tools::file_ext(path),
     data = map(path, ~ {
-      if (grepl("\\.qs$", .x)) qs::qread(.x)
+      if (grepl("\\.qs2$", .x) && requireNamespace("qs2", quietly = TRUE)) qs2::qs_read(.x)
+      else if (grepl("\\.qs$", .x) && requireNamespace("qs", quietly = TRUE)) qs::qread(.x)
       else if (grepl("\\.parquet$", .x)) arrow::read_parquet(.x)
       else readRDS(.x)
     })
@@ -396,8 +402,8 @@ recent_large <- manifest("artifacts://analysis") |>
 Preserves all R attributes and classes - ❌ R-only, not readable by
 other languages - 📊 Best for: R-specific workflows, complex objects
 
-**QS (when available)** - ✅ 3-5x faster than RDS - ✅ 30-50% smaller
-files - ✅ Supports all R objects - ❌ Requires qs package - 📊 Best
+**QS2 (when available)** - ✅ 3-5x faster than RDS - ✅ 30-50% smaller
+files - ✅ Supports all R objects - ❌ Requires qs2 package - 📊 Best
 for: High-performance R workflows
 
 **Parquet** - ✅ Columnar format, excellent compression - ✅
@@ -423,7 +429,7 @@ ml_sink <- sink_spec(
   formats = list(
     train_data = "parquet",   # Large, need column access
     test_data = "parquet",    # Consistent with training
-    model = "qs",            # Complex R object, need speed
+    model = if (has_sink_format("qs2")) "qs2" else "rds",  # Complex R object, need speed
     predictions = "csv",      # Share with stakeholders
     metrics = "json"         # Track in version control
   ),
@@ -569,7 +575,7 @@ fl <- flow(subjects) |>
     sink = sink_spec(
       fields = "brain_data",
       dir = "artifacts://neuroimaging",
-      format = "qs"  # Fast serialization for arrays
+      format = if (has_sink_format("qs2")) "qs2" else "rds"  # Fast serialization for arrays
     )
   )
 ```

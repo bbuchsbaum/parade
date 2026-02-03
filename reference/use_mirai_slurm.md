@@ -78,10 +78,18 @@ use_mirai_slurm(
 #> NULL
 #> 
 #> $url
-#> mirai::host_url(tls = TRUE, port = 5555)
+#> function () 
+#> mirai::host_url(tls = TRUE, port = port)
+#> <bytecode: 0x55a730cfda60>
+#> <environment: 0x55a730cfe2b0>
 #> 
 #> $remote
-#> mirai::cluster_config(command = "sbatch", options = "#SBATCH --partition=compute\n#SBATCH --time=2:00:00\n#SBATCH --mem=32G\n#SBATCH --cpus-per-task=4\n#SBATCH --job-name=parade-mirai")
+#> function () 
+#> {
+#>     mirai::cluster_config(command = "sbatch", options = opts_string)
+#> }
+#> <bytecode: 0x55a730cfd7c0>
+#> <environment: 0x55a730cfe2b0>
 #> 
 #> $dispatcher
 #> [1] TRUE

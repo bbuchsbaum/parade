@@ -40,14 +40,14 @@ Invisibly returns the format name
 
 ``` r
 # Register a custom format
-register_sink_format("qs",
-  writer = function(x, path, ...) qs::qsave(x, path, ...),
-  reader = function(path, ...) qs::qread(path, ...),
-  ext = ".qs"
+register_sink_format("qs2",
+  writer = function(x, path, ...) qs2::qs_save(x, path, ...),
+  reader = function(path, ...) qs2::qs_read(path, ...),
+  ext = ".qs2"
 )
 
 # Use in sink
-sink_quick("data", write = "qs")
+sink_quick("data", write = "qs2")
 #> $fields
 #> [1] "data"
 #> 
@@ -58,17 +58,17 @@ sink_quick("data", write = "qs")
 #> [1] "{.stage}/{.field}/{.row_key}"
 #> 
 #> $format
-#> [1] "qs"
+#> [1] "qs2"
 #> 
 #> $writer
 #> function (x, path, ...) 
-#> qs::qsave(x, path, ...)
-#> <environment: 0x556617df1230>
+#> qs2::qs_save(x, path, ...)
+#> <environment: 0x55a740ffba40>
 #> 
 #> $reader
 #> function (path, ...) 
-#> qs::qread(path, ...)
-#> <environment: 0x556617df1230>
+#> qs2::qs_read(path, ...)
+#> <environment: 0x55a740ffba40>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -83,7 +83,7 @@ sink_quick("data", write = "qs")
 #> [1] FALSE
 #> 
 #> $ext
-#> [1] ".qs"
+#> [1] ".qs2"
 #> 
 #> $build_path_fn
 #> function (spec, row, stage_name, field) 
@@ -102,10 +102,10 @@ sink_quick("data", write = "qs")
 #>     if (!grepl("\\.[A-Za-z0-9]+$", rel_path) && nzchar(ext)) {
 #>         rel_path <- paste0(rel_path, ext)
 #>     }
-#>     file.path(base_dir, rel_path)
+#>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x556617d304c0>
-#> <environment: 0x556617d2cdf0>
+#> <bytecode: 0x55a73ee39db8>
+#> <environment: 0x55a73ee3b808>
 #> 
 #> $compress
 #> NULL

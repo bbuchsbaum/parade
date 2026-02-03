@@ -32,7 +32,7 @@ Dry run results
 # Dry run a function
 dry_run(
   function(x) x^2,
-  x = 10,
+  10,
   .name = "test_job",
   .write_result = "results/{name}.rds"
 )
@@ -40,11 +40,11 @@ dry_run(
 #> (No job will be submitted)
 #> 
 #> Job name:  test_job 
-#> Registry directory: /tmp/Rtmp1lhwei/parade-registry/test_job (would be created)
+#> Registry directory: /tmp/RtmpRBH8lf/parade-registry/test_job (would be created)
 #> 
 #> Log files that would be created:
-#>   Output: /tmp/Rtmp1lhwei/parade-registry/test_job/logs/test_job.out
-#>   Error: /tmp/Rtmp1lhwei/parade-registry/test_job/logs/test_job.err
+#>   Output: /tmp/RtmpRBH8lf/parade-registry/test_job/logs/test_job.out
+#>   Error: /tmp/RtmpRBH8lf/parade-registry/test_job/logs/test_job.err
 #> 
 #> Result would be written to:
 #>   results/test_job.rds

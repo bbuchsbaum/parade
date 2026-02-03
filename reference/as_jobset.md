@@ -1,6 +1,6 @@
 # Convert a job or list of jobs to a jobset
 
-Converts single job objects or lists of jobs into a parade_jobset,
+Converts single job objects or lists of jobs into a `parade_jobset`,
 ensuring uniform behavior across all job types.
 
 ## Usage
@@ -21,7 +21,7 @@ as_jobset(x, ...)
 
 ## Value
 
-A parade_jobset object
+A `parade_jobset` object
 
 ## Examples
 

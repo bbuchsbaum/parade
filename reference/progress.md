@@ -46,9 +46,12 @@ The jobset (invisibly)
 # Note: This example requires a SLURM cluster environment
 jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
 #> No readable configuration file found
-#> Created registry in '/tmp/Rtmp1lhwei/parade-registry/script-2b4885d6' using cluster functions 'Interactive'
+#> Created registry in '/tmp/RtmpRBH8lf/parade-registry/script-8ad49281' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
-#> Error in batchtools::submitJobs(resources = resources, reg = reg, ids = 1L,     job.name = name): unused argument (job.name = name)
+#> Error: Listing of jobs failed (exit code 127);
+#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
+#> output:
+#> command not found
 progress(jobs)  # Shows progress bar
 #> Error: object 'jobs' not found
 # }

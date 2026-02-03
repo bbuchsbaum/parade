@@ -33,16 +33,19 @@ Invisible list with job details
 # Explain a function submission
 explain(
   function(x) x^2,
-  x = 10,
+  10,
   .resources = "gpu"
 )
 #> === Job Submission Explanation ===
 #> 
 #> Type: Function submission
 #> Function:
-#> [1] 10
+#> function (x) 
+#> x^2
+#> <environment: 0x55a739833420>
 #> 
 #> Arguments:
+#>   [[1]] = 10
 #> 
 #> Resources:
 #>   Profile:  gpu 

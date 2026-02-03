@@ -26,19 +26,21 @@ A naming function
 
 ``` r
 # \donttest{
-# Equivalent to stem()
-files <- c("data1.csv", "data2.csv")
-process_file <- function(x) x  # stub for example
-jobs <- slurm_map(files, process_file, .name_by = name_by("stem"), .engine = "local")
+if (interactive()) {
+  # Equivalent to stem()
+  files <- c("data1.csv", "data2.csv")
+  process_file <- function(x) x  # stub for example
+  jobs <- slurm_map(files, process_file, .name_by = name_by("stem"), .engine = "local")
 
-# With arguments
-data <- 1:5
-process_data <- function(x) x  # stub for example
-jobs <- slurm_map(
-  data,
-  process_data,
-  .name_by = name_by("index", prefix = "task"),
-  .engine = "local"
-)
+  # With arguments
+  data <- 1:5
+  process_data <- function(x) x  # stub for example
+  jobs <- slurm_map(
+    data,
+    process_data,
+    .name_by = name_by("index", prefix = "task"),
+    .engine = "local"
+  )
+}
 # }
 ```

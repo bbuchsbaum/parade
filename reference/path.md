@@ -26,20 +26,20 @@ p <- path
 
 # Access common directories
 p$artifacts()         # Artifacts directory
-#> [1] "/tmp/Rtmp1lhwei/parade-artifacts"
+#> [1] "/scratch/$USER/parade-artifacts"
 p$data()             # Data directory
 #> [1] "/home/runner/work/parade/parade/docs/reference/data"
 p$registry()         # Registry directory
-#> [1] "/tmp/Rtmp1lhwei/parade-registry"
+#> [1] "/scratch/$USER/parade-registry"
 
 # With subdirectories
 p$artifacts("models")
-#> [1] "/tmp/Rtmp1lhwei/parade-artifacts/models"
+#> [1] "/scratch/$USER/parade-artifacts/models"
 p$data("raw", "2024")
 #> [1] "/home/runner/work/parade/parade/docs/reference/data/raw/2024"
 
 # Expand macros
 p$expand("results/{date}/output_{run}.rds")
-#> [1] "results/20251112/output_20251112-172000.rds"
+#> [1] "results/20260203/output_20260203-023336.rds"
 # }
 ```

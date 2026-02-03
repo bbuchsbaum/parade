@@ -10,7 +10,8 @@
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Artifacts: format-agnostic sinks, atomic writes, and manifests">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<script src="../extra.js"></script><meta property="og:title" content="Artifacts: format-agnostic sinks, atomic writes, and manifests">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -227,11 +228,11 @@ case:</p>
 <td>Default, R-only workflows</td>
 </tr>
 <tr class="even">
-<td><strong>qs</strong></td>
+<td><strong>qs2</strong></td>
 <td>Fastest</td>
 <td>Smallest</td>
 <td>All R objects</td>
-<td>qs</td>
+<td>qs2</td>
 <td>High-performance R</td>
 </tr>
 <tr class="odd">
@@ -275,7 +276,7 @@ case:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List all registered formats</span></span>
 <span><span class="fu"><a href="../reference/list_sink_formats.html">list_sink_formats</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co"># [1] "csv" "feather" "json" "parquet" "qs" "rds" "readr_csv" "tsv"</span></span>
+<span><span class="co"># [1] "csv" "feather" "json" "parquet" "qs2" "rds" "readr_csv" "tsv"</span></span>
 <span></span>
 <span><span class="co"># Check if a specific format is available</span></span>
 <span><span class="fu"><a href="../reference/has_sink_format.html">has_sink_format</a></span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span>  <span class="co"># TRUE if arrow is installed</span></span>
@@ -304,11 +305,16 @@ multiple formats:</p>
 <span><span class="va">multi_sink</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
 <span>  fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data"</span>, <span class="st">"model"</span>, <span class="st">"config"</span><span class="op">)</span>,</span>
 <span>  dir <span class="op">=</span> <span class="st">"artifacts://mixed"</span>,</span>
-<span>  formats <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    data <span class="op">=</span> <span class="st">"parquet"</span>,    <span class="co"># Fast columnar format for data</span></span>
-<span>    model <span class="op">=</span> <span class="st">"qs"</span>,        <span class="co"># Ultra-fast R serialization for models</span></span>
-<span>    config <span class="op">=</span> <span class="st">"json"</span>      <span class="co"># Human-readable for configuration</span></span>
-<span>  <span class="op">)</span></span>
+<span>  <span class="co"># Prefer qs2 when installed, otherwise fall back to rds</span></span>
+<span>  <span class="co"># (keeps this vignette runnable even without qs2 installed)</span></span>
+<span>  formats <span class="op">=</span> <span class="op">{</span></span>
+<span>    <span class="va">fast_r</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/has_sink_format.html">has_sink_format</a></span><span class="op">(</span><span class="st">"qs2"</span><span class="op">)</span><span class="op">)</span> <span class="st">"qs2"</span> <span class="kw">else</span> <span class="st">"rds"</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      data <span class="op">=</span> <span class="st">"parquet"</span>,    <span class="co"># Fast columnar format for data</span></span>
+<span>      model <span class="op">=</span> <span class="va">fast_r</span>,      <span class="co"># Fast R serialization for models</span></span>
+<span>      config <span class="op">=</span> <span class="st">"json"</span>      <span class="co"># Human-readable for configuration</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="key-parameters-explained">Key parameters explained<a class="anchor" aria-label="anchor" href="#key-parameters-explained"></a>
@@ -485,7 +491,7 @@ if you need explicit cleanup.</p>
 <span>      fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"raw_data"</span>, <span class="st">"summary"</span>, <span class="st">"metadata"</span><span class="op">)</span>,</span>
 <span>      dir <span class="op">=</span> <span class="st">"artifacts://analysis"</span>,</span>
 <span>      formats <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        raw_data <span class="op">=</span> <span class="st">"qs"</span>,      <span class="co"># Fast for large matrices</span></span>
+<span>        raw_data <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/has_sink_format.html">has_sink_format</a></span><span class="op">(</span><span class="st">"qs2"</span><span class="op">)</span><span class="op">)</span> <span class="st">"qs2"</span> <span class="kw">else</span> <span class="st">"rds"</span>,  <span class="co"># Fast for large matrices</span></span>
 <span>        summary <span class="op">=</span> <span class="st">"csv"</span>,      <span class="co"># Readable, shareable</span></span>
 <span>        metadata <span class="op">=</span> <span class="st">"json"</span>     <span class="co"># Human-readable config</span></span>
 <span>      <span class="op">)</span></span>
@@ -550,7 +556,8 @@ automatically:</p>
 <span>  <span class="fu">mutate</span><span class="op">(</span></span>
 <span>    format <span class="op">=</span> <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">file_ext</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span>,</span>
 <span>    data <span class="op">=</span> <span class="fu">map</span><span class="op">(</span><span class="va">path</span>, <span class="op">~</span> <span class="op">{</span></span>
-<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.qs$"</span>, <span class="va">.x</span><span class="op">)</span><span class="op">)</span> <span class="fu">qs</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/qs/man/qread.html" class="external-link">qread</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.qs2$"</span>, <span class="va">.x</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"qs2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu">qs2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/qs2/man/qs_read.html" class="external-link">qs_read</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
+<span>      <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.qs$"</span>, <span class="va">.x</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"qs"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu">qs</span><span class="fu">::</span><span class="fu">qread</span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
 <span>      <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"\\.parquet$"</span>, <span class="va">.x</span><span class="op">)</span><span class="op">)</span> <span class="fu">arrow</span><span class="fu">::</span><span class="fu"><a href="https://arrow.apache.org/docs/r/reference/read_parquet.html" class="external-link">read_parquet</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
 <span>      <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span></span>
 <span>    <span class="op">}</span><span class="op">)</span></span>
@@ -567,8 +574,8 @@ automatically:</p>
 environments) - ✅ Preserves all R attributes and classes - ❌ R-only,
 not readable by other languages - 📊 Best for: R-specific workflows,
 complex objects</p>
-<p><strong>QS (when available)</strong> - ✅ 3-5x faster than RDS - ✅
-30-50% smaller files - ✅ Supports all R objects - ❌ Requires qs
+<p><strong>QS2 (when available)</strong> - ✅ 3-5x faster than RDS - ✅
+30-50% smaller files - ✅ Supports all R objects - ❌ Requires qs2
 package - 📊 Best for: High-performance R workflows</p>
 <p><strong>Parquet</strong> - ✅ Columnar format, excellent compression
 - ✅ Cross-language (Python, Julia, etc.) - ✅ Fast for data frames - ❌
@@ -595,7 +602,7 @@ Configuration, metadata, web integration</p>
 <span>  formats <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    train_data <span class="op">=</span> <span class="st">"parquet"</span>,   <span class="co"># Large, need column access</span></span>
 <span>    test_data <span class="op">=</span> <span class="st">"parquet"</span>,    <span class="co"># Consistent with training</span></span>
-<span>    model <span class="op">=</span> <span class="st">"qs"</span>,            <span class="co"># Complex R object, need speed</span></span>
+<span>    model <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/has_sink_format.html">has_sink_format</a></span><span class="op">(</span><span class="st">"qs2"</span><span class="op">)</span><span class="op">)</span> <span class="st">"qs2"</span> <span class="kw">else</span> <span class="st">"rds"</span>,  <span class="co"># Complex R object, need speed</span></span>
 <span>    predictions <span class="op">=</span> <span class="st">"csv"</span>,      <span class="co"># Share with stakeholders</span></span>
 <span>    metrics <span class="op">=</span> <span class="st">"json"</span>         <span class="co"># Track in version control</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -771,7 +778,7 @@ full structure</li>
 <span>    sink <span class="op">=</span> <span class="fu"><a href="../reference/sink_spec.html">sink_spec</a></span><span class="op">(</span></span>
 <span>      fields <span class="op">=</span> <span class="st">"brain_data"</span>,</span>
 <span>      dir <span class="op">=</span> <span class="st">"artifacts://neuroimaging"</span>,</span>
-<span>      format <span class="op">=</span> <span class="st">"qs"</span>  <span class="co"># Fast serialization for arrays</span></span>
+<span>      format <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/has_sink_format.html">has_sink_format</a></span><span class="op">(</span><span class="st">"qs2"</span><span class="op">)</span><span class="op">)</span> <span class="st">"qs2"</span> <span class="kw">else</span> <span class="st">"rds"</span>  <span class="co"># Fast serialization for arrays</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 </div>

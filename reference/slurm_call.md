@@ -154,9 +154,12 @@ job <- slurm_call(
   name = "square-10"
 )
 #> No readable configuration file found
-#> Created registry in '/tmp/Rtmp1lhwei/parade-registry/script-128c82ec' using cluster functions 'Interactive'
+#> Created registry in '/tmp/RtmpRBH8lf/parade-registry/script-7e9c4c46' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
-#> Error in batchtools::submitJobs(resources = resources, reg = reg, ids = 1L,     job.name = name): unused argument (job.name = name)
+#> Error: Listing of jobs failed (exit code 127);
+#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
+#> output:
+#> command not found
 
 # With packages and result saving
 job <- slurm_call(
@@ -169,9 +172,12 @@ job <- slurm_call(
   resources = list(mem = "8G", time = "10min")
 )
 #> No readable configuration file found
-#> Created registry in '/tmp/Rtmp1lhwei/parade-registry/script-fedb942d' using cluster functions 'Interactive'
+#> Created registry in '/tmp/RtmpRBH8lf/parade-registry/script-1a3c4d9e' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
-#> Error in batchtools::submitJobs(resources = resources, reg = reg, ids = 1L,     job.name = name): unused argument (job.name = name)
+#> Error: Listing of jobs failed (exit code 127);
+#> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
+#> output:
+#> command not found
 
 # Monitor the job
 script_tail(job)

@@ -21,7 +21,7 @@ set -euo pipefail
 module purge || true
 module load R
 
-export PARADE_SCRATCH=${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/parade-$SLURM_JOB_ID
+export PARADE_SCRATCH=${PARADE_SCRATCH:-${SCRATCH:-${SCRATCHDIR:-${PSCRATCH:-${WORK:-${SLURM_TMPDIR:-${TMPDIR:-/tmp}}}}}}}
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1

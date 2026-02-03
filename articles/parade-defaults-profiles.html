@@ -10,7 +10,8 @@
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="SLURM Profiles: One Size Doesn't Fit All Jobs">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<script src="../extra.js"></script><meta property="og:title" content="SLURM Profiles: One Size Doesn't Fit All Jobs">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -549,10 +550,52 @@ tasks</p>
 <div class="section level2">
 <h2 id="troubleshooting">Troubleshooting<a class="anchor" aria-label="anchor" href="#troubleshooting"></a>
 </h2>
+</div>
+<div class="section level2">
+<h2 id="under-the-hood-where-profiles-live">Under the Hood: where profiles live<a class="anchor" aria-label="anchor" href="#under-the-hood-where-profiles-live"></a>
+</h2>
+<p>When you call <code>slurm_defaults_set(...)</code> parade updates two
+places:</p>
+<ol style="list-style-type: decimal">
+<li>The current R session via the <code>parade.slurm.defaults</code>
+option so subsequent <code><a href="../reference/slurm_resources.html">slurm_resources()</a></code> calls in the same
+session see the changes immediately.</li>
+<li>(Optionally) The on-disk config stored at
+<code>file.path(paths_get()$config, "parade.json")</code> when
+<code>persist = TRUE</code>. This makes the profile available to future
+sessions and collaborators who share the project.</li>
+</ol>
+<p>Internally the JSON looks like:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="dt">"slurm"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>    <span class="dt">"defaults"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>      <span class="dt">"default"</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"compute"</span><span class="fu">,</span> <span class="dt">"time"</span><span class="fu">:</span> <span class="st">"2h"</span><span class="fu">},</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>      <span class="dt">"gpu_training"</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">"partition"</span><span class="fu">:</span> <span class="st">"gpu"</span><span class="fu">,</span> <span class="dt">"gres"</span><span class="fu">:</span> <span class="st">"gpu:2"</span><span class="fu">}</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>    <span class="dt">"template"</span><span class="fu">:</span> <span class="st">"registry://templates/parade-slurm.tmpl"</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><code>slurm_resources(profile = "...")</code> merges the stored
+defaults with any inline overrides you pass, then normalizes the result
+via <code>batchtools::batch_resources()</code>. The final list travels
+with each <code><a href="../reference/submit_slurm.html">submit_slurm()</a></code>/<code><a href="../reference/dist_slurm.html">dist_slurm()</a></code> call
+into batchtools’ registry, where it ultimately feeds the SLURM
+template.</p>
+<div class="section level3">
+<h3 id="relationship-to-slurm_template_set">Relationship to <code>slurm_template_set()</code><a class="anchor" aria-label="anchor" href="#relationship-to-slurm_template_set"></a>
+</h3>
+<p><code><a href="../reference/slurm_template_set.html">slurm_template_set()</a></code> merely remembers which batchtools
+template file to use (also inside the same JSON config). Templates stay
+completely decoupled from profiles: profiles define what resources you
+request, while the template dictates <em>how</em> those resources are
+rendered into <code>#SBATCH</code> lines. Keeping them separate means
+you can swap templates (e.g., different clusters or accounting
+directives) without touching your resource presets, and vice versa.</p>
+</div>
 <div class="section level3">
 <h3 id="issue-profile-not-found">Issue: “Profile not found”<a class="anchor" aria-label="anchor" href="#issue-profile-not-found"></a>
 </h3>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check available profiles</span></span>
 <span><span class="fu"><a href="../reference/slurm_defaults_get.html">slurm_defaults_get</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"default"</span><span class="op">)</span>  <span class="co"># Should always work</span></span>
 <span></span>
@@ -562,7 +605,7 @@ tasks</p>
 <div class="section level3">
 <h3 id="issue-profile-settings-not-applying">Issue: Profile settings not applying<a class="anchor" aria-label="anchor" href="#issue-profile-settings-not-applying"></a>
 </h3>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Explicitly pass profile to resources</span></span>
 <span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_resources.html">slurm_resources</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"production"</span><span class="op">)</span>  <span class="co"># Correct</span></span>
 <span></span>
@@ -572,7 +615,7 @@ tasks</p>
 <div class="section level3">
 <h3 id="issue-different-clusters-need-different-profiles">Issue: Different clusters need different profiles<a class="anchor" aria-label="anchor" href="#issue-different-clusters-need-different-profiles"></a>
 </h3>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Detect cluster and choose profile</span></span>
 <span><span class="va">get_cluster_profile</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">hostname</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.info.html" class="external-link">Sys.info</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="st">"nodename"</span><span class="op">]</span></span>

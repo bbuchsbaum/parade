@@ -46,10 +46,16 @@ use_mirai_ssh(
 #> NULL
 #> 
 #> $url
-#> mirai::local_url(tcp = TRUE, port = 40491)
+#> function () 
+#> mirai::local_url(tcp = TRUE, port = port)
+#> <bytecode: 0x55a73103c740>
+#> <environment: 0x55a73103cd28>
 #> 
 #> $remote
-#> mirai::ssh_config(c("ssh://node1", "ssh://node2"), tunnel = TRUE)
+#> function () 
+#> mirai::ssh_config(remotes, tunnel = TRUE)
+#> <bytecode: 0x55a73103fee0>
+#> <environment: 0x55a73103cd28>
 #> 
 #> $dispatcher
 #> [1] TRUE
@@ -93,7 +99,10 @@ use_mirai_ssh(
 #> NULL
 #> 
 #> $remote
-#> mirai::ssh_config(c("ssh://compute1", "ssh://compute2"))
+#> function () 
+#> mirai::ssh_config(remotes)
+#> <bytecode: 0x55a7310401f0>
+#> <environment: 0x55a730fe1a10>
 #> 
 #> $dispatcher
 #> [1] TRUE

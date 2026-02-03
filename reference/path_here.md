@@ -26,11 +26,17 @@ path_here(alias, ..., create = TRUE)
 
 Resolved absolute path
 
+## Details
+
+When `create = TRUE`, missing directories are created. If the resolved
+path appears to be a file (e.g., has an extension), only its parent
+directories are created so the file itself remains writable.
+
 ## Examples
 
 ``` r
 path_here("data", "input", "file.csv")
 #> [1] "/home/runner/work/parade/parade/docs/reference/data/input/file.csv"
 path_here("artifacts", create = FALSE)
-#> character(0)
+#> Error in if (!(identical(out, root_norm) || startsWith(out, prefix))) {    stop("Resolved alias path escapes root: ", out, call. = FALSE)}: missing value where TRUE/FALSE needed
 ```

@@ -27,6 +27,8 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/args_call.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/args_cli.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/artifact.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/artifact_catalog.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/artifact_catalog_search.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/as.list.parade_profile.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/as_function.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/as_jobset.html</loc></url>
@@ -35,6 +37,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/balance_by.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/batch_resources.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/blob.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/bt_make_registry.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/c.parade_jobset.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/calculate_backoff.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/cancel.html</loc></url>
@@ -136,10 +139,14 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/open_logs.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/open_logs.parade_jobset.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/pack.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/packed_worker_function.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade-package.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_config_path.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_config_read.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_config_write.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade_dashboard.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade_doctor.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade_init_hpc.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_options.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_chunk_bt.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_chunk_local.html</loc></url>
@@ -153,6 +160,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/paths_get.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/paths_init.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/paths_set.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/paths_validate.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/pending.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/pipeline.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/pred.html</loc></url>
@@ -211,6 +219,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_defaults_get.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_defaults_set.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_map.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_map_packed.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_pmap.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_resources.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_template.html</loc></url>

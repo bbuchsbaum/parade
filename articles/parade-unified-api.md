@@ -17,7 +17,12 @@ See also:
 
 ``` r
 library(parade)
+
+# Local dev:
 paths_init(quiet = TRUE)
+
+# HPC (recommended):
+# parade_init_hpc(persist = TRUE)
 
 # Submit a single function call
 job <- slurm_call(
@@ -137,7 +142,8 @@ values with confidence:
     {host} are expanded the same way everywhere.
 - resources / .resources: how much you ask SLURM for
   - Accepts a profile name (e.g., “gpu”, “standard”), a chained profile
-    object (profile() %\>% time(“2h”) %\>% cpus(8)), or a simple list.
+    object (profile() %\>% res_time(“2h”) %\>% cpus(8)), or a simple
+    list.
   - Legacy shortcuts like “cpu8”, “mem32G”, “gpu2” are still recognized.
 - .as_jobset (slurm_call only): opt into the jobset surface for single
   jobs

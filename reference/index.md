@@ -17,6 +17,12 @@
 - [`artifact()`](https://bbuchsbaum.github.io/parade/reference/artifact.md)
   : Alias for file_ref function
 
+- [`artifact_catalog()`](https://bbuchsbaum.github.io/parade/reference/artifact_catalog.md)
+  : Artifact catalog utilities
+
+- [`artifact_catalog_search()`](https://bbuchsbaum.github.io/parade/reference/artifact_catalog_search.md)
+  : Search an artifact catalog
+
 - [`as.list(`*`<parade_profile>`*`)`](https://bbuchsbaum.github.io/parade/reference/as.list.parade_profile.md)
   : Convert profile to list for slurm_resources()
 
@@ -27,7 +33,7 @@
   : Convert jobset to tibble
 
 - [`await()`](https://bbuchsbaum.github.io/parade/reference/await.md) :
-  Wait for all jobs in a jobset to complete
+  Wait for jobs to complete
 
 - [`balance_by()`](https://bbuchsbaum.github.io/parade/reference/balance_by.md)
   : Balance work across groups
@@ -249,7 +255,7 @@
   :
 
   Alias for digest-based naming that avoids masking
-  [`digest::digest`](https://rdrr.io/pkg/digest/man/digest.html)
+  [`digest::digest`](https://eddelbuettel.github.io/digest/man/digest.html)
 
 - [`neurovol()`](https://bbuchsbaum.github.io/parade/reference/neurovol.md)
   : Neuroimaging volume type specification
@@ -290,6 +296,15 @@
 - [`parade_config_write()`](https://bbuchsbaum.github.io/parade/reference/parade_config_write.md)
   : Write parade configuration
 
+- [`parade_dashboard()`](https://bbuchsbaum.github.io/parade/reference/parade_dashboard.md)
+  : Unified dashboard for parade jobs
+
+- [`parade_doctor()`](https://bbuchsbaum.github.io/parade/reference/parade_doctor.md)
+  : Quick setup checks for parade
+
+- [`parade_init_hpc()`](https://bbuchsbaum.github.io/parade/reference/parade_init_hpc.md)
+  : Initialize parade for HPC use
+
 - [`parade_options()`](https://bbuchsbaum.github.io/parade/reference/parade_options.md)
   : Global parade options (get/set)
 
@@ -316,6 +331,9 @@
 
 - [`paths_set()`](https://bbuchsbaum.github.io/parade/reference/paths_set.md)
   : Set specific parade paths
+
+- [`paths_validate()`](https://bbuchsbaum.github.io/parade/reference/paths_validate.md)
+  : Validate parade path configuration
 
 - [`pending()`](https://bbuchsbaum.github.io/parade/reference/pending.md)
   : Select pending jobs
@@ -405,7 +423,7 @@
   : Alias for partition()
 
 - [`res_time()`](https://bbuchsbaum.github.io/parade/reference/res_time.md)
-  : Alias for time() that avoids masking stats::time
+  : Set time limit for a resource profile (non-masking)
 
 - [`resolve_path()`](https://bbuchsbaum.github.io/parade/reference/resolve_path.md)
   : Resolve paths with URI-style aliases
@@ -420,7 +438,7 @@
   : Select running jobs
 
 - [`scaffold_batch_template()`](https://bbuchsbaum.github.io/parade/reference/scaffold_batch_template.md)
-  : Create a basic SLURM batch template
+  : Create a batch job template file
 
 - [`scaffold_flow_job()`](https://bbuchsbaum.github.io/parade/reference/scaffold_flow_job.md)
   : Generate scaffold scripts for SLURM flow execution
