@@ -226,12 +226,7 @@ test_that("conditional format registration works", {
     expect_false(has_sink_format("qs2"))
   }
 
-  # Legacy qs format (only if installed and qs2 isn't installed)
-  if (!requireNamespace("qs2", quietly = TRUE) && requireNamespace("qs", quietly = TRUE)) {
-    expect_true(has_sink_format("qs"))
-    fmt <- get_sink_format("qs")
-    expect_equal(fmt$ext, ".qs")
-  }
+  expect_false(has_sink_format("qs"))
   
   # readr formats
   if (requireNamespace("readr", quietly = TRUE)) {

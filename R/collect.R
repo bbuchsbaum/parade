@@ -57,7 +57,12 @@ collect.parade_flow <- function(x,
   inner <- switch(dist$within,
     "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% workers %||% NULL),
     "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% workers %||% NULL),
-    "callr" = future::tweak(future.callr::future.callr, workers = dist$workers_within %||% workers %||% NULL),
+    "callr" = {
+      if (!requireNamespace("future.callr", quietly = TRUE)) {
+        stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
+      }
+      future::tweak(future.callr::future.callr, workers = dist$workers_within %||% workers %||% NULL)
+    },
     "sequential" = future::sequential,
     future::sequential  # fallback
   )

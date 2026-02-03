@@ -26,12 +26,14 @@ referenced by name in sink_spec(), sink_quick(), and other sink functions.
 }
 \examples{
 # Register a custom format
-register_sink_format("qs2",
-  writer = function(x, path, ...) qs2::qs_save(x, path, ...),
-  reader = function(path, ...) qs2::qs_read(path, ...),
-  ext = ".qs2"
-)
+if (requireNamespace("qs2", quietly = TRUE)) {
+  register_sink_format("qs2",
+    writer = function(x, path, ...) qs2::qs_save(x, path, ...),
+    reader = function(path, ...) qs2::qs_read(path, ...),
+    ext = ".qs2"
+  )
 
-# Use in sink
-sink_quick("data", write = "qs2")
+  # Use in sink
+  sink_quick("data", write = "qs2")
+}
 }

@@ -10,3 +10,4 @@ docs
 .Rcheck/
 *.Rcheck/
 *.tar.gz
+.Rd2pdf*

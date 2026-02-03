@@ -135,7 +135,12 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     inner <- switch(dist$within,
       "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% NULL),
       "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% NULL),
-      "callr" = future::tweak(future.callr::future.callr, workers = dist$workers_within %||% NULL),
+      "callr" = {
+        if (!requireNamespace("future.callr", quietly = TRUE)) {
+          stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
+        }
+        future::tweak(future.callr::future.callr, workers = dist$workers_within %||% NULL)
+      },
       "sequential" = future::sequential,
       future::sequential  # fallback
     )
@@ -208,7 +213,15 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   inner <- switch(within,
     "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
     "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
-    "callr" = future::tweak(future.callr::future.callr, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
+    "callr" = {
+      if (!requireNamespace("future.callr", quietly = TRUE)) {
+        stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
+      }
+      future::tweak(
+        future.callr::future.callr,
+        workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+      )
+    },
     "sequential" = future::sequential,
     future::sequential  # fallback
   )

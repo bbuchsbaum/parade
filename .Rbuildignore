@@ -7,5 +7,7 @@
 ^.claude
 ^\.beads$
 ^.*\.Rcheck$
+^\.Rd2pdf.*$
+^.*\.tar\.gz$
 IMPLEMENTATION_PLAN.md
 examples
