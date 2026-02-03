@@ -26,12 +26,18 @@ Invisible NULL
 
 ``` r
 # \donttest{
+job <- slurm_call(function(x) x^2, x = 2, engine = "local")
+
+# Use a no-op viewer in non-interactive contexts (e.g. checks/CI)
+noop_viewer <- function(...) invisible(NULL)
+
 # Open output log
-open_logs(job, which = "out")
-#> Error: object 'job' not found
+open_logs(job, which = "out", viewer = noop_viewer)
+#> Output log not found: ./logs/local-call.out
 
 # Open both logs
-open_logs(job)
-#> Error: object 'job' not found
+open_logs(job, viewer = noop_viewer)
+#> Output log not found: ./logs/local-call.out
+#> Error log not found: ./logs/local-call.err
 # }
 ```
