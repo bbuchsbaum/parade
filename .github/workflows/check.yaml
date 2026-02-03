@@ -33,10 +33,20 @@ jobs:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: true
 
+      # pak lockfile installs can fail on macOS when CRAN binaries lag behind the
+      # current R release (e.g., missing pkgload binaries for R 4.5). Use a
+      # remotes-based install path on macOS so missing binaries fall back to source.
       - uses: r-lib/actions/setup-r-dependencies@v2
+        if: matrix.config.os != 'macos-latest'
         with:
           extra-packages: any::rcmdcheck
           needs: check
+
+      - name: Install dependencies (macOS)
+        if: matrix.config.os == 'macos-latest'
+        run: |
+          Rscript -e 'install.packages(c("remotes","rcmdcheck"), repos = "https://cloud.r-project.org")'
+          Rscript -e 'remotes::install_deps(dependencies = TRUE, repos = "https://cloud.r-project.org")'
 
       - uses: r-lib/actions/check-r-package@v2
         with:
