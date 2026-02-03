@@ -40,11 +40,11 @@ dry_run(
 #> (No job will be submitted)
 #> 
 #> Job name:  test_job 
-#> Registry directory: /tmp/Rtmp3Y5hn9/parade-registry/test_job (would be created)
+#> Registry directory: /tmp/RtmpnH2FOX/parade-registry/test_job (would be created)
 #> 
 #> Log files that would be created:
-#>   Output: /tmp/Rtmp3Y5hn9/parade-registry/test_job/logs/test_job.out
-#>   Error: /tmp/Rtmp3Y5hn9/parade-registry/test_job/logs/test_job.err
+#>   Output: /tmp/RtmpnH2FOX/parade-registry/test_job/logs/test_job.out
+#>   Error: /tmp/RtmpnH2FOX/parade-registry/test_job/logs/test_job.err
 #> 
 #> Result would be written to:
 #>   results/test_job.rds

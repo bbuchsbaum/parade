@@ -65,12 +65,12 @@ if (requireNamespace("qs2", quietly = TRUE)) {
 #> $writer
 #> function (x, path, ...) 
 #> qs2::qs_save(x, path, ...)
-#> <environment: 0x560b1d7bfd88>
+#> <environment: 0x555c72a371d0>
 #> 
 #> $reader
 #> function (path, ...) 
 #> qs2::qs_read(path, ...)
-#> <environment: 0x560b1d7bfd88>
+#> <environment: 0x555c72a371d0>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -106,8 +106,8 @@ if (requireNamespace("qs2", quietly = TRUE)) {
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x560b1d5c3a40>
-#> <environment: 0x560b1ca0baa0>
+#> <bytecode: 0x555c72133148>
+#> <environment: 0x555c7212fa78>
 #> 
 #> $compress
 #> NULL
