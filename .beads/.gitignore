@@ -10,3 +10,9 @@ interactions.jsonl
 
 # Local state
 last-touched
+
+# Local-only version marker
+.local_version
+
+# Export state (local)
+export-state/
