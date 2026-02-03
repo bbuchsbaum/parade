@@ -61,7 +61,7 @@ collect.parade_flow <- function(x,
       if (!requireNamespace("future.callr", quietly = TRUE)) {
         stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
       }
-      future::tweak(future.callr::future.callr, workers = dist$workers_within %||% workers %||% NULL)
+      future::tweak(future.callr::callr, workers = dist$workers_within %||% workers %||% NULL)
     },
     "sequential" = future::sequential,
     future::sequential  # fallback

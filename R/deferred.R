@@ -139,7 +139,7 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
         if (!requireNamespace("future.callr", quietly = TRUE)) {
           stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
         }
-        future::tweak(future.callr::future.callr, workers = dist$workers_within %||% NULL)
+        future::tweak(future.callr::callr, workers = dist$workers_within %||% NULL)
       },
       "sequential" = future::sequential,
       future::sequential  # fallback
@@ -218,7 +218,7 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
         stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
       }
       future::tweak(
-        future.callr::future.callr,
+        future.callr::callr,
         workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
       )
     },

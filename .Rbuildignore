@@ -6,6 +6,7 @@
 ^Meta$
 ^.claude
 ^\.beads$
+^\.beads/
 ^.*\.Rcheck$
 ^\.Rd2pdf.*$
 ^.*\.tar\.gz$
