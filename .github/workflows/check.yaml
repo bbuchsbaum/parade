@@ -45,6 +45,7 @@ jobs:
       - name: Install dependencies (macOS)
         if: matrix.config.os == 'macos-latest'
         run: |
+          Rscript -e 'install.packages("pkgload", type = "source", repos = "https://cloud.r-project.org")'
           Rscript -e 'install.packages(c("remotes","rcmdcheck"), repos = "https://cloud.r-project.org")'
           Rscript -e 'remotes::install_deps(dependencies = c("Depends","Imports","LinkingTo"), repos = "https://cloud.r-project.org")'
           Rscript -e 'install.packages(c("testthat","mockery","knitr","rmarkdown"), repos = "https://cloud.r-project.org")'

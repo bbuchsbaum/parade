@@ -70,5 +70,7 @@ sink_quick("tbl",
 )
 
 # For packages with registered formats
-sink_quick(c("model", "metrics"), write = "parquet")
+if (has_sink_format("parquet")) {
+  sink_quick(c("model", "metrics"), write = "parquet")
+}
 }
