@@ -11,7 +11,8 @@ dist_slurm(
   workers_within = NULL,
   template = slurm_template(),
   resources = list(),
-  chunks_per_job = 1L
+  chunks_per_job = 1L,
+  target_jobs = NULL
 )
 ```
 
@@ -40,7 +41,12 @@ dist_slurm(
 
 - chunks_per_job:
 
-  Number of groups to process per SLURM job
+  Number of groups to process per SLURM job.
+
+- target_jobs:
+
+  Optional integer; target number of SLURM jobs to create (overrides
+  `chunks_per_job` at submit time).
 
 ## Value
 

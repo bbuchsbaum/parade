@@ -348,6 +348,47 @@ Tests for flow DSL
 
 ------------------------------------------------------------------------
 
+## Phase 7: Cluster Pool Abstraction (Future)
+
+### Goal
+
+Support the “treat N nodes like one big machine” mental model by
+providing a **pool/dispatcher** abstraction on top of SLURM (single
+allocation + dynamic work stealing), while keeping `parade` itself
+backend-agnostic.
+
+### Landed building blocks
+
+Pluggable submit backend registry
+([`register_submit_backend()`](https://bbuchsbaum.github.io/parade/reference/register_submit_backend.md),
+[`list_submit_backends()`](https://bbuchsbaum.github.io/parade/reference/list_submit_backends.md))
+
+Submit-time chunking control via `target_jobs` (for
+[`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md)/[`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md))
+
+Packed cluster ergonomics
+([`slurm_cluster_plan()`](https://bbuchsbaum.github.io/parade/reference/slurm_cluster_plan.md),
+[`slurm_map_cluster()`](https://bbuchsbaum.github.io/parade/reference/slurm_map_cluster.md))
+
+### Proposed next steps (likely an extension package)
+
+Define a stable “pool backend” contract:
+
+- lifecycle (start/stop), node allocation semantics, logging
+- queue API (push tasks, observe progress, collect results)
+
+Implement a SLURM pool backend in a separate package (e.g.,
+`parade.slurmpool`) that registers itself via
+`register_submit_backend("slurm_pool", ...)`.
+
+- Acquire an allocation (`sbatch`/`salloc`) for `N` nodes
+- Start a dispatcher + workers on allocated nodes (mirai/nanonext/SSH)
+- Support dynamic work stealing to reduce tail latency
+
+Add “pool aware” progress + cancellation semantics for long task sets
+
+Add integration vignette: “Running on 10×196 cores as one pool”
+
 ## Documentation & Examples
 
 ### Vignettes

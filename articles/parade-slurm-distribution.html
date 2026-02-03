@@ -96,6 +96,62 @@ define your computation once and choose how to distribute it based on
 your current needs.</p>
 </div>
 <div class="section level2">
+<h2 id="one-big-machine-best-effort-on-slurm">“One big machine” (best-effort) on SLURM<a class="anchor" aria-label="anchor" href="#one-big-machine-best-effort-on-slurm"></a>
+</h2>
+<p>On a cluster, it’s tempting to think in terms of a single machine
+with <code>nodes * cpus_per_node</code> cores. SLURM doesn’t natively
+provide that abstraction for arbitrary batch jobs; it schedules jobs
+that <em>request resources</em>.</p>
+<p><strong>parade</strong> doesn’t yet implement a true “SLURM pool”
+(single allocation + dispatcher) but you can get close today using two
+ideas:</p>
+<ul>
+<li>
+<strong>Packed jobs</strong> for <code><a href="../reference/slurm_map.html">slurm_map()</a></code>: run many
+tasks per SLURM job and use within‑node parallelism to fully utilize a
+node.</li>
+<li>
+<strong>Target job count</strong> for
+<code><a href="../reference/submit.html">submit()</a></code>/<code><a href="../reference/dist_slurm.html">dist_slurm()</a></code>: pick a fixed number of
+jobs to keep in flight, independent of the number of groups in your
+grid.</li>
+</ul>
+<div class="section level3">
+<h3 id="example-10-nodes-196-cores">Example: 10 nodes × 196 cores<a class="anchor" aria-label="anchor" href="#example-10-nodes-196-cores"></a>
+</h3>
+<p>For task mapping, the most ergonomic option is
+<code><a href="../reference/slurm_map_cluster.html">slurm_map_cluster()</a></code>:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tasks</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10000</span></span>
+<span></span>
+<span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/slurm_map_cluster.html">slurm_map_cluster</a></span><span class="op">(</span></span>
+<span>  <span class="va">tasks</span>,</span>
+<span>  <span class="op">~</span> <span class="va">.x</span><span class="op">^</span><span class="fl">2</span>,</span>
+<span>  nodes <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  cpus_per_node <span class="op">=</span> <span class="fl">196</span>,</span>
+<span>  oversubscribe <span class="op">=</span> <span class="fl">2</span>,                <span class="co"># queue 2× concurrency to reduce stragglers</span></span>
+<span>  .resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"2h"</span>, mem <span class="op">=</span> <span class="st">"64G"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/progress.html">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>For flows, use <code>target_jobs</code> to control chunking at
+submission time:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
+<span>    by <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>    within <span class="op">=</span> <span class="st">"multicore"</span>,</span>
+<span>    workers_within <span class="op">=</span> <span class="fl">196</span>,</span>
+<span>    resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>nodes <span class="op">=</span> <span class="fl">1</span>, ntasks <span class="op">=</span> <span class="fl">1</span>, cpus_per_task <span class="op">=</span> <span class="fl">196</span>, time <span class="op">=</span> <span class="st">"2h"</span>, mem <span class="op">=</span> <span class="st">"64G"</span><span class="op">)</span>,</span>
+<span>    target_jobs <span class="op">=</span> <span class="fl">20</span>               <span class="co"># ~10 nodes * oversubscribe 2</span></span>
+<span>  <span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Important limits:</strong> this is still <em>static
+partitioning</em> (chunks are fixed at submit time). If task durations
+are highly variable, a true pool/dispatcher (future work) will reduce
+tail latency further.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="local-vs--slurm-distribution-strategies">Local vs. SLURM distribution strategies<a class="anchor" aria-label="anchor" href="#local-vs--slurm-distribution-strategies"></a>
 </h2>
 <div class="section level3">
@@ -124,7 +180,7 @@ the same subject run in the same job.</p>
 building the flow (for example,
 <code>grid_dev &lt;- subset(grid, subject == "sub01")</code>). The code
 below keeps the full grid and illustrates local parallelism.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://progressr.futureverse.org" class="external-link">progressr</a></span><span class="op">)</span></span>
 <span></span>
@@ -158,7 +214,7 @@ below keeps the full grid and illustrates local parallelism.</p>
 <h3 id="slurm-distribution-for-production">SLURM distribution for production<a class="anchor" aria-label="anchor" href="#slurm-distribution-for-production"></a>
 </h3>
 <p>The same workflow can be scaled to a SLURM cluster:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Row-wise: one job per parameter combination</span></span>
 <span><span class="va">fl_rowwise</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
 <span>  by <span class="op">=</span> <span class="cn">NULL</span>,                                      <span class="co"># No grouping - each row is independent</span></span>
@@ -307,7 +363,7 @@ fl |&gt; distribute(dist_slurm(
 <p>The <code>workers_within</code> parameter acts like
 <code>xargs -P</code>, limiting concurrent tasks <strong>within</strong>
 each SLURM job:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Without throttling: all tasks run simultaneously (may overwhelm resources)</span></span>
 <span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="st">"subject"</span>, workers_within <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span></span>
@@ -328,7 +384,7 @@ based on monitoring</p>
 </h3>
 <p>The <code>chunks_per_job</code> parameter controls how groups are
 split across SLURM jobs:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Large groups: split for better parallelization</span></span>
 <span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
 <span>  subject <span class="op">=</span> <span class="st">"subject01"</span>,  <span class="co"># One subject</span></span>
@@ -380,7 +436,7 @@ split across SLURM jobs:</p>
 <div class="section level3">
 <h3 id="multi-dimensional-grouping">Multi-dimensional grouping<a class="anchor" aria-label="anchor" href="#multi-dimensional-grouping"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Complex parameter space</span></span>
 <span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/param_grid.html">param_grid</a></span><span class="op">(</span></span>
 <span>  subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s01"</span>, <span class="st">"s02"</span>, <span class="st">"s03"</span><span class="op">)</span>,</span>
@@ -435,7 +491,7 @@ split across SLURM jobs:</p>
 <div class="section level3">
 <h3 id="deferred-execution-workflow">Deferred execution workflow<a class="anchor" aria-label="anchor" href="#deferred-execution-workflow"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 1. Validate workflow locally (recommended)</span></span>
 <span><span class="fu"><a href="../reference/preflight.html">preflight</a></span><span class="op">(</span><span class="va">fl_subject</span><span class="op">)</span></span>
 <span></span>
@@ -443,7 +499,7 @@ split across SLURM jobs:</p>
 <span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit.html">submit</a></span><span class="op">(</span><span class="va">fl_subject</span>, mode <span class="op">=</span> <span class="st">"index"</span><span class="op">)</span></span></code></pre></div>
 <p>The workflow is now running on the cluster. Use these commands to
 monitor progress:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check job status</span></span>
 <span><span class="fu"><a href="../reference/deferred_status.html">deferred_status</a></span><span class="op">(</span><span class="va">d</span>, show_progress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -456,7 +512,7 @@ monitor progress:</p>
 <div class="section level3">
 <h3 id="resource-specification-examples">Resource specification examples<a class="anchor" aria-label="anchor" href="#resource-specification-examples"></a>
 </h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># CPU-intensive tasks</span></span>
 <span><span class="va">resources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span></span>
 <span>  partition <span class="op">=</span> <span class="st">"standard"</span>,</span>
@@ -502,7 +558,7 @@ monitor progress:</p>
 <div class="section level3">
 <h3 id="pattern-1-development-production-scaling">Pattern 1: Development → Production scaling<a class="anchor" aria-label="anchor" href="#pattern-1-development-production-scaling"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Define the analysis workflow once</span></span>
 <span><span class="va">analyze_workflow</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -551,7 +607,7 @@ monitor progress:</p>
 <div class="section level3">
 <h3 id="pattern-2-adaptive-chunking-based-on-data-size">Pattern 2: Adaptive chunking based on data size<a class="anchor" aria-label="anchor" href="#pattern-2-adaptive-chunking-based-on-data-size"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Small datasets: group more aggressively</span></span>
 <span><span class="va">small_fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
 <span>  by <span class="op">=</span> <span class="st">"subject"</span>, </span>
@@ -575,7 +631,7 @@ monitor progress:</p>
 </h3>
 <p><strong>Solution</strong>: Increase memory allocation or reduce
 <code>workers_within</code>:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Before: likely to exceed memory</span></span>
 <span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>workers_within <span class="op">=</span> <span class="fl">16</span>, resources <span class="op">=</span> <span class="fu"><a href="../reference/batch_resources.html">batch_resources</a></span><span class="op">(</span>mem <span class="op">=</span> <span class="st">"8GB"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -588,7 +644,7 @@ monitor progress:</p>
 </h3>
 <p><strong>Solution</strong>: Increase <code>chunks_per_job</code> to
 create fewer, longer-running jobs:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Before: 1000 small jobs</span></span>
 <span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="cn">NULL</span>, chunks_per_job <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>  <span class="co"># One job per parameter row</span></span>
 <span></span>
@@ -600,7 +656,7 @@ create fewer, longer-running jobs:</p>
 </h3>
 <p><strong>Solution</strong>: Use row-wise distribution or smaller
 chunks:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Before: uneven subject sizes cause load imbalance</span></span>
 <span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>by <span class="op">=</span> <span class="st">"subject"</span>, chunks_per_job <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
@@ -612,7 +668,7 @@ chunks:</p>
 </h3>
 <p><strong>Solution</strong>: Reduce concurrent tasks and consider I/O
 patterns:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Before: high I/O contention  </span></span>
 <span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span>workers_within <span class="op">=</span> <span class="fl">32</span><span class="op">)</span></span>
 <span></span>

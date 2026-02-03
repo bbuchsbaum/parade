@@ -115,6 +115,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/lgl.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/lhs_grid.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/list_sink_formats.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/list_submit_backends.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/lst.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/manifest.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/max_in_flight.html</loc></url>
@@ -185,6 +186,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/profile_remove.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/progress.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/register_sink_format.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/register_submit_backend.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/registry_clean.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/registry_ls.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/res_account.html</loc></url>
@@ -217,9 +219,11 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/sink_spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/sink_temp.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_call.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_cluster_plan.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_defaults_get.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_defaults_set.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_map.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_map_cluster.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_map_packed.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_pmap.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_resources.html</loc></url>

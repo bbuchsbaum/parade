@@ -212,6 +212,9 @@
 - [`list_sink_formats()`](https://bbuchsbaum.github.io/parade/reference/list_sink_formats.md)
   : List registered sink formats
 
+- [`list_submit_backends()`](https://bbuchsbaum.github.io/parade/reference/list_submit_backends.md)
+  : List available submit backends
+
 - [`lst()`](https://bbuchsbaum.github.io/parade/reference/lst.md) :
   Create a list type specification
 
@@ -410,6 +413,9 @@
 - [`register_sink_format()`](https://bbuchsbaum.github.io/parade/reference/register_sink_format.md)
   : Register a sink format
 
+- [`register_submit_backend()`](https://bbuchsbaum.github.io/parade/reference/register_submit_backend.md)
+  : Register a submit backend
+
 - [`registry_clean()`](https://bbuchsbaum.github.io/parade/reference/registry_clean.md)
   : Clean up old jobs from registry
 
@@ -497,6 +503,9 @@
 - [`slurm_call()`](https://bbuchsbaum.github.io/parade/reference/slurm_call.md)
   : Submit an R function to SLURM
 
+- [`slurm_cluster_plan()`](https://bbuchsbaum.github.io/parade/reference/slurm_cluster_plan.md)
+  : Plan packed chunking for a fixed-size SLURM cluster
+
 - [`slurm_defaults_get()`](https://bbuchsbaum.github.io/parade/reference/slurm_defaults_get.md)
   : Get defaults for SLURM (merged from options() and config)
 
@@ -505,6 +514,9 @@
 
 - [`slurm_map()`](https://bbuchsbaum.github.io/parade/reference/slurm_map.md)
   : Map a function or script over elements via SLURM
+
+- [`slurm_map_cluster()`](https://bbuchsbaum.github.io/parade/reference/slurm_map_cluster.md)
+  : Map over tasks as if you had one big machine (best-effort)
 
 - [`slurm_pmap()`](https://bbuchsbaum.github.io/parade/reference/slurm_pmap.md)
   : Parallel map over multiple lists/vectors via SLURM

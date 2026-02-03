@@ -9,7 +9,8 @@ dist_local(
   by = NULL,
   within = c("multisession", "multicore", "callr", "sequential"),
   workers_within = NULL,
-  chunks_per_job = 1L
+  chunks_per_job = 1L,
+  target_jobs = NULL
 )
 ```
 
@@ -30,7 +31,13 @@ dist_local(
 
 - chunks_per_job:
 
-  Number of groups to process per job
+  Number of groups to process per job.
+
+- target_jobs:
+
+  Optional integer; target number of jobs to create (overrides
+  `chunks_per_job` at submit time). Useful when you want to keep a fixed
+  number of jobs in flight regardless of how many groups exist.
 
 ## Value
 
@@ -55,6 +62,9 @@ dist_local(by = "group", within = "multisession")
 #> $chunks_per_job
 #> [1] 1
 #> 
+#> $target_jobs
+#> NULL
+#> 
 #> $slurm
 #> NULL
 #> 
@@ -76,6 +86,9 @@ dist_local(by = "group", within = "multicore")
 #> $chunks_per_job
 #> [1] 1
 #> 
+#> $target_jobs
+#> NULL
+#> 
 #> $slurm
 #> NULL
 #> 
@@ -96,6 +109,9 @@ dist_local(chunks_per_job = 2L)
 #> 
 #> $chunks_per_job
 #> [1] 2
+#> 
+#> $target_jobs
+#> NULL
 #> 
 #> $slurm
 #> NULL

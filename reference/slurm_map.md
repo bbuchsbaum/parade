@@ -23,6 +23,7 @@ slurm_map(
   .packed = FALSE,
   .workers_per_node = NULL,
   .chunk_size = NULL,
+  .target_jobs = NULL,
   .parallel_backend = c("auto", "callr", "multicore", "multisession")
 )
 ```
@@ -91,6 +92,12 @@ slurm_map(
 
   Integer; number of tasks per packed job (defaults to
   .workers_per_node)
+
+- .target_jobs:
+
+  Optional integer; when `.packed = TRUE` and `.chunk_size` is not
+  provided, choose a chunk size that yields approximately this many
+  packed jobs (useful for "treat N nodes like one machine" workflows).
 
 - .parallel_backend:
 

@@ -61,8 +61,8 @@ sink_quick("data", write = my_format$writer, read = my_format$reader)
 #> {
 #>     .write_atomic_generic(writer, x, path, ...)
 #> }
-#> <bytecode: 0x555c72132ce8>
-#> <environment: 0x555c6570f228>
+#> <bytecode: 0x55abe7361f80>
+#> <environment: 0x55abe7b9c350>
 #> 
 #> $reader
 #> function (path, ...) 
@@ -70,8 +70,8 @@ sink_quick("data", write = my_format$writer, read = my_format$reader)
 #>     .path <- path
 #>     eval(expr, envir = environment())
 #> }
-#> <bytecode: 0x555c65801170>
-#> <environment: 0x555c657ff9c0>
+#> <bytecode: 0x55abe44a2278>
+#> <environment: 0x55abe44a4d68>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -107,8 +107,8 @@ sink_quick("data", write = my_format$writer, read = my_format$reader)
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x555c72133148>
-#> <environment: 0x555c6570f228>
+#> <bytecode: 0x55abe735e578>
+#> <environment: 0x55abe7b9c350>
 #> 
 #> $compress
 #> NULL

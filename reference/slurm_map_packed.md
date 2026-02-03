@@ -20,6 +20,7 @@ slurm_map_packed(
   .error_policy = NULL,
   .workers_per_node = NULL,
   .chunk_size = NULL,
+  .target_jobs = NULL,
   .parallel_backend = c("auto", "callr", "multicore", "multisession"),
   is_script = FALSE
 )

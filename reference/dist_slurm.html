@@ -44,7 +44,8 @@
 <span>  workers_within <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  template <span class="op">=</span> <span class="fu"><a href="slurm_template.html">slurm_template</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  chunks_per_job <span class="op">=</span> <span class="fl">1L</span></span>
+<span>  chunks_per_job <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  target_jobs <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -73,7 +74,12 @@
 
 
 <dt id="arg-chunks-per-job">chunks_per_job<a class="anchor" aria-label="anchor" href="#arg-chunks-per-job"></a></dt>
-<dd><p>Number of groups to process per SLURM job</p></dd>
+<dd><p>Number of groups to process per SLURM job.</p></dd>
+
+
+<dt id="arg-target-jobs">target_jobs<a class="anchor" aria-label="anchor" href="#arg-target-jobs"></a></dt>
+<dd><p>Optional integer; target number of SLURM jobs to create
+(overrides <code>chunks_per_job</code> at submit time).</p></dd>
 
 </dl></div>
     <div class="section level2">

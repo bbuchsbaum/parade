@@ -60,6 +60,7 @@ or list. Automatically dispatches to <code>slurm_call</code> for functions or
 <span>  .packed <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  .workers_per_node <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  .chunk_size <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  .target_jobs <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  .parallel_backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"callr"</span>, <span class="st">"multicore"</span>, <span class="st">"multisession"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -128,6 +129,12 @@ efficient node utilization (default: FALSE)</p></dd>
 
 <dt id="arg--chunk-size">.chunk_size<a class="anchor" aria-label="anchor" href="#arg--chunk-size"></a></dt>
 <dd><p>Integer; number of tasks per packed job (defaults to .workers_per_node)</p></dd>
+
+
+<dt id="arg--target-jobs">.target_jobs<a class="anchor" aria-label="anchor" href="#arg--target-jobs"></a></dt>
+<dd><p>Optional integer; when <code>.packed = TRUE</code> and <code>.chunk_size</code>
+is not provided, choose a chunk size that yields approximately this many
+packed jobs (useful for "treat N nodes like one machine" workflows).</p></dd>
 
 
 <dt id="arg--parallel-backend">.parallel_backend<a class="anchor" aria-label="anchor" href="#arg--parallel-backend"></a></dt>

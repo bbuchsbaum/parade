@@ -51,6 +51,37 @@ jobs <- slurm_map(files, "scripts/process_one.R",
                   .name_by = stem())
 ```
 
+## Packed jobs (HPC-friendly) and “one big machine” best-effort
+
+When you have many tasks, HPC admins often prefer *fewer jobs that fully
+use a node*. Use packed mode:
+
+``` r
+jobs <- slurm_map(
+  1:10000,
+  ~ .x^2,
+  .packed = TRUE,
+  .workers_per_node = 32,
+  .target_jobs = 200,                 # optional: choose chunk size from a target job count
+  .resources = list(nodes = 1, ntasks = 1, cpus_per_task = 32, time = "2h", mem = "16G")
+)
+```
+
+If you want to think in terms of a cluster shape (e.g., 10 nodes × 196
+cores), use
+[`slurm_map_cluster()`](https://bbuchsbaum.github.io/parade/reference/slurm_map_cluster.md):
+
+``` r
+jobs <- slurm_map_cluster(
+  1:10000,
+  ~ .x^2,
+  nodes = 10,
+  cpus_per_node = 196,
+  oversubscribe = 2,
+  .resources = list(time = "2h", mem = "64G")
+)
+```
+
 ## Elegant naming and paths
 
 ``` r

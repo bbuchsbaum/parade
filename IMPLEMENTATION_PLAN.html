@@ -210,6 +210,35 @@
 </ul><hr></div>
 </div>
 <div class="section level2">
+<h2 id="phase-7-cluster-pool-abstraction-future">Phase 7: Cluster Pool Abstraction (Future)<a class="anchor" aria-label="anchor" href="#phase-7-cluster-pool-abstraction-future"></a></h2>
+<div class="section level3">
+<h3 id="goal">Goal<a class="anchor" aria-label="anchor" href="#goal"></a></h3>
+<p>Support the “treat N nodes like one big machine” mental model by providing a <strong>pool/dispatcher</strong> abstraction on top of SLURM (single allocation + dynamic work stealing), while keeping <code>parade</code> itself backend-agnostic.</p>
+</div>
+<div class="section level3">
+<h3 id="landed-building-blocks">Landed building blocks<a class="anchor" aria-label="anchor" href="#landed-building-blocks"></a></h3>
+<ul class="task-list"><li><label><input type="checkbox" checked>Pluggable submit backend registry (<code><a href="reference/register_submit_backend.html">register_submit_backend()</a></code>, <code><a href="reference/list_submit_backends.html">list_submit_backends()</a></code>)</label></li>
+<li><label><input type="checkbox" checked>Submit-time chunking control via <code>target_jobs</code> (for <code><a href="reference/dist_local.html">dist_local()</a></code>/<code><a href="reference/dist_slurm.html">dist_slurm()</a></code>)</label></li>
+<li><label><input type="checkbox" checked>Packed cluster ergonomics (<code><a href="reference/slurm_cluster_plan.html">slurm_cluster_plan()</a></code>, <code><a href="reference/slurm_map_cluster.html">slurm_map_cluster()</a></code>)</label></li>
+</ul></div>
+<div class="section level3">
+<h3 id="proposed-next-steps-likely-an-extension-package">Proposed next steps (likely an extension package)<a class="anchor" aria-label="anchor" href="#proposed-next-steps-likely-an-extension-package"></a></h3>
+<ul class="task-list"><li>
+<label><input type="checkbox">Define a stable “pool backend” contract:</label>
+<ul><li>lifecycle (start/stop), node allocation semantics, logging</li>
+<li>queue API (push tasks, observe progress, collect results)</li>
+</ul></li>
+<li>
+<label><input type="checkbox">Implement a SLURM pool backend in a separate package (e.g., <code>parade.slurmpool</code>) that registers itself via <code>register_submit_backend("slurm_pool", ...)</code>.</label>
+<ul><li>Acquire an allocation (<code>sbatch</code>/<code>salloc</code>) for <code>N</code> nodes</li>
+<li>Start a dispatcher + workers on allocated nodes (mirai/nanonext/SSH)</li>
+<li>Support dynamic work stealing to reduce tail latency</li>
+</ul></li>
+<li><label><input type="checkbox">Add “pool aware” progress + cancellation semantics for long task sets</label></li>
+<li><label><input type="checkbox">Add integration vignette: “Running on 10×196 cores as one pool”</label></li>
+</ul></div>
+</div>
+<div class="section level2">
 <h2 id="documentation--examples">Documentation &amp; Examples<a class="anchor" aria-label="anchor" href="#documentation--examples"></a></h2>
 <div class="section level3">
 <h3 id="vignettes">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes"></a></h3>
