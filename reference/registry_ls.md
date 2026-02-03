@@ -33,15 +33,15 @@ Data frame of jobs
 # List all jobs
 registry_ls()
 #>              name      status             created
-#> 4 parade-bb8c6a24 NO_JOB_FILE 2026-02-03 13:14:32
-#> 1 parade-316b3849 NO_JOB_FILE 2026-02-03 13:14:29
-#> 3 parade-b39c803c NO_JOB_FILE 2026-02-03 13:14:27
-#> 2 parade-abdffbf4 NO_JOB_FILE 2026-02-03 13:14:23
+#> 2 parade-2e7dcbcb NO_JOB_FILE 2026-02-03 13:35:49
+#> 3 parade-375e1dc2 NO_JOB_FILE 2026-02-03 13:35:46
+#> 4 parade-9e4c9424 NO_JOB_FILE 2026-02-03 13:35:43
+#> 1 parade-2e65de53 NO_JOB_FILE 2026-02-03 13:35:40
 #>                                              path
-#> 4 /tmp/RtmpT3I7QH/parade-registry/parade-bb8c6a24
-#> 1 /tmp/RtmpT3I7QH/parade-registry/parade-316b3849
-#> 3 /tmp/RtmpT3I7QH/parade-registry/parade-b39c803c
-#> 2 /tmp/RtmpT3I7QH/parade-registry/parade-abdffbf4
+#> 2 /tmp/Rtmpm1roKA/parade-registry/parade-2e7dcbcb
+#> 3 /tmp/Rtmpm1roKA/parade-registry/parade-375e1dc2
+#> 4 /tmp/Rtmpm1roKA/parade-registry/parade-9e4c9424
+#> 1 /tmp/Rtmpm1roKA/parade-registry/parade-2e65de53
 
 # List jobs matching pattern
 registry_ls(pattern = "analysis_*")
@@ -52,14 +52,14 @@ registry_ls(pattern = "analysis_*")
 # List most recent 10 jobs
 registry_ls(limit = 10)
 #>              name      status             created
-#> 4 parade-bb8c6a24 NO_JOB_FILE 2026-02-03 13:14:32
-#> 1 parade-316b3849 NO_JOB_FILE 2026-02-03 13:14:29
-#> 3 parade-b39c803c NO_JOB_FILE 2026-02-03 13:14:27
-#> 2 parade-abdffbf4 NO_JOB_FILE 2026-02-03 13:14:23
+#> 2 parade-2e7dcbcb NO_JOB_FILE 2026-02-03 13:35:49
+#> 3 parade-375e1dc2 NO_JOB_FILE 2026-02-03 13:35:46
+#> 4 parade-9e4c9424 NO_JOB_FILE 2026-02-03 13:35:43
+#> 1 parade-2e65de53 NO_JOB_FILE 2026-02-03 13:35:40
 #>                                              path
-#> 4 /tmp/RtmpT3I7QH/parade-registry/parade-bb8c6a24
-#> 1 /tmp/RtmpT3I7QH/parade-registry/parade-316b3849
-#> 3 /tmp/RtmpT3I7QH/parade-registry/parade-b39c803c
-#> 2 /tmp/RtmpT3I7QH/parade-registry/parade-abdffbf4
+#> 2 /tmp/Rtmpm1roKA/parade-registry/parade-2e7dcbcb
+#> 3 /tmp/Rtmpm1roKA/parade-registry/parade-375e1dc2
+#> 4 /tmp/Rtmpm1roKA/parade-registry/parade-9e4c9424
+#> 1 /tmp/Rtmpm1roKA/parade-registry/parade-2e65de53
 # }
 ```

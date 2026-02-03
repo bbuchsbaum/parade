@@ -65,17 +65,28 @@
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># Retry all failed jobs</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">retry</span><span class="op">(</span><span class="va">jobs</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'jobs' not found</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Retry specific jobs</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">retry</span><span class="op">(</span><span class="va">jobs</span>, which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">5</span>, <span class="fl">7</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'jobs' not found</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Retry with custom policy</span></span></span>
-<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">retry</span><span class="op">(</span><span class="va">jobs</span>, policy <span class="op">=</span> <span class="fu"><a href="on_error_retry.html">on_error_retry</a></span><span class="op">(</span>times <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'jobs' not found</span>
+<span class="r-in"><span><span class="co"># A minimal local example (no SLURM required):</span></span></span>
+<span class="r-in"><span><span class="co"># Create a job that fails once, then succeeds on retry.</span></span></span>
+<span class="r-in"><span><span class="va">env</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">env</span><span class="op">$</span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fl">0L</span></span></span>
+<span class="r-in"><span><span class="va">flaky</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">env</span><span class="op">$</span><span class="va">i</span> <span class="op">&lt;-</span> <span class="va">env</span><span class="op">$</span><span class="va">i</span> <span class="op">+</span> <span class="fl">1L</span></span></span>
+<span class="r-in"><span>  <span class="kw">if</span> <span class="op">(</span><span class="va">env</span><span class="op">$</span><span class="va">i</span> <span class="op">==</span> <span class="fl">1L</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"boom"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">x</span> <span class="op">+</span> <span class="fl">1</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu"><a href="slurm_call.html">slurm_call</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">flaky</span>,</span></span>
+<span class="r-in"><span>  x <span class="op">=</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>  engine <span class="op">=</span> <span class="st">"local"</span>,</span></span>
+<span class="r-in"><span>  .as_jobset <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  .error_policy <span class="op">=</span> <span class="fu"><a href="on_error.html">on_error</a></span><span class="op">(</span>action <span class="op">=</span> <span class="st">"continue"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">jobs</span> <span class="op">&lt;-</span> <span class="fu">retry</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">jobs</span>,</span></span>
+<span class="r-in"><span>  policy <span class="op">=</span> <span class="fu"><a href="on_error_retry.html">on_error_retry</a></span><span class="op">(</span>times <span class="op">=</span> <span class="fl">1</span>, delay <span class="op">=</span> <span class="fl">0</span>, backoff <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">jobs</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">result</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
