@@ -5,5 +5,7 @@
 ^doc$
 ^Meta$
 ^.claude
+^\.beads$
+^.*\.Rcheck$
 IMPLEMENTATION_PLAN.md
 examples
