@@ -87,10 +87,28 @@ template path (if created), and doctor results.
 ``` r
 # \donttest{
 # Minimal HPC init (best-effort autodetect)
-parade_init_hpc(quiet = TRUE)
+parade_init_hpc(quiet = TRUE, persist = FALSE, template = FALSE, create = FALSE)
 
-# With explicit shared scratch (recommended)
-parade_init_hpc(scratch = "/scratch/$USER", persist = TRUE)
-#> Error in scaffold_batch_template(system = "slurm", out = template_path,     exports = exports, overwrite = isTRUE(overwrite_template)): File exists: /home/runner/work/parade/parade/docs/reference/batchtools/parade-slurm.tmpl (set overwrite=TRUE).
+# With explicit scratch + a temp template path (safe outside a cluster)
+parade_init_hpc(
+  scratch = tempdir(),
+  persist = FALSE,
+  create = FALSE,
+  template = TRUE,
+  template_path = tempfile(fileext = ".tmpl"),
+  overwrite_template = TRUE
+)
+#> parade_init_hpc
+#> --------------
+#> - Paths initialized (profile='hpc')
+#> - Project:   /home/runner/work/parade/parade/docs/reference
+#> - Scratch:   /tmp/RtmpPM85UN
+#> - Artifacts: /tmp/RtmpPM85UN/parade-artifacts
+#> - Registry:  /tmp/RtmpPM85UN/parade-registry
+#> - Template:  /tmp/RtmpPM85UN/file1c9c197134eb.tmpl
+#> 
+#> Warnings
+#> --------
+#> - Missing directory for: data, cache 
 # }
 ```

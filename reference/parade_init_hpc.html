@@ -122,11 +122,29 @@ template path (if created), and doctor results.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># Minimal HPC init (best-effort autodetect)</span></span></span>
-<span class="r-in"><span><span class="fu">parade_init_hpc</span><span class="op">(</span>quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">parade_init_hpc</span><span class="op">(</span>quiet <span class="op">=</span> <span class="cn">TRUE</span>, persist <span class="op">=</span> <span class="cn">FALSE</span>, template <span class="op">=</span> <span class="cn">FALSE</span>, create <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># With explicit shared scratch (recommended)</span></span></span>
-<span class="r-in"><span><span class="fu">parade_init_hpc</span><span class="op">(</span>scratch <span class="op">=</span> <span class="st">"/scratch/$USER"</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in scaffold_batch_template(system = "slurm", out = template_path,     exports = exports, overwrite = isTRUE(overwrite_template)):</span> File exists: /home/runner/work/parade/parade/docs/reference/batchtools/parade-slurm.tmpl (set overwrite=TRUE).</span>
+<span class="r-in"><span><span class="co"># With explicit scratch + a temp template path (safe outside a cluster)</span></span></span>
+<span class="r-in"><span><span class="fu">parade_init_hpc</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  scratch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  persist <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
+<span class="r-in"><span>  create <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
+<span class="r-in"><span>  template <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  template_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".tmpl"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  overwrite_template <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> parade_init_hpc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> --------------</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - Paths initialized (profile='hpc')</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - Project:   /home/runner/work/parade/parade/docs/reference</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - Scratch:   /tmp/RtmpPM85UN</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - Artifacts: /tmp/RtmpPM85UN/parade-artifacts</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - Registry:  /tmp/RtmpPM85UN/parade-registry</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - Template:  /tmp/RtmpPM85UN/file1c9c197134eb.tmpl</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Warnings</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> --------</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - Missing directory for: data, cache </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

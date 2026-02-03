@@ -308,6 +308,9 @@
 - [`parade_options()`](https://bbuchsbaum.github.io/parade/reference/parade_options.md)
   : Global parade options (get/set)
 
+- [`param_grid()`](https://bbuchsbaum.github.io/parade/reference/param_grid.md)
+  : Create a parameter grid for flows
+
 - [`partition()`](https://bbuchsbaum.github.io/parade/reference/partition.md)
   : Set partition for a resource profile
 
@@ -322,6 +325,9 @@
 
 - [`path_template()`](https://bbuchsbaum.github.io/parade/reference/path_template.md)
   : Create a path template builder
+
+- [`paths_export()`](https://bbuchsbaum.github.io/parade/reference/paths_export.md)
+  : Generate shell exports for the current path configuration
 
 - [`paths_get()`](https://bbuchsbaum.github.io/parade/reference/paths_get.md)
   : Get current parade path configuration

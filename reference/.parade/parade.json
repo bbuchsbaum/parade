@@ -2,16 +2,6 @@
   "slurm": {
     "defaults": {
       "time": "1h"
-    },
-    "template": "project://batchtools/parade-slurm.tmpl"
-  },
-  "paths": {
-    "project": "/home/runner/work/parade/parade/docs/reference",
-    "scratch": "/tmp/RtmpDKS0mz",
-    "data": "/home/runner/work/parade/parade/docs/reference/data",
-    "artifacts": "/tmp/RtmpDKS0mz/parade-artifacts",
-    "registry": "/tmp/RtmpDKS0mz/parade-registry",
-    "config": "/home/runner/work/parade/parade/docs/reference/.parade",
-    "cache": "/home/runner/.cache/R/parade"
+    }
   }
 }

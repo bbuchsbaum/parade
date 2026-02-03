@@ -1,6 +1,6 @@
 # Expand path macros in a string
 
-Replaces stem, name, run, date and other macros in paths
+Replaces `{stem}`, `{name}`, `{run}`, `{date}` and other macros in paths
 
 ## Usage
 

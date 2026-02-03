@@ -61,21 +61,21 @@ directories with macro expansion support.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Access common directories</span></span></span>
 <span class="r-in"><span><span class="va">p</span><span class="op">$</span><span class="fu">artifacts</span><span class="op">(</span><span class="op">)</span>         <span class="co"># Artifacts directory</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/scratch/$USER/parade-artifacts"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpPM85UN/parade-artifacts"</span>
 <span class="r-in"><span><span class="va">p</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span>             <span class="co"># Data directory</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/home/runner/work/parade/parade/docs/reference/data"</span>
 <span class="r-in"><span><span class="va">p</span><span class="op">$</span><span class="fu">registry</span><span class="op">(</span><span class="op">)</span>         <span class="co"># Registry directory</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/scratch/$USER/parade-registry"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpPM85UN/parade-registry"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># With subdirectories</span></span></span>
 <span class="r-in"><span><span class="va">p</span><span class="op">$</span><span class="fu">artifacts</span><span class="op">(</span><span class="st">"models"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/scratch/$USER/parade-artifacts/models"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpPM85UN/parade-artifacts/models"</span>
 <span class="r-in"><span><span class="va">p</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="st">"raw"</span>, <span class="st">"2024"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/home/runner/work/parade/parade/docs/reference/data/raw/2024"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Expand macros</span></span></span>
 <span class="r-in"><span><span class="va">p</span><span class="op">$</span><span class="fu">expand</span><span class="op">(</span><span class="st">"results/{date}/output_{run}.rds"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "results/20260203/output_20260203-031959.rds"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "results/20260203/output_20260203-130732.rds"</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

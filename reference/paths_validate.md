@@ -66,15 +66,15 @@ paths_validate()
 #>   alias     path                           exists writable created level message
 #>   <chr>     <chr>                          <lgl>  <lgl>    <lgl>   <chr> <chr>  
 #> 1 project   /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 2 scratch   /tmp/RtmpDKS0mz                TRUE   TRUE     FALSE   ok    ""     
+#> 2 scratch   /tmp/RtmpPM85UN                TRUE   TRUE     FALSE   ok    ""     
 #> 3 data      /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 4 artifacts /tmp/RtmpDKS0mz/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
-#> 5 registry  /tmp/RtmpDKS0mz/parade-regist… TRUE   TRUE     FALSE   ok    ""     
+#> 4 artifacts /tmp/RtmpPM85UN/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
+#> 5 registry  /tmp/RtmpPM85UN/parade-regist… TRUE   TRUE     FALSE   ok    ""     
 #> 6 config    /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 7 cache     /home/runner/.cache/R/parade   TRUE   TRUE     FALSE   ok    ""     
+#> 7 cache     /home/runner/.cache/R/parade   FALSE  TRUE     FALSE   warn  "Direc…
 #> 
 #> $warnings
-#> character(0)
+#> [1] "Missing directory for: cache"
 #> 
 #> $errors
 #> character(0)
@@ -88,12 +88,12 @@ paths_validate(create = TRUE)
 #>   alias     path                           exists writable created level message
 #>   <chr>     <chr>                          <lgl>  <lgl>    <lgl>   <chr> <chr>  
 #> 1 project   /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 2 scratch   /tmp/RtmpDKS0mz                TRUE   TRUE     FALSE   ok    ""     
+#> 2 scratch   /tmp/RtmpPM85UN                TRUE   TRUE     FALSE   ok    ""     
 #> 3 data      /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 4 artifacts /tmp/RtmpDKS0mz/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
-#> 5 registry  /tmp/RtmpDKS0mz/parade-regist… TRUE   TRUE     FALSE   ok    ""     
+#> 4 artifacts /tmp/RtmpPM85UN/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
+#> 5 registry  /tmp/RtmpPM85UN/parade-regist… TRUE   TRUE     FALSE   ok    ""     
 #> 6 config    /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 7 cache     /home/runner/.cache/R/parade   TRUE   TRUE     FALSE   ok    ""     
+#> 7 cache     /home/runner/.cache/R/parade   TRUE   TRUE     TRUE    ok    ""     
 #> 
 #> $warnings
 #> character(0)

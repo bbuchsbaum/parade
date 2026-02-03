@@ -3,6 +3,29 @@
 This quickstart walks you through a minimal Parade pipeline you can run
 on your laptop. It uses local futures and small inputs to finish fast.
 
+## HPC note (optional)
+
+On clusters, you typically want `registry://` and `artifacts://` to live
+on **shared scratch** (not `SLURM_TMPDIR`, which is usually node-local).
+Two common ways to get set up:
+
+``` r
+library(parade)
+
+# One-command helper (recommended on clusters)
+parade_init_hpc(persist = TRUE)
+```
+
+Or a minimal non-persistent setup:
+
+``` r
+paths_init(profile = "hpc", create = TRUE)
+parade_doctor()
+
+# Copy/paste these into your SLURM template preamble if you want the same paths
+cat(paste(paths_export(), collapse = "\n"))
+```
+
 ## 1) Install and load
 
 ``` r

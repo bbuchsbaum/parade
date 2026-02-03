@@ -82,7 +82,7 @@ expand_path_macros_enhanced(
   "{user}/runs/{date}/{time}/output_{index}.csv",
   index = 1
 )
-#> [1] "runner/runs/20260203/031945/output_1.csv"
+#> [1] "runner/runs/20260203/130719/output_1.csv"
 
 # Custom values
 expand_path_macros_enhanced(

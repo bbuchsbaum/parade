@@ -1,12 +1,12 @@
-# Create a parameter grid from lists of values
+# Create a parameter grid for flows
 
-Alternative interface for creating parameter grids from a list.
+Convenience wrapper for generating a Cartesian product of parameters
+without adding metadata columns. For grids with filtering or metadata,
+use [`grid()`](https://bbuchsbaum.github.io/parade/reference/grid.md).
 
 ## Usage
 
 ``` r
-param_grid(...)
-
 param_grid(...)
 ```
 
@@ -16,36 +16,29 @@ param_grid(...)
 
   Named vectors or lists to cross
 
-- params:
-
-  Named list of parameter values
-
-- filter:
-
-  Optional filter function
-
-- add_metadata:
-
-  Whether to add metadata columns
-
 ## Value
-
-Data frame with one row per parameter combination
 
 A tibble with all parameter combinations
 
 ## Examples
 
 ``` r
-# \donttest{
-params_list <- list(
-  alpha = c(0.1, 0.5, 1.0),
-  beta = c(1, 2),
-  method = c("lm", "glm")
-)
-
-params <- param_grid(params_list)
-# }
-
-grid <- param_grid(x = 1:3, method = c("A", "B"))
+param_grid(subject = c("s01", "s02"), session = 1:2)
+#> # A tibble: 4 × 2
+#>   subject session
+#>   <chr>     <int>
+#> 1 s01           1
+#> 2 s02           1
+#> 3 s01           2
+#> 4 s02           2
+param_grid(alpha = c(0.1, 1.0), beta = c(1, 2, 3))
+#> # A tibble: 6 × 2
+#>   alpha  beta
+#>   <dbl> <dbl>
+#> 1   0.1     1
+#> 2   1       1
+#> 3   0.1     2
+#> 4   1       2
+#> 5   0.1     3
+#> 6   1       3
 ```

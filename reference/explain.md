@@ -42,13 +42,17 @@ explain(
 #> Function:
 #> function (x) 
 #> x^2
-#> <environment: 0x55b80ecc0bb8>
+#> <environment: 0x559a9eeacb18>
 #> 
 #> Arguments:
 #>   [[1]] = 10
 #> 
 #> Resources:
 #>   Profile:  gpu 
+#>     time: 12:00:00
+#>     memory: 32G
+#>     cpus: 8
+#>     gpus: 1
 #> 
 #> Execution engine:  slurm 
 #>   Job will be submitted to SLURM scheduler

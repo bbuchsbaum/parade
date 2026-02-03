@@ -44,7 +44,7 @@ data directories.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">paths_init</span><span class="op">(</span>profile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"local"</span>, <span class="st">"hpc"</span><span class="op">)</span>, quiet <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">paths_init</span><span class="op">(</span>profile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"local"</span>, <span class="st">"hpc"</span><span class="op">)</span>, create <span class="op">=</span> <span class="cn">FALSE</span>, quiet <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -53,6 +53,11 @@ data directories.</p>
 
 <dl><dt id="arg-profile">profile<a class="anchor" aria-label="anchor" href="#arg-profile"></a></dt>
 <dd><p>Path profile: "auto" (default), "local", or "hpc"</p></dd>
+
+
+<dt id="arg-create">create<a class="anchor" aria-label="anchor" href="#arg-create"></a></dt>
+<dd><p>Whether to create missing directories for configured roots
+(never creates <code>project</code>)</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
@@ -66,8 +71,9 @@ data directories.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code>profile = "auto"</code> switches to <code>"hpc"</code> when scheduler environment variables are
-detected (e.g., SLURM/PBS). On login nodes, those variables may be absent; in
-that case, use <code>paths_init(profile = "hpc")</code> explicitly.</p>
+detected (e.g., SLURM/PBS) or when common scratch variables (<code>SCRATCH</code>, <code>WORK</code>,
+etc.) are set. On some login nodes, scheduler variables may be absent; in that
+case, you can also use <code>paths_init(profile = "hpc")</code> explicitly.</p>
 <p>You can override defaults with environment variables such as <code>PARADE_SCRATCH</code>,
 <code>PARADE_ARTIFACTS</code>, <code>PARADE_REGISTRY</code>, and <code>PARADE_DATA</code>. Empty values are
 treated as unset.</p>
@@ -76,7 +82,7 @@ treated as unset.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">paths_init</span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> parade paths: project=/home/runner/work/parade/parade/docs/reference; scratch=/tmp/RtmpDKS0mz; data=/home/runner/work/parade/parade/docs/reference/data; artifacts=/tmp/RtmpDKS0mz/parade-artifacts; registry=/tmp/RtmpDKS0mz/parade-registry; config=/home/runner/work/parade/parade/docs/reference/.parade; cache=/home/runner/.cache/R/parade</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> parade paths: project=/home/runner/work/parade/parade/docs/reference; scratch=/tmp/RtmpPM85UN; data=/home/runner/work/parade/parade/docs/reference/data; artifacts=/tmp/RtmpPM85UN/parade-artifacts; registry=/tmp/RtmpPM85UN/parade-registry; config=/home/runner/work/parade/parade/docs/reference/.parade; cache=/home/runner/.cache/R/parade</span>
 <span class="r-in"><span><span class="fu">paths_init</span><span class="op">(</span>quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>

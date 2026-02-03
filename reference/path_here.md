@@ -38,5 +38,5 @@ directories are created so the file itself remains writable.
 path_here("data", "input", "file.csv")
 #> [1] "/home/runner/work/parade/parade/docs/reference/data/input/file.csv"
 path_here("artifacts", create = FALSE)
-#> Error in if (!(identical(out, root_norm) || startsWith(out, prefix))) {    stop("Resolved alias path escapes root: ", out, call. = FALSE)}: missing value where TRUE/FALSE needed
+#> [1] "/tmp/RtmpPM85UN/parade-artifacts"
 ```

@@ -1,5 +1,9 @@
 # Smart Path Management: Write Once, Run Anywhere
 
+> Note: Code evaluation is disabled in this vignette to keep builds fast
+> and environment-agnostic. Copy code into an interactive R session to
+> run locally or on your cluster.
+
 ## The Problem: Hardcoded Paths Break Your Code
 
 Imagine you’re developing a neuroimaging analysis on your laptop. Your
@@ -69,8 +73,9 @@ export PARADE_SCRATCH="/scratch/$USER"   # or your site's shared scratch
 ``` r
 library(parade)
 
-# On login nodes, scheduler env vars may not be present, so be explicit:
-paths_init(profile = "hpc")
+# Auto-detects HPC on compute nodes (scheduler vars), and on many login nodes
+# when common scratch variables (SCRATCH/WORK/etc.) are set:
+paths_init(profile = "auto", create = TRUE)
 parade_doctor(create = TRUE)
 ```
 
@@ -79,6 +84,13 @@ template, and can persist to `parade.json`):
 
 ``` r
 parade_init_hpc(persist = TRUE)
+```
+
+To make the configuration easy to reuse in SLURM scripts, you can also
+generate shell exports:
+
+``` r
+cat(paste(paths_export(), collapse = "\n"))
 ```
 
 If you prefer not to create directories automatically, use:

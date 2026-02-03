@@ -82,7 +82,7 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 
 
 <dt id="arg-template">template<a class="anchor" aria-label="anchor" href="#arg-template"></a></dt>
-<dd><p>Glue template for file paths (default: ".stage/.field/.row_key")</p></dd>
+<dd><p>Glue template for file paths (default: <code>{.stage}/{.field}/{.row_key}</code>)</p></dd>
 
 
 <dt id="arg-autoload">autoload<a class="anchor" aria-label="anchor" href="#arg-autoload"></a></dt>
@@ -139,8 +139,8 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     saveRDS(x, file = path, compress = compress, ...)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     invisible(path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80fc53ac0&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b80fc5b4a0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559a9f372618&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559a9f3780d8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $reader</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> function (file, refhook = NULL) </span>
@@ -156,7 +156,7 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     else stop("bad 'file' argument")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .Internal(unserializeFromConn(con, refhook))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b8032f27a0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559a929b37a0&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:base&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $overwrite</span>
@@ -193,8 +193,8 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .sink_safe_join(base_dir, rel_path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80e32dc40&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b807e765b8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559aa2f311c8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559aa4163b38&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $compress</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "gzip"</span>
@@ -225,15 +225,15 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> {</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .write_atomic_generic(writer, x, path, ...)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80e33d108&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b807ba69d0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559aa2f315f0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559aa41a7e20&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $reader</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> function (file, header = TRUE, sep = ",", quote = "\"", dec = ".", </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     fill = TRUE, comment.char = "", ...) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> read.table(file = file, header = header, sep = sep, quote = quote, </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     dec = dec, fill = fill, comment.char = comment.char, ...)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b807ba3c30&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559aa41a8ae0&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:utils&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $overwrite</span>
@@ -270,8 +270,8 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .sink_safe_join(base_dir, rel_path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80e32dc40&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b807ba69d0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559aa2f311c8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559aa41a7e20&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $compress</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
@@ -302,8 +302,8 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> {</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .write_atomic_generic(writer, x, path, ...)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80e33d108&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b807b17d80&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559aa2f315f0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559aa41ed6f8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $reader</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> function (path, ...) </span>
@@ -311,8 +311,8 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .path &lt;- path</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     eval(expr, envir = environment())</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b8166b36c8&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b807b123d8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559a9f3bb690&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559aa41f1810&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $overwrite</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "skip"</span>
@@ -348,8 +348,8 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .sink_safe_join(base_dir, rel_path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80e32dc40&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b807b17d80&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559aa2f311c8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559aa41ed6f8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $compress</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
@@ -378,16 +378,16 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     arrow::write_parquet(x, sink = path, ...)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     invisible(path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80fc58ab8&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b80fc5b4a0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559a9f377610&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559a9f3780d8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $reader</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> function (path, ...) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> {</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     as.data.frame(arrow::read_parquet(path, ...))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80fc58380&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b80fc5b4a0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559a9f376ed8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559a9f3780d8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $overwrite</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "skip"</span>
@@ -423,8 +423,8 @@ or formulas. Perfect for rapid prototyping and simple use cases.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     .sink_safe_join(base_dir, rel_path)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55b80e32dc40&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55b807a51e18&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x559aa2f311c8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x559aa4233fc8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $compress</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>

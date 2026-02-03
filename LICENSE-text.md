@@ -1,3 +1,4 @@
 # License
 
-    MIT License
+    YEAR: 2026
+    COPYRIGHT HOLDER: Parade Authors
