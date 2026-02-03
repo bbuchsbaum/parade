@@ -21,14 +21,27 @@ Retry jobs that have failed, respecting the error policy settings.
 }
 \examples{
 \donttest{
-# Retry all failed jobs
-jobs <- retry(jobs)
-
-# Retry specific jobs
-jobs <- retry(jobs, which = c(3, 5, 7))
-
-# Retry with custom policy
-jobs <- retry(jobs, policy = on_error_retry(times = 5))
+# A minimal local example (no SLURM required):
+# Create a job that fails once, then succeeds on retry.
+env <- new.env(parent = emptyenv())
+env$i <- 0L
+flaky <- function(x) {
+  env$i <- env$i + 1L
+  if (env$i == 1L) stop("boom")
+  x + 1
+}
+jobs <- slurm_call(
+  flaky,
+  x = 1,
+  engine = "local",
+  .as_jobset = TRUE,
+  .error_policy = on_error(action = "continue")
+)
+jobs <- retry(
+  jobs,
+  policy = on_error_retry(times = 1, delay = 0, backoff = "none")
+)
+jobs[[1]]$result
 }
 
 }

@@ -28,7 +28,7 @@ standard <- profile()
 standard <- res_time(standard, "4:00:00")
 standard <- mem(standard, "8G")
 standard <- cpus(standard, 4)
-profile_register("standard", standard)
+profile_register("standard", standard, overwrite = TRUE)
 
 # Register a GPU profile
 gpu <- profile()
@@ -36,7 +36,7 @@ gpu <- res_time(gpu, "12:00:00")
 gpu <- mem(gpu, "32G")
 gpu <- cpus(gpu, 8)
 gpu <- gpus(gpu, 1)
-profile_register("gpu", gpu)
+profile_register("gpu", gpu, overwrite = TRUE)
 
 # Use registered profiles (SLURM only; skip if not available)
 if (Sys.which("squeue") != "") {

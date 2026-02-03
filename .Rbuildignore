@@ -9,6 +9,10 @@
 ^.*\.Rcheck$
 ^\.Rd2pdf.*$
 ^.*\.tar\.gz$
+^AGENTS\.md$
+^CLAUDE\.md$
+^mirai_init\.pdf$
+^on_error\.pdf$
 IMPLEMENTATION_PLAN.md
 examples
 ^tests/testthat/registry:$

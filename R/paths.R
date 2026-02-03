@@ -269,6 +269,41 @@ paths_export <- function(paths = paths_get(), aliases = NULL, header = TRUE) {
   any(strsplit(path, "[/\\\\]+", perl = TRUE)[[1]] %in% "..")
 }
 
+.path_compare_candidates <- function(path) {
+  if (!is.character(path) || length(path) != 1L) return(character())
+  if (is.na(path) || !nzchar(path)) return(character())
+
+  norm <- normalizePath(path, mustWork = FALSE, winslash = "/")
+  candidates <- c(norm)
+
+  if (.Platform$OS.type == "windows") {
+    candidates <- c(candidates, tolower(norm))
+    if (file.exists(path)) {
+      short <- tryCatch(shortPathName(path), error = function(e) NULL)
+      if (is.character(short) && length(short) == 1L && nzchar(short)) {
+        short_norm <- normalizePath(short, mustWork = FALSE, winslash = "/")
+        candidates <- c(candidates, short_norm, tolower(short_norm))
+      }
+    }
+  }
+
+  unique(candidates[!is.na(candidates) & nzchar(candidates)])
+}
+
+.path_contains <- function(out, root) {
+  roots <- .path_compare_candidates(root)
+  outs <- .path_compare_candidates(out)
+  if (length(roots) == 0L || length(outs) == 0L) return(FALSE)
+
+  for (r in roots) {
+    prefix <- paste0(r, "/")
+    for (o in outs) {
+      if (identical(o, r) || startsWith(o, prefix)) return(TRUE)
+    }
+  }
+  FALSE
+}
+
 .alias_join <- function(root, rel, allow_escape = FALSE) {
   if (is.null(rel)) rel <- ""
   if (!is.character(rel) || length(rel) != 1L) rel <- as.character(rel)
@@ -279,12 +314,11 @@ paths_export <- function(paths = paths_get(), aliases = NULL, header = TRUE) {
     if (.path_has_parent_ref(rel)) stop("Alias path cannot contain '..': ", rel, call. = FALSE)
   }
 
-  root_norm <- normalizePath(root, mustWork = FALSE)
-  out <- if (!nzchar(rel)) root_norm else normalizePath(file.path(root_norm, rel), mustWork = FALSE)
+  root_norm <- normalizePath(root, mustWork = FALSE, winslash = "/")
+  out <- if (!nzchar(rel)) root_norm else normalizePath(file.path(root_norm, rel), mustWork = FALSE, winslash = "/")
 
   if (!isTRUE(allow_escape)) {
-    prefix <- paste0(root_norm, .Platform$file.sep)
-    if (!(identical(out, root_norm) || startsWith(out, prefix))) {
+    if (!.path_contains(out, root_norm)) {
       stop("Resolved alias path escapes root: ", out, call. = FALSE)
     }
   }
