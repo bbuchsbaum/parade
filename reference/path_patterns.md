@@ -18,7 +18,7 @@ An object of class `list` of length 5.
 # \donttest{
 # Timestamped output
 path_patterns$timestamped("results", "analysis", "csv")
-#> [1] "results/20260203_023336_analysis.csv"
+#> [1] "results/20260203_023730_analysis.csv"
 # -> "results/20240115_143022_analysis.csv"
 
 # Experiment organization

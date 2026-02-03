@@ -63,12 +63,12 @@ sink_quick("data", write = "qs2")
 #> $writer
 #> function (x, path, ...) 
 #> qs2::qs_save(x, path, ...)
-#> <environment: 0x55a740ffba40>
+#> <environment: 0x55e5e7561450>
 #> 
 #> $reader
 #> function (path, ...) 
 #> qs2::qs_read(path, ...)
-#> <environment: 0x55a740ffba40>
+#> <environment: 0x55e5e7561450>
 #> 
 #> $overwrite
 #> [1] "skip"
@@ -104,8 +104,8 @@ sink_quick("data", write = "qs2")
 #>     }
 #>     .sink_safe_join(base_dir, rel_path)
 #> }
-#> <bytecode: 0x55a73ee39db8>
-#> <environment: 0x55a73ee3b808>
+#> <bytecode: 0x55e5e9e6a408>
+#> <environment: 0x55e5ea916318>
 #> 
 #> $compress
 #> NULL

@@ -154,7 +154,7 @@ job <- slurm_call(
   name = "square-10"
 )
 #> No readable configuration file found
-#> Created registry in '/tmp/RtmpRBH8lf/parade-registry/script-7e9c4c46' using cluster functions 'Interactive'
+#> Created registry in '/tmp/Rtmpq6Ieyj/parade-registry/script-69aead1a' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
 #> Error: Listing of jobs failed (exit code 127);
 #> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
@@ -172,7 +172,7 @@ job <- slurm_call(
   resources = list(mem = "8G", time = "10min")
 )
 #> No readable configuration file found
-#> Created registry in '/tmp/RtmpRBH8lf/parade-registry/script-1a3c4d9e' using cluster functions 'Interactive'
+#> Created registry in '/tmp/Rtmpq6Ieyj/parade-registry/script-4b2af8c0' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
 #> Error: Listing of jobs failed (exit code 127);
 #> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'

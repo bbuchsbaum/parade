@@ -89,7 +89,7 @@ jobs <- slurm_pmap(
   .name_by = function(...) paste0("proc-", tools::file_path_sans_ext(basename(..1)))
 )
 #> No readable configuration file found
-#> Created registry in '/tmp/RtmpRBH8lf/parade-registry/script-527c85a3' using cluster functions 'Interactive'
+#> Created registry in '/tmp/Rtmpq6Ieyj/parade-registry/script-bd302f82' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
 #> Error: Listing of jobs failed (exit code 127);
 #> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'
