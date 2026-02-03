@@ -33,15 +33,15 @@ Data frame of jobs
 # List all jobs
 registry_ls()
 #>              name      status             created
-#> 2 parade-2e7dcbcb NO_JOB_FILE 2026-02-03 13:35:49
-#> 3 parade-375e1dc2 NO_JOB_FILE 2026-02-03 13:35:46
-#> 4 parade-9e4c9424 NO_JOB_FILE 2026-02-03 13:35:43
-#> 1 parade-2e65de53 NO_JOB_FILE 2026-02-03 13:35:40
+#> 3 parade-35b468a4 NO_JOB_FILE 2026-02-03 13:58:17
+#> 4 parade-63880372 NO_JOB_FILE 2026-02-03 13:58:14
+#> 1 parade-1f528221 NO_JOB_FILE 2026-02-03 13:58:11
+#> 2 parade-27129ebc NO_JOB_FILE 2026-02-03 13:58:08
 #>                                              path
-#> 2 /tmp/Rtmpm1roKA/parade-registry/parade-2e7dcbcb
-#> 3 /tmp/Rtmpm1roKA/parade-registry/parade-375e1dc2
-#> 4 /tmp/Rtmpm1roKA/parade-registry/parade-9e4c9424
-#> 1 /tmp/Rtmpm1roKA/parade-registry/parade-2e65de53
+#> 3 /tmp/RtmpeBUBep/parade-registry/parade-35b468a4
+#> 4 /tmp/RtmpeBUBep/parade-registry/parade-63880372
+#> 1 /tmp/RtmpeBUBep/parade-registry/parade-1f528221
+#> 2 /tmp/RtmpeBUBep/parade-registry/parade-27129ebc
 
 # List jobs matching pattern
 registry_ls(pattern = "analysis_*")
@@ -52,14 +52,14 @@ registry_ls(pattern = "analysis_*")
 # List most recent 10 jobs
 registry_ls(limit = 10)
 #>              name      status             created
-#> 2 parade-2e7dcbcb NO_JOB_FILE 2026-02-03 13:35:49
-#> 3 parade-375e1dc2 NO_JOB_FILE 2026-02-03 13:35:46
-#> 4 parade-9e4c9424 NO_JOB_FILE 2026-02-03 13:35:43
-#> 1 parade-2e65de53 NO_JOB_FILE 2026-02-03 13:35:40
+#> 3 parade-35b468a4 NO_JOB_FILE 2026-02-03 13:58:17
+#> 4 parade-63880372 NO_JOB_FILE 2026-02-03 13:58:14
+#> 1 parade-1f528221 NO_JOB_FILE 2026-02-03 13:58:11
+#> 2 parade-27129ebc NO_JOB_FILE 2026-02-03 13:58:08
 #>                                              path
-#> 2 /tmp/Rtmpm1roKA/parade-registry/parade-2e7dcbcb
-#> 3 /tmp/Rtmpm1roKA/parade-registry/parade-375e1dc2
-#> 4 /tmp/Rtmpm1roKA/parade-registry/parade-9e4c9424
-#> 1 /tmp/Rtmpm1roKA/parade-registry/parade-2e65de53
+#> 3 /tmp/RtmpeBUBep/parade-registry/parade-35b468a4
+#> 4 /tmp/RtmpeBUBep/parade-registry/parade-63880372
+#> 1 /tmp/RtmpeBUBep/parade-registry/parade-1f528221
+#> 2 /tmp/RtmpeBUBep/parade-registry/parade-27129ebc
 # }
 ```
