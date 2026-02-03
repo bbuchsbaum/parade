@@ -46,7 +46,7 @@ The jobset (invisibly)
 # Note: This example requires a SLURM cluster environment
 jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
 #> No readable configuration file found
-#> Created registry in '/tmp/RtmpMVTrN8/parade-registry/script-dd68defc' using cluster functions 'Interactive'
+#> Created registry in '/tmp/RtmplgaOUj/parade-registry/script-54370143' using cluster functions 'Interactive'
 #> Adding 1 jobs ...
 #> Error: Listing of jobs failed (exit code 127);
 #> cmd: 'squeue --user=$USER --states=R,S,CG,RS,SI,SO,ST --noheader --format=%i -r'

@@ -40,6 +40,6 @@ p$data("raw", "2024")
 
 # Expand macros
 p$expand("results/{date}/output_{run}.rds")
-#> [1] "results/20260203/output_20260203-025358.rds"
+#> [1] "results/20260203/output_20260203-030742.rds"
 # }
 ```
