@@ -87,8 +87,10 @@ await.parade_job <- function(x, timeout = Inf, poll = 10, ...) {
 #' @examples
 #' \donttest{
 #' # Note: This example requires a SLURM cluster environment
-#' jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
-#' progress(jobs)  # Shows progress bar
+#' if (Sys.which("squeue") != "") {
+#'   jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
+#'   progress(jobs)  # Shows progress bar
+#' }
 #' }
 #'
 #' @export
@@ -114,4 +116,3 @@ progress.parade_job <- function(x, timeout = Inf, poll = 10, ...) {
   cat("Job completed.\n")
   invisible(x)
 }
-

@@ -31,7 +31,9 @@
 #' 
 #' # Use with job submission
 #' risky_function <- function(x) if (runif(1) > 0.5) stop("Random error") else x^2
-#' jobs <- slurm_map(1:10, risky_function, .error_policy = policy)
+#' if (Sys.which("squeue") != "") {
+#'   jobs <- slurm_map(1:10, risky_function, .error_policy = policy)
+#' }
 #' }
 #' 
 #' @export

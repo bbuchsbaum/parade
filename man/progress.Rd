@@ -31,8 +31,10 @@ wrapper around \code{await()} with progress enabled.
 \examples{
 \donttest{
 # Note: This example requires a SLURM cluster environment
-jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
-progress(jobs)  # Shows progress bar
+if (Sys.which("squeue") != "") {
+  jobs <- slurm_map(1:10, function(x) Sys.sleep(x))
+  progress(jobs)  # Shows progress bar
+}
 }
 
 }
