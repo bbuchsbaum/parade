@@ -37,6 +37,56 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 
 The key insight is that parade workflows are *portable* - you define your computation once and choose how to distribute it based on your current needs.
 
+## “One big machine” (best-effort) on SLURM
+
+On a cluster, it’s tempting to think in terms of a single machine with
+`nodes * cpus_per_node` cores. SLURM doesn’t natively provide that abstraction
+for arbitrary batch jobs; it schedules jobs that *request resources*.
+
+**parade** doesn’t yet implement a true “SLURM pool” (single allocation +
+dispatcher) but you can get close today using two ideas:
+
+- **Packed jobs** for `slurm_map()`: run many tasks per SLURM job and use within‑node
+  parallelism to fully utilize a node.
+- **Target job count** for `submit()`/`dist_slurm()`: pick a fixed number of jobs to
+  keep in flight, independent of the number of groups in your grid.
+
+### Example: 10 nodes × 196 cores
+
+For task mapping, the most ergonomic option is `slurm_map_cluster()`:
+
+```r
+tasks <- 1:10000
+
+jobs <- slurm_map_cluster(
+  tasks,
+  ~ .x^2,
+  nodes = 10,
+  cpus_per_node = 196,
+  oversubscribe = 2,                # queue 2× concurrency to reduce stragglers
+  .resources = list(time = "2h", mem = "64G")
+)
+
+results <- jobs |> progress() |> collect()
+```
+
+For flows, use `target_jobs` to control chunking at submission time:
+
+```r
+fl <- fl |>
+  distribute(dist_slurm(
+    by = NULL,
+    within = "multicore",
+    workers_within = 196,
+    resources = list(nodes = 1, ntasks = 1, cpus_per_task = 196, time = "2h", mem = "64G"),
+    target_jobs = 20               # ~10 nodes * oversubscribe 2
+  ))
+```
+
+**Important limits:** this is still *static partitioning* (chunks are fixed at submit time).
+If task durations are highly variable, a true pool/dispatcher (future work) will reduce
+tail latency further.
+
 ## Local vs. SLURM distribution strategies
 
 ### Local distribution for development

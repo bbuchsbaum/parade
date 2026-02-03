@@ -23,6 +23,9 @@
 #' @param .workers_per_node Integer; number of parallel workers per node when packed
 #'   (defaults to resources$cpus_per_task if present, else 1)
 #' @param .chunk_size Integer; number of tasks per packed job (defaults to .workers_per_node)
+#' @param .target_jobs Optional integer; when `.packed = TRUE` and `.chunk_size`
+#'   is not provided, choose a chunk size that yields approximately this many
+#'   packed jobs (useful for "treat N nodes like one machine" workflows).
 #' @param .parallel_backend Backend for within-node parallelism when `.packed = TRUE`.
 #'   One of: "callr", "multicore", "multisession", or "auto". Ignored when
 #'   `.packed = FALSE`. Defaults to "callr" for strong isolation.
@@ -120,6 +123,7 @@ slurm_map <- function(.x, .f, ...,
                       .packed = FALSE,
                       .workers_per_node = NULL,
                       .chunk_size = NULL,
+                      .target_jobs = NULL,
                       .parallel_backend = c("auto", "callr", "multicore", "multisession")) {
   
   .engine <- match.arg(.engine)
@@ -148,6 +152,7 @@ slurm_map <- function(.x, .f, ...,
       .error_policy = .error_policy,
       .workers_per_node = .workers_per_node,
       .chunk_size = .chunk_size,
+      .target_jobs = .target_jobs,
       .parallel_backend = .parallel_backend,
       is_script = is_script
     ))
@@ -510,6 +515,25 @@ generate_job_name <- function(element, index, name_by, all_elements) {
   .sanitize_job_name(name, default = default)
 }
 
+# Choose a chunk size that yields ~target_jobs chunk jobs, while keeping each
+# chunk large enough to utilize `workers` (when possible).
+.chunk_size_from_target_jobs <- function(n, target_jobs, workers) {
+  n <- as.integer(n)
+  target_jobs <- as.integer(target_jobs)
+  workers <- as.integer(workers)
+  if (length(n) != 1L || is.na(n) || n < 0L) stop("Internal error: invalid `n`.", call. = FALSE)
+  if (length(target_jobs) != 1L || is.na(target_jobs) || target_jobs < 1L) {
+    stop("slurm_map(.target_jobs=): must be a positive integer.", call. = FALSE)
+  }
+  if (length(workers) != 1L || is.na(workers) || workers < 1L) stop("Internal error: invalid `workers`.", call. = FALSE)
+  if (n == 0L) return(1L)
+
+  chunk_size <- ceiling(n / target_jobs)
+  if (n >= workers) chunk_size <- max(chunk_size, workers)
+  chunk_size <- min(n, chunk_size)
+  as.integer(chunk_size)
+}
+
 # Packed execution mode for slurm_map ----------------------------------------
 
 #' Execute slurm_map in packed mode (multiple tasks per node)
@@ -526,6 +550,7 @@ slurm_map_packed <- function(.x, .f, ...,
                               .error_policy = NULL,
                               .workers_per_node = NULL,
                               .chunk_size = NULL,
+                              .target_jobs = NULL,
                               .parallel_backend = c("auto", "callr", "multicore", "multisession"),
                               is_script = FALSE) {
 
@@ -552,10 +577,21 @@ slurm_map_packed <- function(.x, .f, ...,
   # Determine workers per node
   workers <- .workers_per_node %||% resources$cpus_per_task %||% 1L
   workers <- as.integer(workers)
+  if (length(workers) != 1L || is.na(workers) || workers < 1L) {
+    stop("slurm_map(.workers_per_node=): must be a positive integer.", call. = FALSE)
+  }
 
-  # Determine chunk size (defaults to workers)
-  chunk_size <- .chunk_size %||% workers
-  chunk_size <- as.integer(chunk_size)
+  # Determine chunk size (defaults to workers; or compute from target_jobs)
+  if (!is.null(.chunk_size)) {
+    chunk_size <- as.integer(.chunk_size)
+  } else if (!is.null(.target_jobs)) {
+    chunk_size <- .chunk_size_from_target_jobs(length(.x), .target_jobs, workers)
+  } else {
+    chunk_size <- workers
+  }
+  if (length(chunk_size) != 1L || is.na(chunk_size) || chunk_size < 1L) {
+    stop("slurm_map(.chunk_size=): must be a positive integer.", call. = FALSE)
+  }
 
   # Ensure cpus_per_task matches workers
   if (is.null(resources$cpus_per_task) || resources$cpus_per_task < workers) {

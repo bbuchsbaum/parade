@@ -286,6 +286,42 @@ test_that("packed mode defaults chunk_size to workers_per_node", {
   expect_equal(attr(jobs, "chunk_size"), 4)
 })
 
+test_that("packed mode can infer chunk_size from target_jobs", {
+  data <- 1:100
+  jobs <- slurm_map(
+    data,
+    ~ .x,
+    .engine = "local",
+    .packed = TRUE,
+    .workers_per_node = 10,
+    .target_jobs = 5
+  )
+
+  expect_true(attr(jobs, "is_packed"))
+  expect_equal(attr(jobs, "chunk_size"), 20)  # max(ceil(100/5), 10)
+  expect_equal(length(jobs), 5)
+})
+
+test_that("slurm_map_cluster wraps packed mode with computed defaults", {
+  data <- 1:100
+  jobs <- slurm_map_cluster(
+    data,
+    ~ .x * 2,
+    nodes = 10,
+    cpus_per_node = 8,
+    oversubscribe = 2,
+    .engine = "local"
+  )
+
+  expect_true(attr(jobs, "is_packed"))
+  expect_equal(attr(jobs, "workers_per_node"), 8)
+  expect_equal(attr(jobs, "chunk_size"), 8)
+  expect_equal(length(jobs), ceiling(100 / 8))
+
+  res <- collect(jobs)
+  expect_equal(res, (1:100) * 2)
+})
+
 test_that("packed mode with different chunk_size and workers", {
   # Chunk size of 5 but only 2 workers per node
   data <- 1:10

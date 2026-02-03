@@ -55,3 +55,27 @@ test_that("submit(mode='index') writes index files and deferred_collect reads th
   expect_equal(res$x, 1:3)
   expect_equal(res$s1.y, (1:3) + 10)
 })
+
+test_that("submit() respects dist$target_jobs when chunking groups", {
+  base_dir <- tempfile("parade-deferred-target-jobs-")
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(base_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  registry_dir <- file.path(base_dir, "registry")
+  index_dir <- file.path(base_dir, "index")
+
+  fl <- flow(tibble::tibble(x = 1:10)) |>
+    stage("s1", function(x) list(y = x * 2), schema = schema(y = dbl())) |>
+    distribute(dist_local(by = character(), within = "sequential", target_jobs = 2))
+
+  handle <- submit(fl, mode = "results", registry_dir = registry_dir, index_dir = index_dir)
+  expect_s3_class(handle, "parade_deferred")
+
+  st0 <- deferred_status(handle)
+  expect_equal(st0$total, 2)
+
+  expect_silent(suppressWarnings(deferred_await(handle, timeout = Inf, poll = 0)))
+  res <- suppressWarnings(deferred_collect(handle, how = "results"))
+  expect_equal(res$x, 1:10)
+  expect_equal(res$s1.y, (1:10) * 2)
+})

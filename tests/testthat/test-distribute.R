@@ -100,6 +100,7 @@ test_that("dist_local() creates correct structure with defaults", {
   expect_equal(dist$within, "multisession")
   expect_null(dist$workers_within)
   expect_equal(dist$chunks_per_job, 1L)
+  expect_null(dist$target_jobs)
   expect_null(dist$slurm)
 })
 
@@ -171,6 +172,7 @@ test_that("dist_slurm() creates correct structure with defaults", {
   expect_equal(dist$within, "multisession")
   expect_null(dist$workers_within)
   expect_equal(dist$chunks_per_job, 1L)
+  expect_null(dist$target_jobs)
   expect_true(!is.null(dist$slurm))
   expect_true(!is.null(dist$slurm$template))
   expect_equal(dist$slurm$resources, list())
@@ -203,7 +205,8 @@ test_that("dist_slurm() handles all parameters", {
     workers_within = 16,
     template = "custom.tmpl",
     resources = list(time = "1h"),
-    chunks_per_job = 4
+    chunks_per_job = 4,
+    target_jobs = 20
   )
   
   expect_equal(dist$by, "subject")
@@ -212,6 +215,7 @@ test_that("dist_slurm() handles all parameters", {
   expect_equal(dist$slurm$template, "custom.tmpl")
   expect_equal(dist$slurm$resources$time, "1h")
   expect_equal(dist$chunks_per_job, 4L)
+  expect_equal(dist$target_jobs, 20)
 })
 
 test_that("slurm_template() returns template path", {

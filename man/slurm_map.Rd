@@ -20,6 +20,7 @@ slurm_map(
   .packed = FALSE,
   .workers_per_node = NULL,
   .chunk_size = NULL,
+  .target_jobs = NULL,
   .parallel_backend = c("auto", "callr", "multicore", "multisession")
 )
 }
@@ -55,6 +56,10 @@ efficient node utilization (default: FALSE)}
 (defaults to resources$cpus_per_task if present, else 1)}
 
 \item{.chunk_size}{Integer; number of tasks per packed job (defaults to .workers_per_node)}
+
+\item{.target_jobs}{Optional integer; when \code{.packed = TRUE} and \code{.chunk_size}
+is not provided, choose a chunk size that yields approximately this many
+packed jobs (useful for "treat N nodes like one machine" workflows).}
 
 \item{.parallel_backend}{Backend for within-node parallelism when \code{.packed = TRUE}.
 One of: "callr", "multicore", "multisession", or "auto". Ignored when

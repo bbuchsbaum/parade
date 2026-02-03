@@ -58,7 +58,17 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     grp_id <- interaction(key, drop = TRUE, lex.order = TRUE)
     groups <- split(seq_len(nrow(grid)), grp_id)
   }
-  chunks_per_job <- max(1L, dist$chunks_per_job %||% 1L); chunks <- split(groups, ceiling(seq_along(groups)/chunks_per_job))
+  n_groups <- length(groups)
+  if (!is.null(dist$target_jobs)) {
+    target_jobs <- as.integer(dist$target_jobs)
+    if (length(target_jobs) != 1L || is.na(target_jobs) || target_jobs < 1L) {
+      stop("submit(): dist$target_jobs must be a positive integer.", call. = FALSE)
+    }
+    chunks_per_job <- max(1L, ceiling(n_groups / target_jobs))
+  } else {
+    chunks_per_job <- max(1L, dist$chunks_per_job %||% 1L)
+  }
+  chunks <- split(groups, ceiling(seq_along(groups) / chunks_per_job))
   run_id <- run_id %||% substr(digest::digest(list(Sys.time(), nrow(grid), names(grid))), 1, 8)
   registry_dir <- registry_dir %||% paste0("registry://", paste0("parade-", run_id))
   registry_dir_real <- resolve_path(registry_dir)
@@ -67,101 +77,26 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
   index_dir <- if (is.null(index_dir)) file.path("artifacts://runs", run_id, "index") else index_dir
   index_dir_resolved <- resolve_path(index_dir); dir.create(index_dir_resolved, recursive = TRUE, showWarnings = FALSE)
   handle <- list(backend = dist$backend, by = dist$by, mode = mode, run_id = run_id, registry_dir = normalizePath(registry_dir_real, mustWork = FALSE), flow_path = normalizePath(flow_path, mustWork = FALSE), chunks_path = normalizePath(chunks_path, mustWork = FALSE), index_dir = index_dir, submitted_at = as.character(Sys.time()), jobs = NULL); class(handle) <- "parade_deferred"
-  if (identical(dist$backend, "slurm")) {
-    if (!requireNamespace("future.batchtools", quietly = TRUE) || !requireNamespace("batchtools", quietly = TRUE)) stop("submit(): dist_slurm requires 'future.batchtools' and 'batchtools'.")
-    tmpl <- resolve_path(dist$slurm$template, create = FALSE)
-    cf <- batchtools::makeClusterFunctionsSlurm(tmpl)
-    reg <- bt_make_registry(reg_dir = handle$registry_dir, cf = cf)
-    batchtools::batchMap(fun = parade_run_chunk_bt, i = seq_along(chunks), more.args = list(flow_path = handle$flow_path, chunks_path = handle$chunks_path, index_dir = index_dir_resolved, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling), reg = reg)
-    batchtools::submitJobs(resources = dist$slurm$resources, reg = reg); jt <- batchtools::getJobTable(reg = reg); handle$jobs <- jt$job.id
-  } else if (identical(dist$backend, "mirai")) {
-    if (!requireNamespace("mirai", quietly = TRUE) || !requireNamespace("future.mirai", quietly = TRUE)) stop("submit(): dist_mirai requires 'mirai' and 'future.mirai'.")
-    
-    # Initialize mirai daemons based on configuration
-    if (!is.null(dist$n)) {
-      # Local daemons
-      mirai::daemons(n = dist$n, dispatcher = dist$dispatcher)
-      plan_fn <- future.mirai::mirai_multisession
-    } else if (!is.null(dist$remote)) {
-      # Remote daemons (SSH or SLURM)
-	    if (!is.null(dist$url)) {
-	      url <- if (is.function(dist$url)) dist$url() else dist$url
-	    } else if (isTRUE(dist$tls)) {
-	      url <- mirai::host_url(tls = TRUE, port = dist$port %||% 5555)
-	    } else {
-	      url <- mirai::local_url(tcp = TRUE, port = dist$port %||% 40491)
-	    }
-	      
-	      remote_config <- if (is.function(dist$remote)) dist$remote() else dist$remote
-	      mirai::daemons(url = url, remote = remote_config, dispatcher = dist$dispatcher)
-	      plan_fn <- future.mirai::mirai_cluster
-	    } else {
-      stop("dist_mirai requires either 'n' for local or 'remote' for distributed execution")
-    }
-    
-    # Store cleanup flag
-    handle$mirai_cleanup <- dist$stop_on_exit
-    
-    # Set up future plan (similar to local backend)
-    op <- future::plan(); on.exit(future::plan(op), add = TRUE)
-    
-    inner <- if (identical(dist$within, "mirai")) {
-      future::tweak(plan_fn, workers = dist$workers_within %||% NULL)
-    } else {
-      future::sequential
-    }
-    
-    future::plan(list(inner))
-    
-    # Create futures for chunks (same as local backend)
-    fs <- list()
-    for (i in seq_along(chunks)) {
-      fs[[i]] <- future::future(
-        parade_run_chunk_local(
-          i = i,
-          flow_path = flow_path,
-          chunks_path = chunks_path,
-          index_dir = index_dir_resolved,
-          mode = mode,
-          seed_furrr = seed_furrr,
-          scheduling = scheduling
-        ),
-        seed = TRUE
-      )
-    }
-    handle$jobs <- fs
-  } else {
-    op <- future::plan(); on.exit(future::plan(op), add = TRUE)
-    inner <- switch(dist$within,
-      "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% NULL),
-      "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% NULL),
-      "callr" = {
-        if (!requireNamespace("future.callr", quietly = TRUE)) {
-          stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
-        }
-        future::tweak(future.callr::callr, workers = dist$workers_within %||% NULL)
-      },
-      "sequential" = future::sequential,
-      future::sequential  # fallback
+  submitter <- .get_submit_backend(dist$backend)
+  if (is.null(submitter)) {
+    stop(
+      sprintf(
+        "submit(): unknown backend '%s'. Available: %s",
+        dist$backend,
+        paste(list_submit_backends(), collapse = ", ")
+      ),
+      call. = FALSE
     )
-    future::plan(list(inner))
-    fs <- list()
-    for (i in seq_along(chunks)) {
-      fs[[i]] <- future::future(
-        parade_run_chunk_local(
-          i = i,
-          flow_path = flow_path,
-          chunks_path = chunks_path,
-          index_dir = index_dir_resolved,
-          mode = mode,
-          seed_furrr = seed_furrr,
-          scheduling = scheduling
-        ),
-        seed = TRUE
-      )
-    }
-    handle$jobs <- fs
   }
+  handle <- submitter(
+    handle = handle,
+    dist = dist,
+    chunks = chunks,
+    index_dir_resolved = index_dir_resolved,
+    mode = mode,
+    seed_furrr = seed_furrr,
+    scheduling = scheduling
+  )
   handle
 }
 #' Run a single distributed chunk via batchtools

@@ -16,16 +16,34 @@ distribute <- function(fl, dist) { stopifnot(inherits(fl, "parade_flow")); fl$di
 #' @param by Column names to group by for parallelization
 #' @param within Execution strategy: "multisession", "multicore", "callr", or "sequential"
 #' @param workers_within Number of workers within each job
-#' @param chunks_per_job Number of groups to process per job
+#' @param chunks_per_job Number of groups to process per job.
+#' @param target_jobs Optional integer; target number of jobs to create (overrides
+#'   `chunks_per_job` at submit time). Useful when you want to keep a fixed number
+#'   of jobs in flight regardless of how many groups exist.
 #' @return A `parade_dist` object for local execution
 #' @export
 #' @examples
 #' dist_local(by = "group", within = "multisession")
 #' dist_local(by = "group", within = "multicore")
 #' dist_local(chunks_per_job = 2L)
-dist_local <- function(by = NULL, within = c("multisession", "multicore", "callr", "sequential"), workers_within = NULL, chunks_per_job = 1L) {
+dist_local <- function(by = NULL,
+                       within = c("multisession", "multicore", "callr", "sequential"),
+                       workers_within = NULL,
+                       chunks_per_job = 1L,
+                       target_jobs = NULL) {
   within <- match.arg(within)
-  structure(list(backend="local", by = by %||% character(), within=within, workers_within=workers_within, chunks_per_job=as.integer(chunks_per_job), slurm=NULL), class="parade_dist")
+  structure(
+    list(
+      backend = "local",
+      by = by %||% character(),
+      within = within,
+      workers_within = workers_within,
+      chunks_per_job = as.integer(chunks_per_job),
+      target_jobs = target_jobs,
+      slurm = NULL
+    ),
+    class = "parade_dist"
+  )
 }
 #' Create SLURM distribution specification
 #'
@@ -36,7 +54,9 @@ dist_local <- function(by = NULL, within = c("multisession", "multicore", "callr
 #' @param workers_within Number of workers within each SLURM job
 #' @param template Path to SLURM batch template file
 #' @param resources Named list of SLURM resource specifications
-#' @param chunks_per_job Number of groups to process per SLURM job
+#' @param chunks_per_job Number of groups to process per SLURM job.
+#' @param target_jobs Optional integer; target number of SLURM jobs to create
+#'   (overrides `chunks_per_job` at submit time).
 #' @return A `parade_dist` object for SLURM execution
 #' @export
 #' @examples
@@ -54,9 +74,26 @@ dist_local <- function(by = NULL, within = c("multisession", "multicore", "callr
 #'   stage("process", function(x) x * 2) |>
 #'   distribute(dist)
 #' }
-dist_slurm <- function(by = NULL, within = c("multisession", "multicore", "callr", "sequential"), workers_within = NULL, template = slurm_template(), resources = list(), chunks_per_job = 1L) {
+dist_slurm <- function(by = NULL,
+                       within = c("multisession", "multicore", "callr", "sequential"),
+                       workers_within = NULL,
+                       template = slurm_template(),
+                       resources = list(),
+                       chunks_per_job = 1L,
+                       target_jobs = NULL) {
   within <- match.arg(within)
-  structure(list(backend="slurm", by = by %||% character(), within=within, workers_within=workers_within, chunks_per_job=as.integer(chunks_per_job), slurm=list(template=template, resources=resources)), class="parade_dist")
+  structure(
+    list(
+      backend = "slurm",
+      by = by %||% character(),
+      within = within,
+      workers_within = workers_within,
+      chunks_per_job = as.integer(chunks_per_job),
+      target_jobs = target_jobs,
+      slurm = list(template = template, resources = resources)
+    ),
+    class = "parade_dist"
+  )
 }
 #' Convenience: SLURM distribution from a named profile
 #'
@@ -72,6 +109,8 @@ dist_slurm <- function(by = NULL, within = c("multisession", "multicore", "callr
 #' @param workers_within Number of workers used within each SLURM job.
 #' @param template Path to SLURM template file.
 #' @param chunks_per_job Number of groups to process per SLURM job.
+#' @param target_jobs Optional integer; target number of SLURM jobs to create
+#'   (overrides `chunks_per_job` at submit time).
 #' @return A `parade_dist` object suitable for `distribute()`
 #' @export
 #' @examples
@@ -96,12 +135,13 @@ dist_slurm_profile <- function(profile,
                                within = c("multisession", "multicore", "callr", "sequential"),
                                workers_within = NULL,
                                template = slurm_template(),
-                               chunks_per_job = 1L) {
+                               chunks_per_job = 1L,
+                               target_jobs = NULL) {
   within <- match.arg(within)
   # Resolve resources from flexible inputs (name, profile object, list)
   res <- slurm_resources(resources = profile, profile = if (is.character(profile) && length(profile) == 1L) profile else "default")
   dist_slurm(by = by, within = within, workers_within = workers_within,
-             template = template, resources = res, chunks_per_job = chunks_per_job)
+             template = template, resources = res, chunks_per_job = chunks_per_job, target_jobs = target_jobs)
 }
 #' Get path to default SLURM template
 #'

@@ -6,6 +6,10 @@
 .onLoad <- function(libname, pkgname) {
   # Register built-in sink formats
   .register_builtin_formats()
+
+  # Initialize deferred submit backend registry
+  .submit_backend_registry()
+  .register_builtin_submit_backends(overwrite = FALSE)
   
   # Initialize path registry if not already done
   if (!exists(".parade_paths", envir = .parade_env, inherits = FALSE)) {

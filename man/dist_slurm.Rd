@@ -10,7 +10,8 @@ dist_slurm(
   workers_within = NULL,
   template = slurm_template(),
   resources = list(),
-  chunks_per_job = 1L
+  chunks_per_job = 1L,
+  target_jobs = NULL
 )
 }
 \arguments{
@@ -24,7 +25,10 @@ dist_slurm(
 
 \item{resources}{Named list of SLURM resource specifications}
 
-\item{chunks_per_job}{Number of groups to process per SLURM job}
+\item{chunks_per_job}{Number of groups to process per SLURM job.}
+
+\item{target_jobs}{Optional integer; target number of SLURM jobs to create
+(overrides \code{chunks_per_job} at submit time).}
 }
 \value{
 A \code{parade_dist} object for SLURM execution

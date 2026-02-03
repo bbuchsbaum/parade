@@ -8,7 +8,8 @@ dist_local(
   by = NULL,
   within = c("multisession", "multicore", "callr", "sequential"),
   workers_within = NULL,
-  chunks_per_job = 1L
+  chunks_per_job = 1L,
+  target_jobs = NULL
 )
 }
 \arguments{
@@ -18,7 +19,11 @@ dist_local(
 
 \item{workers_within}{Number of workers within each job}
 
-\item{chunks_per_job}{Number of groups to process per job}
+\item{chunks_per_job}{Number of groups to process per job.}
+
+\item{target_jobs}{Optional integer; target number of jobs to create (overrides
+\code{chunks_per_job} at submit time). Useful when you want to keep a fixed number
+of jobs in flight regardless of how many groups exist.}
 }
 \value{
 A \code{parade_dist} object for local execution

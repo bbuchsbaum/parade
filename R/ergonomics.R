@@ -59,7 +59,14 @@ dry_run.parade_flow <- function(x, ...) {
   grid <- x$grid; cat("Grid rows: ", nrow(grid), "\n", sep="")
   if (!is.null(x$dist) && length(x$dist$by)) {
     key <- tibble::as_tibble(grid[x$dist$by]); grp_id <- interaction(key, drop=TRUE, lex.order=TRUE); groups <- split(seq_len(nrow(grid)), grp_id)
-    chunks_per_job <- max(1L, x$dist$chunks_per_job %||% 1L); chunks <- split(groups, ceiling(seq_along(groups)/chunks_per_job))
+    n_groups <- length(groups)
+    if (!is.null(x$dist$target_jobs)) {
+      target_jobs <- as.integer(x$dist$target_jobs)
+      chunks_per_job <- max(1L, ceiling(n_groups / target_jobs))
+    } else {
+      chunks_per_job <- max(1L, x$dist$chunks_per_job %||% 1L)
+    }
+    chunks <- split(groups, ceiling(seq_along(groups) / chunks_per_job))
     cat("Distribution: ", x$dist$backend, " by ", paste(x$dist$by, collapse=","),
         "; groups=", length(groups), "; chunks=", length(chunks),
         "; within=", x$dist$within, " workers=", x$dist$workers_within %||% NA_integer_, "\n", sep="")

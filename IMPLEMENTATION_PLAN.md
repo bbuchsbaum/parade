@@ -164,6 +164,33 @@ Unifying script and function submission with consistent syntactic sugar across p
 
 ---
 
+## Phase 7: Cluster Pool Abstraction (Future)
+
+### Goal
+
+Support the “treat N nodes like one big machine” mental model by providing a
+**pool/dispatcher** abstraction on top of SLURM (single allocation + dynamic work
+stealing), while keeping `parade` itself backend-agnostic.
+
+### Landed building blocks
+
+- [x] Pluggable submit backend registry (`register_submit_backend()`, `list_submit_backends()`)
+- [x] Submit-time chunking control via `target_jobs` (for `dist_local()`/`dist_slurm()`)
+- [x] Packed cluster ergonomics (`slurm_cluster_plan()`, `slurm_map_cluster()`)
+
+### Proposed next steps (likely an extension package)
+
+- [ ] Define a stable “pool backend” contract:
+  - lifecycle (start/stop), node allocation semantics, logging
+  - queue API (push tasks, observe progress, collect results)
+- [ ] Implement a SLURM pool backend in a separate package (e.g., `parade.slurmpool`)
+  that registers itself via `register_submit_backend("slurm_pool", ...)`.
+  - Acquire an allocation (`sbatch`/`salloc`) for `N` nodes
+  - Start a dispatcher + workers on allocated nodes (mirai/nanonext/SSH)
+  - Support dynamic work stealing to reduce tail latency
+- [ ] Add “pool aware” progress + cancellation semantics for long task sets
+- [ ] Add integration vignette: “Running on 10×196 cores as one pool”
+
 ## Documentation & Examples
 
 ### Vignettes
