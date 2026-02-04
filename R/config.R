@@ -10,7 +10,7 @@
 #' @return Path to configuration file
 #' @export
 #' @examples
-#' config_path <- parade_config_path()
+#' config_path <- parade_config_path(create_dirs = FALSE)
 parade_config_path <- function(create_dirs = TRUE) {
   env_file <- Sys.getenv("PARADE_CONFIG", unset = NA_character_)
   if (!is.na(env_file) && nzchar(env_file)) return(normalizePath(env_file, mustWork = FALSE))
@@ -71,7 +71,7 @@ parade_config_read <- function(path = NULL) {
 #' @export
 #' @examples
 #' cfg <- list(slurm = list(defaults = list(time = "1h")))
-#' parade_config_write(cfg)
+#' parade_config_write(cfg, path = tempfile(fileext = ".json"))
 parade_config_write <- function(cfg, path = NULL) {
   path <- path %||% parade_config_path(create_dirs = TRUE)
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)

@@ -17,5 +17,5 @@ Finds the appropriate location for the parade configuration file,
 checking environment variables and standard locations.
 }
 \examples{
-config_path <- parade_config_path()
+config_path <- parade_config_path(create_dirs = FALSE)
 }

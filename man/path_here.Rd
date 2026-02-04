@@ -25,6 +25,6 @@ If the resolved path appears to be a file (e.g., has an extension),
 only its parent directories are created so the file itself remains writable.
 }
 \examples{
-path_here("data", "input", "file.csv")
+path_here("data", "input", "file.csv", create = FALSE)
 path_here("artifacts", create = FALSE)
 }

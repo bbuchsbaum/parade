@@ -15,7 +15,7 @@
 #' @examples
 #' \donttest{
 #' flow <- flow(data.frame(x = 1:3))
-#' scaffold_flow_job(flow, name = "my_job")
+#' scaffold_flow_job(flow, name = "my_job", dir = tempdir())
 #' }
 scaffold_flow_job <- function(flow, 
                               name = "parade_job",

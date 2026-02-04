@@ -24,6 +24,6 @@ targets exist. For file-like paths (those with extensions or leading dots),
 only parent directories are created so the file path itself is left untouched.
 }
 \examples{
-resolve_path("data://processed/output.rds")
+resolve_path("data://processed/output.rds", create = FALSE)
 resolve_path("/absolute/path")
 }

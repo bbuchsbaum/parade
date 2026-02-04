@@ -36,6 +36,6 @@ results from a parade flow on SLURM systems.
 \examples{
 \donttest{
 flow <- flow(data.frame(x = 1:3))
-scaffold_flow_job(flow, name = "my_job")
+scaffold_flow_job(flow, name = "my_job", dir = tempdir())
 }
 }

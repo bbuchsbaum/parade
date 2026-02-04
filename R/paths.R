@@ -333,7 +333,7 @@ paths_export <- function(paths = paths_get(), aliases = NULL, header = TRUE) {
 #' @return Resolved absolute path
 #' @export
 #' @examples
-#' path_here("data", "input", "file.csv")
+#' path_here("data", "input", "file.csv", create = FALSE)
 #' path_here("artifacts", create = FALSE)
 #' @details When `create = TRUE`, missing directories are created.
 #'   If the resolved path appears to be a file (e.g., has an extension),
@@ -358,7 +358,7 @@ path_here <- function(alias, ..., create = TRUE) {
 #' @return Resolved absolute path
 #' @export
 #' @examples
-#' resolve_path("data://processed/output.rds")
+#' resolve_path("data://processed/output.rds", create = FALSE)
 #' resolve_path("/absolute/path")
 #' @details When `create = TRUE`, the function ensures that directory
 #'   targets exist. For file-like paths (those with extensions or leading dots),
