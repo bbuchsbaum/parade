@@ -30,6 +30,34 @@ test_that("sink writes sidecar with checksum and bytes", {
   expect_equal(digest::digest(file = ref$path, algo = "sha256"), meta$sha256)
 })
 
+test_that("sink skip mode still returns file references", {
+  parade::paths_init(quiet = TRUE)
+  tmpdir <- tempfile("parade-skip-")
+  grid <- tibble::tibble(x = 1)
+  val <- c(1, 2, 3)
+
+  fl <- flow(grid) |>
+    stage(
+      id = "s",
+      f = function(x) list(obj = val),
+      schema = returns(obj = lst()),
+      sink = sink_spec(fields = "obj", dir = tmpdir, sidecar = "json", checksum = TRUE, overwrite = "skip")
+    )
+
+  res1 <- collect(fl, engine = "sequential")
+  ref1 <- res1$s.obj[[1]]
+  expect_true(file.exists(ref1$path))
+  expect_true(ref1$written)
+  expect_false(ref1$existed)
+
+  # Run again: should skip rewrite but still return a reference to the existing artifact.
+  res2 <- collect(fl, engine = "sequential")
+  ref2 <- res2$s.obj[[1]]
+  expect_true(file.exists(ref2$path))
+  expect_false(ref2$written)
+  expect_true(ref2$existed)
+})
+
 test_that(".write_atomic_rds errors when rename fails (unless fallback enabled)", {
   writer <- parade:::.write_atomic_rds
   # Force file.rename to fail

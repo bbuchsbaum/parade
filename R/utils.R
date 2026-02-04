@@ -216,7 +216,40 @@
       
       # Write data
       if (sink$overwrite == "skip" && existed_before) {
-        # Skip existing file
+        # Skip rewriting, but still return a file reference to the existing
+        # artifact so downstream semantics remain stable.
+        field_checksum <- if (sink$checksum) {
+          tryCatch(digest::digest(file = path, algo = "sha256"), error = function(e) NA_character_)
+        } else {
+          NA_character_
+        }
+        bytes <- tryCatch(as.integer(file.info(path)$size), error = function(e) NA_integer_)
+
+        # Ensure sidecar exists when requested (avoid rewriting if present).
+        if (sink$sidecar == "json") {
+          meta_path <- paste0(path, ".json")
+          if (!file.exists(meta_path)) {
+            meta <- list(
+              stage = stage_id,
+              field = field,
+              row_key = row_key,
+              sha256 = field_checksum,
+              bytes = bytes,
+              written = FALSE,
+              existed = TRUE,
+              created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
+            )
+            .write_sidecar(path, meta)
+          }
+        }
+
+        result[[field]] <- list(tibble::tibble(
+          path = path,
+          bytes = bytes,
+          sha256 = field_checksum,
+          written = FALSE,
+          existed = TRUE
+        ))
         next
       } else if (sink$overwrite == "error" && existed_before) {
         stop("File already exists: ", path)

@@ -26,7 +26,8 @@
 
 .onAttach <- function(libname, pkgname) {
   if (!interactive()) return(invisible())
-  if (!isTRUE(getOption("parade.startup_message", TRUE))) {
+  # Startup message is opt-in (avoids noise in devtools/testthat workflows).
+  if (!isTRUE(getOption("parade.startup_message", FALSE))) {
     return(invisible())
   }
   packageStartupMessage(
