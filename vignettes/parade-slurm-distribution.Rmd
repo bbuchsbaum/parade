@@ -44,12 +44,15 @@ On a cluster, it’s tempting to think in terms of a single machine with
 for arbitrary batch jobs; it schedules jobs that *request resources*.
 
 **parade** doesn’t yet implement a true “SLURM pool” (single allocation +
-dispatcher) but you can get close today using two ideas:
+dispatcher / work-stealing queue), but you can get close today using:
 
 - **Packed jobs** for `slurm_map()`: run many tasks per SLURM job and use within‑node
-  parallelism to fully utilize a node.
-- **Target job count** for `submit()`/`dist_slurm()`: pick a fixed number of jobs to
-  keep in flight, independent of the number of groups in your grid.
+  parallelism to fully utilize each node.
+- **Fixed job count** for flows (`submit()`): choose `target_jobs` so you keep an
+  approximately constant number of jobs in flight, independent of the number of
+  groups in your grid.
+- **Dispatcher backends** (dynamic scheduling): use a backend that can hand out work
+  to persistent workers to reduce tail latency when task durations vary.
 
 ### Example: 10 nodes × 196 cores
 
@@ -70,22 +73,35 @@ jobs <- slurm_map_cluster(
 results <- jobs |> progress() |> collect()
 ```
 
-For flows, use `target_jobs` to control chunking at submission time:
+For flows, use `dist_slurm_allocation()` to express the allocation shape once:
 
 ```r
 fl <- fl |>
-  distribute(dist_slurm(
-    by = NULL,
+  distribute(dist_slurm_allocation(
+    nodes = 10,
+    cores_per_node = 196,
     within = "multicore",
-    workers_within = 196,
-    resources = list(nodes = 1, ntasks = 1, cpus_per_task = 196, time = "2h", mem = "64G"),
+    resources = list(time = "2h", mem = "64G"),
     target_jobs = 20               # ~10 nodes * oversubscribe 2
   ))
 ```
 
-**Important limits:** this is still *static partitioning* (chunks are fixed at submit time).
-If task durations are highly variable, a true pool/dispatcher (future work) will reduce
-tail latency further.
+**Important limits:** `dist_slurm_*()` uses *static partitioning* (chunks are fixed at submit time).
+If task durations are highly variable (e.g., 10s–1h) and you have many tasks (50–10,000+),
+a dispatcher backend can reduce tail latency further.
+
+#### When you want true dynamic scheduling
+
+Dynamic scheduling means: “workers pull the next unit of work when they finish the last one.”
+On SLURM, that usually implies a persistent pool of workers behind a queue/dispatcher. In parade,
+the closest options today are:
+
+- `dist_mirai(..., dispatcher = TRUE)`: low-latency, load-balanced scheduling with persistent daemons
+  (which can be launched via SLURM).
+- `dist_crew(controller = ...)`: schedule chunks on a `crew` controller (local or cluster).
+
+A dedicated “SLURM pool” backend (one allocation + dispatcher + task queue) is intentionally
+not in parade yet, but the submit backend system is designed to support it in a follow-on package.
 
 ## Local vs. SLURM distribution strategies
 
