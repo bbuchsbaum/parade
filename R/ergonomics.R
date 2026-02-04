@@ -106,6 +106,9 @@ preflight <- function(fl) {
     if (!requireNamespace("batchtools", quietly = TRUE)) errs <- c(errs, "Missing package: batchtools")
     tmpl <- fl$dist$slurm$template; p <- try(resolve_path(tmpl, create = FALSE), silent = TRUE); if (inherits(p, "try-error") || !file.exists(p)) errs <- c(errs, sprintf("SLURM template not found: %s", tmpl))
   }
+  if (!is.null(fl$dist) && identical(fl$dist$backend, "crew")) {
+    if (!requireNamespace("crew", quietly = TRUE)) errs <- c(errs, "Missing package: crew")
+  }
   if (length(errs)) stop(paste(errs, collapse = "
 "))
   invisible(TRUE)

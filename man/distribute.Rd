@@ -9,7 +9,8 @@ distribute(fl, dist)
 \arguments{
 \item{fl}{A \code{parade_flow} object}
 
-\item{dist}{A distribution specification from \code{dist_local()} or \code{dist_slurm()}}
+\item{dist}{A distribution specification from \code{dist_local()}, \code{dist_slurm()},
+\code{dist_mirai()}, or \code{dist_crew()}}
 }
 \value{
 The input flow with distribution settings applied

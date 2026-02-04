@@ -60,7 +60,136 @@ list_submit_backends <- function() {
   register_submit_backend("local", .submit_backend_local, overwrite = overwrite)
   register_submit_backend("slurm", .submit_backend_slurm, overwrite = overwrite)
   register_submit_backend("mirai", .submit_backend_mirai, overwrite = overwrite)
+  register_submit_backend("crew", .submit_backend_crew, overwrite = overwrite)
   invisible(TRUE)
+}
+
+.crew_has_method <- function(controller, method) {
+  is.environment(controller) && exists(method, envir = controller, inherits = TRUE)
+}
+
+.crew_call <- function(controller, method, ...) {
+  if (!.crew_has_method(controller, method)) {
+    stop(sprintf("crew controller does not implement $%s().", method), call. = FALSE)
+  }
+  fn <- get(method, envir = controller, inherits = TRUE)
+  fn(...)
+}
+
+.crew_wait <- function(controller, mode = "all", seconds_timeout = Inf, seconds_interval = 10) {
+  if (!.crew_has_method(controller, "wait")) return(invisible(TRUE))
+
+  fn <- get("wait", envir = controller, inherits = TRUE)
+  fmls <- names(formals(fn) %||% list())
+  if ("mode" %in% fmls && "seconds_timeout" %in% fmls && "seconds_interval" %in% fmls) {
+    fn(mode = mode, seconds_timeout = seconds_timeout, seconds_interval = seconds_interval)
+  } else {
+    fn()
+  }
+  invisible(TRUE)
+}
+
+.crew_start <- function(controller) {
+  started <- FALSE
+  if (.crew_has_method(controller, "started")) {
+    started <- try(isTRUE(.crew_call(controller, "started")), silent = TRUE)
+    if (inherits(started, "try-error")) started <- FALSE
+  }
+  if (!isTRUE(started) && .crew_has_method(controller, "start")) {
+    .crew_call(controller, "start")
+  }
+  invisible(TRUE)
+}
+
+.crew_push <- function(controller, name, command, packages = "parade") {
+  fn <- get("push", envir = controller, inherits = TRUE)
+  fmls <- names(formals(fn) %||% list())
+
+  args <- list()
+  if ("name" %in% fmls) args$name <- name
+  if ("command" %in% fmls) args$command <- command
+  else if ("expr" %in% fmls) args$expr <- command
+  else args$command <- command
+  if ("packages" %in% fmls) args$packages <- packages
+  if ("substitute" %in% fmls) args$substitute <- FALSE
+
+  do.call(fn, args)
+  invisible(TRUE)
+}
+
+.crew_collect <- function(controller, error = NULL) {
+  if (!.crew_has_method(controller, "collect")) return(NULL)
+  fn <- get("collect", envir = controller, inherits = TRUE)
+  fmls <- names(formals(fn) %||% list())
+
+  args <- list()
+  if ("error" %in% fmls) args$error <- error
+
+  do.call(fn, args)
+}
+
+.crew_cancel <- function(controller, tasks = character()) {
+  if (.crew_has_method(controller, "cancel")) {
+    fn <- get("cancel", envir = controller, inherits = TRUE)
+    fmls <- names(formals(fn) %||% list())
+    args <- list()
+    if ("name" %in% fmls) args$name <- tasks
+    if ("names" %in% fmls) args$names <- tasks
+    do.call(fn, args)
+    return(invisible(TRUE))
+  }
+  if (.crew_has_method(controller, "terminate")) {
+    .crew_call(controller, "terminate")
+  }
+  invisible(TRUE)
+}
+
+.submit_backend_crew <- function(handle, dist, chunks, index_dir_resolved, mode, seed_furrr, scheduling) {
+  if (!requireNamespace("crew", quietly = TRUE)) {
+    stop("submit(): dist_crew requires the 'crew' package.", call. = FALSE)
+  }
+
+  controller <- dist$crew$controller
+  controller <- if (is.function(controller)) controller() else controller
+
+  if (is.null(controller) || !is.environment(controller)) {
+    stop("submit(): dist_crew(controller=) must be a crew controller object or a function() returning one.", call. = FALSE)
+  }
+
+  # Start controller if not already started.
+  .crew_start(controller)
+
+  task_names <- sprintf("parade-%s-%04d", handle$run_id, seq_along(chunks))
+  for (i in seq_along(chunks)) {
+    cmd <- substitute(
+      parade::parade_run_chunk_local(
+        i = i,
+        flow_path = flow_path,
+        chunks_path = chunks_path,
+        index_dir = index_dir,
+        mode = mode,
+        seed_furrr = seed_furrr,
+        scheduling = scheduling
+      ),
+      list(
+        i = i,
+        flow_path = handle$flow_path,
+        chunks_path = handle$chunks_path,
+        index_dir = index_dir_resolved,
+        mode = mode,
+        seed_furrr = seed_furrr,
+        scheduling = scheduling
+      )
+    )
+
+    .crew_push(controller, name = task_names[[i]], command = cmd, packages = "parade")
+  }
+
+  handle$jobs <- task_names
+  handle$crew_controller <- controller
+  handle$crew_persist <- isTRUE(dist$crew$persist)
+  handle$crew_stop_on_exit <- isTRUE(dist$crew$stop_on_exit)
+  handle
 }
 
 .submit_backend_slurm <- function(handle, dist, chunks, index_dir_resolved, mode, seed_furrr, scheduling) {
@@ -188,4 +317,3 @@ list_submit_backends <- function() {
   handle$jobs <- fs
   handle
 }
-

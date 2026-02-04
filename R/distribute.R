@@ -2,7 +2,8 @@
 #' Add distribution settings to a parade flow
 #'
 #' @param fl A `parade_flow` object
-#' @param dist A distribution specification from `dist_local()` or `dist_slurm()`
+#' @param dist A distribution specification from `dist_local()`, `dist_slurm()`,
+#'   `dist_mirai()`, or `dist_crew()`
 #' @return The input flow with distribution settings applied
 #' @export
 #' @examples
@@ -93,6 +94,88 @@ dist_slurm <- function(by = NULL,
       slurm = list(template = template, resources = resources)
     ),
     class = "parade_dist"
+  )
+}
+
+#' Convenience: SLURM distribution from an allocation shape
+#'
+#' If you have an allocation like "10 nodes × 196 cores", this helper creates a
+#' `dist_slurm()` specification that:
+#'
+#' - requests one node per SLURM job with `cpus_per_task = cores_per_node`,
+#' - uses `target_jobs = nodes` so `submit()` creates (approximately) one job per
+#'   node (optionally oversubscribed if you pass a larger `nodes`),
+#' - sets `workers_within = cores_per_node` by default when using within-job
+#'   parallelism.
+#'
+#' This is still static partitioning at submit time; for highly heterogeneous
+#' task durations, consider oversubscribing (`target_jobs > nodes`) or using a
+#' dispatcher backend (e.g., `dist_mirai()` with dispatcher or `dist_crew()` with
+#' a cluster controller).
+#'
+#' @param nodes Integer; number of nodes available concurrently.
+#' @param cores_per_node Integer; number of CPU cores per node.
+#' @param by Optional column names to group by for parallelization.
+#' @param within Execution strategy within each SLURM job: "multisession",
+#'   "multicore", "callr", or "sequential".
+#' @param template Path to SLURM template file.
+#' @param resources Named list of SLURM resource specifications (merged with the
+#'   full-node defaults; user values win).
+#' @param target_jobs Optional integer; override the default `target_jobs = nodes`
+#'   (useful for oversubscription, e.g., `target_jobs = nodes * 2`).
+#' @return A `parade_dist` object suitable for `distribute()`.
+#' @export
+#' @examples
+#' \donttest{
+#' # Treat an allocation like "one big machine" (best-effort)
+#' dist_slurm_allocation(nodes = 10, cores_per_node = 196, within = "multicore")
+#'
+#' # Oversubscribe to reduce stragglers
+#' dist_slurm_allocation(
+#'   nodes = 10,
+#'   cores_per_node = 196,
+#'   within = "multicore",
+#'   target_jobs = 20
+#' )
+#' }
+dist_slurm_allocation <- function(nodes,
+                                  cores_per_node,
+                                  by = NULL,
+                                  within = c("multisession", "multicore", "callr", "sequential"),
+                                  template = slurm_template(),
+                                  resources = list(),
+                                  target_jobs = NULL) {
+  within <- match.arg(within)
+  nodes <- as.integer(nodes)
+  cores_per_node <- as.integer(cores_per_node)
+
+  if (length(nodes) != 1L || is.na(nodes) || nodes < 1L) {
+    stop("dist_slurm_allocation(): `nodes` must be a positive integer.", call. = FALSE)
+  }
+  if (length(cores_per_node) != 1L || is.na(cores_per_node) || cores_per_node < 1L) {
+    stop("dist_slurm_allocation(): `cores_per_node` must be a positive integer.", call. = FALSE)
+  }
+
+  resources <- resources %||% list()
+  if (!is.list(resources)) {
+    resources <- slurm_resources(resources = resources, profile = "default")
+  }
+
+  full_node_defaults <- list(nodes = 1L, ntasks = 1L, cpus_per_task = cores_per_node)
+  resources <- utils::modifyList(full_node_defaults, resources)
+
+  if (is.null(target_jobs)) target_jobs <- nodes
+
+  workers_within <- if (within %in% c("multisession", "multicore", "callr")) cores_per_node else NULL
+
+  dist_slurm(
+    by = by,
+    within = within,
+    workers_within = workers_within,
+    template = template,
+    resources = resources,
+    chunks_per_job = 1L,
+    target_jobs = target_jobs
   )
 }
 #' Convenience: SLURM distribution from a named profile

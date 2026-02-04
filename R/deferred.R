@@ -73,7 +73,16 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
   registry_dir <- registry_dir %||% paste0("registry://", paste0("parade-", run_id))
   registry_dir_real <- resolve_path(registry_dir)
   flow_path <- file.path(registry_dir_real, "flow.rds"); chunks_path <- file.path(registry_dir_real, "chunks.rds")
-  dir.create(registry_dir_real, recursive = TRUE, showWarnings = FALSE); saveRDS(fl, flow_path); saveRDS(chunks, chunks_path)
+  dir.create(registry_dir_real, recursive = TRUE, showWarnings = FALSE)
+
+  # Avoid serializing external controller objects into the worker-side flow.
+  fl_for_worker <- fl
+  if (!is.null(dist) && identical(dist$backend, "crew") && !is.null(fl_for_worker$dist$crew$controller)) {
+    fl_for_worker$dist$crew$controller <- NULL
+  }
+
+  saveRDS(fl_for_worker, flow_path)
+  saveRDS(chunks, chunks_path)
   index_dir <- if (is.null(index_dir)) file.path("artifacts://runs", run_id, "index") else index_dir
   index_dir_resolved <- resolve_path(index_dir); dir.create(index_dir_resolved, recursive = TRUE, showWarnings = FALSE)
   handle <- list(backend = dist$backend, by = dist$by, mode = mode, run_id = run_id, registry_dir = normalizePath(registry_dir_real, mustWork = FALSE), flow_path = normalizePath(flow_path, mustWork = FALSE), chunks_path = normalizePath(chunks_path, mustWork = FALSE), index_dir = index_dir, submitted_at = as.character(Sys.time()), jobs = NULL); class(handle) <- "parade_deferred"
@@ -186,6 +195,36 @@ deferred_status <- function(d, detail = FALSE) {
     if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
     reg <- batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
     if (isTRUE(detail)) tibble::as_tibble(batchtools::getJobTable(reg)) else { st <- batchtools::getStatus(reg); tibble::tibble(pending = st$pending, started = st$started, running = st$running, done = st$done, error = st$error) }
+  } else if (identical(d$backend, "crew")) {
+    if (!requireNamespace("crew", quietly = TRUE)) stop("crew not available.")
+    controller <- d$crew_controller
+    tasks <- d$jobs %||% character()
+
+    if (is.null(controller)) {
+      return(tibble::tibble(total = length(tasks), resolved = NA_integer_, unresolved = NA_integer_, unpopped = NA_integer_))
+    }
+
+    if (isTRUE(detail)) {
+      sumry <- try(controller$summary(), silent = TRUE)
+      if (inherits(sumry, "try-error")) {
+        return(tibble::tibble(total = length(tasks), resolved = NA_integer_, unresolved = NA_integer_, unpopped = NA_integer_))
+      }
+      sumry <- tibble::as_tibble(sumry)
+      if ("name" %in% names(sumry)) {
+        sumry <- dplyr::filter(sumry, .data$name %in% tasks)
+      }
+      return(sumry)
+    }
+
+    resolved <- try(controller$resolved(), silent = TRUE)
+    unresolved <- try(controller$unresolved(), silent = TRUE)
+    unpopped <- try(controller$unpopped(), silent = TRUE)
+
+    n_resolved <- if (inherits(resolved, "try-error")) NA_integer_ else length(intersect(resolved, tasks))
+    n_unresolved <- if (inherits(unresolved, "try-error")) NA_integer_ else length(intersect(unresolved, tasks))
+    n_unpopped <- if (inherits(unpopped, "try-error")) NA_integer_ else length(intersect(unpopped, tasks))
+
+    tibble::tibble(total = length(tasks), resolved = n_resolved, unresolved = n_unresolved, unpopped = n_unpopped)
   } else {
     fs <- d$jobs; states <- vapply(fs, future::resolved, logical(1)); tibble::tibble(total = length(fs), resolved = sum(states), unresolved = sum(!states))
   }
@@ -211,6 +250,10 @@ deferred_await <- function(d, timeout = Inf, poll = 10) {
   if (identical(d$backend, "slurm")) {
     if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
     reg <- batchtools::loadRegistry(d$registry_dir, writeable = FALSE); batchtools::waitForJobs(reg = reg, timeout = timeout, sleep = poll)
+  } else if (identical(d$backend, "crew")) {
+    if (!requireNamespace("crew", quietly = TRUE)) stop("crew not available.")
+    controller <- d$crew_controller
+    if (!is.null(controller)) .crew_wait(controller, mode = "all", seconds_timeout = timeout, seconds_interval = poll)
   } else {
     # Be tolerant of worker interruptions/errors in both branches.
     # For infinite timeout, still guard each value() to avoid bubbling errors
@@ -248,6 +291,14 @@ deferred_cancel <- function(d, which = c("running","all")) {
   if (identical(d$backend, "slurm")) {
     if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
     reg <- batchtools::loadRegistry(d$registry_dir, writeable = TRUE); ids <- if (which == "running") batchtools::findRunning(reg = reg) else batchtools::findJobs(reg = reg); if (length(ids)) batchtools::killJobs(ids, reg = reg)
+  } else if (identical(d$backend, "crew")) {
+    if (!requireNamespace("crew", quietly = TRUE)) stop("crew not available.")
+    controller <- d$crew_controller
+    if (!is.null(controller)) {
+      tasks <- d$jobs %||% character()
+      # Prefer cancel if available; fall back to terminate.
+      try(.crew_cancel(controller, tasks = tasks), silent = TRUE)
+    }
   } else if (identical(d$backend, "mirai")) {
     # Stop mirai daemons if configured
     if (isTRUE(d$mirai_cleanup)) {
@@ -281,8 +332,63 @@ deferred_cancel <- function(d, which = c("running","all")) {
 #' }
 deferred_collect <- function(d, how = c("auto","index","results")) {
   stopifnot(inherits(d, "parade_deferred")); how <- match.arg(how); if (identical(how, "auto")) how <- d$mode
-  if (identical(how, "index")) { dir <- resolve_path(d$index_dir); files <- list.files(dir, pattern = "\\.rds$", full.names = TRUE); if (!length(files)) return(tibble::tibble()); lst <- lapply(files, readRDS); tibble::as_tibble(vctrs::vec_rbind(!!!lst)) }
-  else {
+  if (identical(d$backend, "crew")) {
+    if (!requireNamespace("crew", quietly = TRUE)) stop("crew not available.")
+    controller <- d$crew_controller
+    tasks <- d$jobs %||% character()
+
+    if (!is.null(controller)) {
+      .crew_wait(controller, mode = "all", seconds_timeout = Inf, seconds_interval = 1)
+    }
+
+    if (identical(how, "index")) {
+      # Drain results so the controller is reusable, but do not stop on errors to
+      # preserve index-mode collection semantics.
+      if (!is.null(controller)) {
+        try(.crew_collect(controller, error = NULL), silent = TRUE)
+        if (isTRUE(d$crew_stop_on_exit) && !isTRUE(d$crew_persist)) {
+          try(.crew_cancel(controller, tasks = tasks), silent = TRUE)
+        }
+      }
+      dir <- resolve_path(d$index_dir)
+      files <- list.files(dir, pattern = "\\.rds$", full.names = TRUE)
+      if (!length(files)) return(tibble::tibble())
+      lst <- lapply(files, readRDS)
+      return(tibble::as_tibble(vctrs::vec_rbind(!!!lst)))
+    }
+
+    if (identical(d$mode, "index")) return(deferred_collect(d, "index"))
+
+    if (is.null(controller)) return(tibble::tibble())
+
+    out <- .crew_collect(controller, error = "stop")
+
+    if (is.null(out)) return(tibble::tibble())
+
+    if (is.data.frame(out) && "result" %in% names(out)) {
+      out <- tibble::as_tibble(out)
+      if ("name" %in% names(out)) out <- dplyr::filter(out, .data$name %in% tasks)
+      vals <- purrr::map(out$result, function(x) if (is.list(x) && length(x) == 1L) x[[1]] else x)
+    } else if (is.list(out)) {
+      vals <- out
+    } else {
+      vals <- list(out)
+    }
+    vals <- purrr::compact(vals)
+    if (!length(vals)) return(tibble::tibble())
+    res <- tibble::as_tibble(vctrs::vec_rbind(!!!vals))
+
+    if (isTRUE(d$crew_stop_on_exit) && !isTRUE(d$crew_persist)) {
+      try(.crew_cancel(controller, tasks = tasks), silent = TRUE)
+    }
+    res
+  } else if (identical(how, "index")) {
+    dir <- resolve_path(d$index_dir)
+    files <- list.files(dir, pattern = "\\.rds$", full.names = TRUE)
+    if (!length(files)) return(tibble::tibble())
+    lst <- lapply(files, readRDS)
+    tibble::as_tibble(vctrs::vec_rbind(!!!lst))
+  } else {
     if (identical(d$backend, "slurm")) { if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available."); reg <- batchtools::loadRegistry(d$registry_dir, writeable = FALSE); lst <- batchtools::reduceResultsList(fun = function(x, y) c(list(x), list(y)), init = list(), reg = reg); lst <- purrr::compact(lst); if (!length(lst)) return(tibble::tibble()); tibble::as_tibble(vctrs::vec_rbind(!!!lst)) }
     else { if (identical(d$mode, "index")) return(deferred_collect(d, "index")); vals <- lapply(d$jobs, future::value); vals <- purrr::compact(vals); if (!length(vals)) return(tibble::tibble()); tibble::as_tibble(vctrs::vec_rbind(!!!vals)) }
   }

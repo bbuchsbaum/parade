@@ -35,6 +35,21 @@ library(parade)
 parade_init_hpc(persist = TRUE)
 ```
 
+If you have a fixed allocation (e.g., **10 nodes × 196 cores**), once you have a
+flow `fl` you can set up distribution with a single helper and keep the DAG
+code unchanged:
+
+```r
+fl <- fl |>
+  distribute(dist_slurm_allocation(
+    nodes = 10,
+    cores_per_node = 196,
+    within = "multicore",
+    # Optional: oversubscribe to reduce stragglers for variable task durations
+    target_jobs = 20
+  ))
+```
+
 Or a minimal non-persistent setup:
 
 ```r

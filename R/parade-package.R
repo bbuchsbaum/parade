@@ -18,7 +18,7 @@
 #'
 #' @seealso
 #' Core functions: [flow()], [stage()], [collect()], [submit()]
-#' Distribution: [dist_local()], [dist_slurm()], [distribute()]
+#' Distribution: [dist_local()], [dist_slurm()], [dist_mirai()], [dist_crew()], [distribute()]
 #' Configuration: [parade_config_read()], [slurm_defaults_set()]
 #' Monitoring: [script_top()], [jobs_top()], [script_metrics()]
 #' @import tibble

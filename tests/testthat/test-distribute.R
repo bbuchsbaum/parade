@@ -104,6 +104,33 @@ test_that("dist_local() creates correct structure with defaults", {
   expect_null(dist$slurm)
 })
 
+test_that("dist_crew() creates correct structure with defaults", {
+  dist <- dist_crew()
+
+  expect_s3_class(dist, "parade_dist")
+  expect_equal(dist$backend, "crew")
+  expect_equal(dist$by, character())
+  expect_equal(dist$within, "sequential")
+  expect_null(dist$workers_within)
+  expect_equal(dist$chunks_per_job, 1L)
+  expect_null(dist$target_jobs)
+  expect_null(dist$slurm)
+  expect_true(is.function(dist$crew$controller))
+  expect_false(isTRUE(dist$crew$persist))
+  expect_true(isTRUE(dist$crew$stop_on_exit))
+})
+
+test_that("submit() requires crew for dist_crew", {
+  fl <- create_test_flow() |>
+    distribute(dist_crew())
+
+  if (!requireNamespace("crew", quietly = TRUE)) {
+    expect_error(submit(fl), "requires the 'crew' package")
+  } else {
+    skip("crew installed; skipping missing-package assertion")
+  }
+})
+
 test_that("dist_local() accepts by parameter", {
   dist1 <- dist_local(by = "group")
   expect_equal(dist1$by, "group")
@@ -216,6 +243,33 @@ test_that("dist_slurm() handles all parameters", {
   expect_equal(dist$slurm$resources$time, "1h")
   expect_equal(dist$chunks_per_job, 4L)
   expect_equal(dist$target_jobs, 20)
+})
+
+test_that("dist_slurm_allocation() sets full-node defaults and target_jobs", {
+  dist <- dist_slurm_allocation(nodes = 10, cores_per_node = 196, within = "multicore")
+
+  expect_s3_class(dist, "parade_dist")
+  expect_equal(dist$backend, "slurm")
+  expect_equal(dist$within, "multicore")
+  expect_equal(dist$workers_within, 196)
+  expect_equal(dist$target_jobs, 10)
+
+  expect_equal(dist$slurm$resources$nodes, 1L)
+  expect_equal(dist$slurm$resources$ntasks, 1L)
+  expect_equal(dist$slurm$resources$cpus_per_task, 196)
+})
+
+test_that("dist_slurm_allocation() merges user resources", {
+  dist <- dist_slurm_allocation(
+    nodes = 10,
+    cores_per_node = 196,
+    within = "multicore",
+    resources = list(time = "2h", nodes = 2)
+  )
+
+  expect_equal(dist$slurm$resources$time, "2h")
+  expect_equal(dist$slurm$resources$nodes, 2) # user override
+  expect_equal(dist$slurm$resources$cpus_per_task, 196)
 })
 
 test_that("slurm_template() returns template path", {
