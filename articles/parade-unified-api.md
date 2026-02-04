@@ -82,6 +82,30 @@ jobs <- slurm_map_cluster(
 )
 ```
 
+### Flows (DAGs): express an allocation shape once
+
+If you’re using
+[`flow()`](https://bbuchsbaum.github.io/parade/reference/flow.md) +
+[`submit()`](https://bbuchsbaum.github.io/parade/reference/submit.md),
+you can express “10 nodes × 196 cores” as a distribution spec and keep
+the DAG itself unchanged:
+
+``` r
+fl <- fl |>
+  distribute(dist_slurm_allocation(
+    nodes = 10,
+    cores_per_node = 196,
+    within = "multicore",
+    target_jobs = 20,             # optional oversubscription for heterogeneous runtimes
+    resources = list(time = "2h", mem = "64G")
+  ))
+```
+
+This is still static partitioning at submit time. If task durations vary
+widely, consider dispatcher-style backends
+(`dist_mirai(..., dispatcher = TRUE)` or `dist_crew(...)`) for more
+dynamic load balancing.
+
 ## Elegant naming and paths
 
 ``` r

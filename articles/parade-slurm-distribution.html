@@ -103,18 +103,22 @@ with <code>nodes * cpus_per_node</code> cores. SLURM doesn’t natively
 provide that abstraction for arbitrary batch jobs; it schedules jobs
 that <em>request resources</em>.</p>
 <p><strong>parade</strong> doesn’t yet implement a true “SLURM pool”
-(single allocation + dispatcher) but you can get close today using two
-ideas:</p>
+(single allocation + dispatcher / work-stealing queue), but you can get
+close today using:</p>
 <ul>
 <li>
 <strong>Packed jobs</strong> for <code><a href="../reference/slurm_map.html">slurm_map()</a></code>: run many
-tasks per SLURM job and use within‑node parallelism to fully utilize a
-node.</li>
+tasks per SLURM job and use within‑node parallelism to fully utilize
+each node.</li>
 <li>
-<strong>Target job count</strong> for
-<code><a href="../reference/submit.html">submit()</a></code>/<code><a href="../reference/dist_slurm.html">dist_slurm()</a></code>: pick a fixed number of
-jobs to keep in flight, independent of the number of groups in your
+<strong>Fixed job count</strong> for flows (<code><a href="../reference/submit.html">submit()</a></code>):
+choose <code>target_jobs</code> so you keep an approximately constant
+number of jobs in flight, independent of the number of groups in your
 grid.</li>
+<li>
+<strong>Dispatcher backends</strong> (dynamic scheduling): use a
+backend that can hand out work to persistent workers to reduce tail
+latency when task durations vary.</li>
 </ul>
 <div class="section level3">
 <h3 id="example-10-nodes-196-cores">Example: 10 nodes × 196 cores<a class="anchor" aria-label="anchor" href="#example-10-nodes-196-cores"></a>
@@ -134,21 +138,41 @@ grid.</li>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">jobs</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/progress.html">progress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>For flows, use <code>target_jobs</code> to control chunking at
-submission time:</p>
+<p>For flows, use <code><a href="../reference/dist_slurm_allocation.html">dist_slurm_allocation()</a></code> to express the
+allocation shape once:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm.html">dist_slurm</a></span><span class="op">(</span></span>
-<span>    by <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm_allocation.html">dist_slurm_allocation</a></span><span class="op">(</span></span>
+<span>    nodes <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>    cores_per_node <span class="op">=</span> <span class="fl">196</span>,</span>
 <span>    within <span class="op">=</span> <span class="st">"multicore"</span>,</span>
-<span>    workers_within <span class="op">=</span> <span class="fl">196</span>,</span>
-<span>    resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>nodes <span class="op">=</span> <span class="fl">1</span>, ntasks <span class="op">=</span> <span class="fl">1</span>, cpus_per_task <span class="op">=</span> <span class="fl">196</span>, time <span class="op">=</span> <span class="st">"2h"</span>, mem <span class="op">=</span> <span class="st">"64G"</span><span class="op">)</span>,</span>
+<span>    resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="st">"2h"</span>, mem <span class="op">=</span> <span class="st">"64G"</span><span class="op">)</span>,</span>
 <span>    target_jobs <span class="op">=</span> <span class="fl">20</span>               <span class="co"># ~10 nodes * oversubscribe 2</span></span>
 <span>  <span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Important limits:</strong> this is still <em>static
-partitioning</em> (chunks are fixed at submit time). If task durations
-are highly variable, a true pool/dispatcher (future work) will reduce
-tail latency further.</p>
+<p><strong>Important limits:</strong> <code>dist_slurm_*()</code> uses
+<em>static partitioning</em> (chunks are fixed at submit time). If task
+durations are highly variable (e.g., 10s–1h) and you have many tasks
+(50–10,000+), a dispatcher backend can reduce tail latency further.</p>
+<div class="section level4">
+<h4 id="when-you-want-true-dynamic-scheduling">When you want true dynamic scheduling<a class="anchor" aria-label="anchor" href="#when-you-want-true-dynamic-scheduling"></a>
+</h4>
+<p>Dynamic scheduling means: “workers pull the next unit of work when
+they finish the last one.” On SLURM, that usually implies a persistent
+pool of workers behind a queue/dispatcher. In parade, the closest
+options today are:</p>
+<ul>
+<li>
+<code>dist_mirai(..., dispatcher = TRUE)</code>: low-latency,
+load-balanced scheduling with persistent daemons (which can be launched
+via SLURM).</li>
+<li>
+<code>dist_crew(controller = ...)</code>: schedule chunks on a
+<code>crew</code> controller (local or cluster).</li>
+</ul>
+<p>A dedicated “SLURM pool” backend (one allocation + dispatcher + task
+queue) is intentionally not in parade yet, but the submit backend system
+is designed to support it in a follow-on package.</p>
+</div>
 </div>
 </div>
 <div class="section level2">
