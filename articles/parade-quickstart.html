@@ -74,8 +74,20 @@ ways to get set up:</p>
 <span></span>
 <span><span class="co"># One-command helper (recommended on clusters)</span></span>
 <span><span class="fu"><a href="../reference/parade_init_hpc.html">parade_init_hpc</a></span><span class="op">(</span>persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>Or a minimal non-persistent setup:</p>
+<p>If you have a fixed allocation (e.g., <strong>10 nodes × 196
+cores</strong>), once you have a flow <code>fl</code> you can set up
+distribution with a single helper and keep the DAG code unchanged:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_slurm_allocation.html">dist_slurm_allocation</a></span><span class="op">(</span></span>
+<span>    nodes <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>    cores_per_node <span class="op">=</span> <span class="fl">196</span>,</span>
+<span>    within <span class="op">=</span> <span class="st">"multicore"</span>,</span>
+<span>    <span class="co"># Optional: oversubscribe to reduce stragglers for variable task durations</span></span>
+<span>    target_jobs <span class="op">=</span> <span class="fl">20</span></span>
+<span>  <span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Or a minimal non-persistent setup:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/paths_init.html">paths_init</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"hpc"</span>, create <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/parade_doctor.html">parade_doctor</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -85,14 +97,14 @@ ways to get set up:</p>
 <div class="section level2">
 <h2 id="install-and-load">1) Install and load<a class="anchor" aria-label="anchor" href="#install-and-load"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("parade")  # CRAN or dev version if needed</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/parade/">parade</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="define-a-grid-and-a-stage">2) Define a grid and a stage<a class="anchor" aria-label="anchor" href="#define-a-grid-and-a-stage"></a>
 </h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">LETTERS</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>, each <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -105,14 +117,14 @@ ways to get set up:</p>
 <div class="section level2">
 <h2 id="choose-distribution">3) Choose distribution<a class="anchor" aria-label="anchor" href="#choose-distribution"></a>
 </h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Local parallelism by logical group (A/B/C)</span></span>
 <span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="../reference/dist_local.html">dist_local</a></span><span class="op">(</span>by <span class="op">=</span> <span class="st">"group"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="submit-await-and-collect">4) Submit, await, and collect<a class="anchor" aria-label="anchor" href="#submit-await-and-collect"></a>
 </h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/submit.html">submit</a></span><span class="op">(</span><span class="va">fl</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/deferred_await.html">deferred_await</a></span><span class="op">(</span><span class="va">d</span>, timeout <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>  <span class="co"># finite timeout for safety</span></span>
 <span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/deferred_collect.html">deferred_collect</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span>
@@ -123,7 +135,7 @@ ways to get set up:</p>
 <div class="section level2">
 <h2 id="add-a-sink-optional">5) Add a sink (optional)<a class="anchor" aria-label="anchor" href="#add-a-sink-optional"></a>
 </h2>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Write results to a temp sink; switch to artifacts:// in real projects</span></span>
 <span><span class="va">fl2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/flow.html">flow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/stage.html">stage</a></span><span class="op">(</span></span>

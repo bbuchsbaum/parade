@@ -101,6 +101,9 @@
 - [`digest()`](https://bbuchsbaum.github.io/parade/reference/digest.md)
   : Generate job names from content digest
 
+- [`dist_crew()`](https://bbuchsbaum.github.io/parade/reference/dist_crew.md)
+  : Create crew distribution specification
+
 - [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md)
   : Create local distribution specification
 
@@ -109,6 +112,9 @@
 
 - [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md)
   : Create SLURM distribution specification
+
+- [`dist_slurm_allocation()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_allocation.md)
+  : Convenience: SLURM distribution from an allocation shape
 
 - [`dist_slurm_profile()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_profile.md)
   : Convenience: SLURM distribution from a named profile

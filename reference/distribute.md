@@ -17,9 +17,11 @@ distribute(fl, dist)
 - dist:
 
   A distribution specification from
-  [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md)
+  [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md),
+  [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md),
+  [`dist_mirai()`](https://bbuchsbaum.github.io/parade/reference/dist_mirai.md),
   or
-  [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md)
+  [`dist_crew()`](https://bbuchsbaum.github.io/parade/reference/dist_crew.md)
 
 ## Value
 
