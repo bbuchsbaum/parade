@@ -51,12 +51,12 @@ List of created script paths (invisibly)
 ``` r
 # \donttest{
 flow <- flow(data.frame(x = 1:3))
-scaffold_flow_job(flow, name = "my_job")
+scaffold_flow_job(flow, name = "my_job", dir = tempdir())
 #> Created scaffold scripts:
-#>   - /home/runner/work/parade/parade/docs/reference/scripts/my_job_submit.R
-#>   - /home/runner/work/parade/parade/docs/reference/scripts/my_job_sbatch.sh
-#>   - /home/runner/work/parade/parade/docs/reference/scripts/my_job_status.R
-#>   - /home/runner/work/parade/parade/docs/reference/scripts/my_job_collect.R
-#>   - /home/runner/work/parade/parade/docs/reference/scripts/my_job_cancel.sh
+#>   - /tmp/RtmpcIXu7x/scripts/my_job_submit.R
+#>   - /tmp/RtmpcIXu7x/scripts/my_job_sbatch.sh
+#>   - /tmp/RtmpcIXu7x/scripts/my_job_status.R
+#>   - /tmp/RtmpcIXu7x/scripts/my_job_collect.R
+#>   - /tmp/RtmpcIXu7x/scripts/my_job_cancel.sh
 # }
 ```

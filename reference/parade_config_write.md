@@ -26,5 +26,5 @@ Path to written config file (invisibly)
 
 ``` r
 cfg <- list(slurm = list(defaults = list(time = "1h")))
-parade_config_write(cfg)
+parade_config_write(cfg, path = tempfile(fileext = ".json"))
 ```

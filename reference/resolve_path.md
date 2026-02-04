@@ -32,7 +32,7 @@ directories are created so the file path itself is left untouched.
 ## Examples
 
 ``` r
-resolve_path("data://processed/output.rds")
+resolve_path("data://processed/output.rds", create = FALSE)
 #> [1] "/home/runner/work/parade/parade/docs/reference/data/processed/output.rds"
 resolve_path("/absolute/path")
 #> [1] "/absolute/path"

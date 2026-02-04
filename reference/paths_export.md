@@ -37,10 +37,10 @@ paths_init(quiet = TRUE)
 cat(paste(paths_export(), collapse = "\n"))
 #> # parade path exports (bash/sh)
 #> export PARADE_PROJECT='/home/runner/work/parade/parade/docs/reference'
-#> export PARADE_SCRATCH='/tmp/RtmphXrie6'
+#> export PARADE_SCRATCH='/tmp/RtmpcIXu7x'
 #> export PARADE_DATA='/home/runner/work/parade/parade/docs/reference/data'
-#> export PARADE_ARTIFACTS='/tmp/RtmphXrie6/parade-artifacts'
-#> export PARADE_REGISTRY='/tmp/RtmphXrie6/parade-registry'
+#> export PARADE_ARTIFACTS='/tmp/RtmpcIXu7x/parade-artifacts'
+#> export PARADE_REGISTRY='/tmp/RtmpcIXu7x/parade-registry'
 #> export PARADE_CONFIG_DIR='/home/runner/work/parade/parade/docs/reference/.parade'
 #> export PARADE_CACHE='/home/runner/.cache/R/parade'
 ```

@@ -22,5 +22,5 @@ Path to configuration file
 ## Examples
 
 ``` r
-config_path <- parade_config_path()
+config_path <- parade_config_path(create_dirs = FALSE)
 ```

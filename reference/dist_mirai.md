@@ -151,7 +151,7 @@ if (requireNamespace("mirai", quietly = TRUE)) {
 #> $remote
 #> function () 
 #> mirai::ssh_config(c("ssh://node1", "ssh://node2"))
-#> <environment: 0x55d11891fb60>
+#> <environment: 0x560145d81d10>
 #> 
 #> $dispatcher
 #> [1] TRUE
