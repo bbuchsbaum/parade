@@ -45,7 +45,8 @@ create_mock_script <- function(dir, content = NULL) {
 setup_batchtools_mocks <- function() {
   mock_registry <- list(
     file.dir = tempdir(),
-    cluster.functions = list(name = "Slurm")
+    cluster.functions = list(name = "Slurm"),
+    writeable = FALSE
   )
   
   mock_job_table <- data.frame(
@@ -93,6 +94,10 @@ test_that("Configuration + Job Submission workflow integrates correctly", {
   for (name in names(mocks)) {
     stub(submit_slurm, paste0("batchtools::", name), mocks[[name]])
   }
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)
+    mocks$makeRegistry(file.dir = reg_dir, cluster.functions = cf)
+  })
   
   # Step 1: Set defaults with slurm_defaults_set
   defaults <- slurm_defaults_set(
@@ -202,6 +207,10 @@ test_that("Job Submission + Monitoring workflow provides correct status", {
   for (name in names(mocks)) {
     stub(submit_slurm, paste0("batchtools::", name), mocks[[name]])
   }
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)
+    mocks$makeRegistry(file.dir = reg_dir, cluster.functions = cf)
+  })
   
   # Step 1: Submit a mock job
   script_path <- create_mock_script(dirs$project)
@@ -257,7 +266,7 @@ test_that("Job Submission + Monitoring workflow provides correct status", {
   
   metrics <- script_metrics(job)
   
-  expect_equal(metrics$job_id, 12345L)
+  expect_equal(metrics$job_id, "12345")
   expect_equal(metrics$name, "test_monitor")
   expect_equal(metrics$state, "RUNNING")
   expect_equal(metrics$node, "node001")

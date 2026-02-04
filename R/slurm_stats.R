@@ -92,9 +92,11 @@ script_metrics <- function(job) {
     if (requireNamespace("batchtools", quietly = TRUE) && !is.null(job$registry_dir)) {
       reg <- try(batchtools::loadRegistry(job$registry_dir, writeable = FALSE), silent = TRUE)
       if (!inherits(reg, "try-error")) {
-        jt <- batchtools::getJobTable(reg)
-        row <- jt[jt$job.id == job$job_id, , drop = FALSE]
-        if (nrow(row) >= 1 && !is.na(row$batch.id[[1]])) sid <- row$batch.id[[1]]
+        jt <- try(batchtools::getJobTable(reg), silent = TRUE)
+        if (!inherits(jt, "try-error")) {
+          row <- jt[jt$job.id == job$job_id, , drop = FALSE]
+          if (nrow(row) >= 1 && !is.na(row$batch.id[[1]])) sid <- row$batch.id[[1]]
+        }
       }
     }
   }

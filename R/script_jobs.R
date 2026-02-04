@@ -129,7 +129,7 @@ submit_slurm <- function(script,
   resources <- slurm_resources(resources = resources, profile = "default")
   tmpl_path <- resolve_path(template %||% slurm_template_default(), create = FALSE)
   reg_path <- registry_dir %||% paste0("registry://", paste0("script-", run_id))
-  reg_dir <- normalizePath(resolve_path(reg_path, create = FALSE), mustWork = FALSE)
+  reg_dir <- resolve_path(reg_path, create = FALSE)
   dir.create(dirname(reg_dir), recursive = TRUE, showWarnings = FALSE)
   if (dir.exists(reg_dir)) {
     stop(
@@ -283,16 +283,27 @@ script_status <- function(job, detail = FALSE) {
   # Compute summary counts from job table
   na_false <- function(x) ifelse(is.na(x), FALSE, x)
 
+  col_or <- function(df, primary, fallback) {
+    if (primary %in% names(df)) return(df[[primary]])
+    if (fallback %in% names(df)) return(df[[fallback]])
+    rep(NA, nrow(df))
+  }
+
   # Handle case where job table might be empty or have no rows
   if (nrow(jt) == 0) {
     return(tibble::tibble(pending = 0L, started = 0L, running = 0L, done = 0L, error = 0L))
   }
 
-  pending <- sum(is.na(jt$submitted), na.rm = TRUE)
-  running <- sum(na_false(!is.na(jt$started)) & na_false(is.na(jt$done)) & na_false(is.na(jt$error) | jt$error == ""), na.rm = TRUE)
-  started <- sum(!is.na(jt$started), na.rm = TRUE)
-  done <- sum(!is.na(jt$done), na.rm = TRUE)
-  error <- sum(na_false(!is.na(jt$error) & jt$error != ""), na.rm = TRUE)
+  submitted <- col_or(jt, "submitted", "time.submitted")
+  started_col <- col_or(jt, "started", "time.started")
+  done_col <- col_or(jt, "done", "time.done")
+  err_col <- col_or(jt, "error", "error")
+
+  pending <- sum(is.na(submitted), na.rm = TRUE)
+  running <- sum(na_false(!is.na(started_col)) & na_false(is.na(done_col)) & na_false(is.na(err_col) | err_col == ""), na.rm = TRUE)
+  started <- sum(!is.na(started_col), na.rm = TRUE)
+  done <- sum(!is.na(done_col), na.rm = TRUE)
+  error <- sum(na_false(!is.na(err_col) & err_col != ""), na.rm = TRUE)
   tibble::tibble(pending = pending, started = started, running = running, done = done, error = error)
 }
 #' Wait for a SLURM script job to complete

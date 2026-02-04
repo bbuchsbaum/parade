@@ -617,8 +617,9 @@ test_that("deferred_status() for SLURM backend (mocked)", {
       expect_equal(status$done, 3)
       expect_equal(status$error, 0)
     },
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::getStatus` = mock_getStatus
+    loadRegistry = mock_loadRegistry,
+    getStatus = mock_getStatus,
+    .package = "batchtools"
   )
 })
 
@@ -651,8 +652,9 @@ test_that("deferred_status() with detail for SLURM (mocked)", {
       expect_true("job.id" %in% names(status))
       expect_true("status" %in% names(status))
     },
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::getJobTable` = mock_getJobTable
+    loadRegistry = mock_loadRegistry,
+    getJobTable = mock_getJobTable,
+    .package = "batchtools"
   )
 })
 
@@ -698,8 +700,9 @@ test_that("deferred_await() for SLURM backend (mocked)", {
       expect_s3_class(result, "parade_deferred")
       mockery::expect_called(mock_waitForJobs, 1)
     },
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::waitForJobs` = mock_waitForJobs
+    loadRegistry = mock_loadRegistry,
+    waitForJobs = mock_waitForJobs,
+    .package = "batchtools"
   )
 })
 
@@ -778,9 +781,10 @@ test_that("deferred_cancel() for SLURM backend (mocked)", {
       expect_s3_class(result, "parade_deferred")
       mockery::expect_called(mock_killJobs, 1)
     },
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::findRunning` = mock_findRunning,
-    `batchtools::killJobs` = mock_killJobs
+    loadRegistry = mock_loadRegistry,
+    findRunning = mock_findRunning,
+    killJobs = mock_killJobs,
+    .package = "batchtools"
   )
 })
 
@@ -806,9 +810,10 @@ test_that("deferred_cancel() handles 'all' parameter", {
       expect_s3_class(result, "parade_deferred")
       mockery::expect_called(mock_killJobs, 1)
     },
-    `batchtools::loadRegistry` = mock_loadRegistry,
-    `batchtools::findJobs` = mock_findJobs,
-    `batchtools::killJobs` = mock_killJobs
+    loadRegistry = mock_loadRegistry,
+    findJobs = mock_findJobs,
+    killJobs = mock_killJobs,
+    .package = "batchtools"
   )
 })
 
@@ -909,8 +914,9 @@ test_that("deferred_collect() for SLURM with results (mocked)", {
       expect_s3_class(collected, "tbl_df")
       expect_equal(nrow(collected), 4)
     },
-    `batchtools::loadRegistry` = function(...) list(),
-    `batchtools::reduceResultsList` = function(...) list(result1, result2)
+    loadRegistry = function(...) list(),
+    reduceResultsList = function(...) list(result1, result2),
+    .package = "batchtools"
   )
 })
 

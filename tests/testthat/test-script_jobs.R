@@ -70,10 +70,10 @@ test_that("submit_slurm submits a script successfully", {
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", mock_cf)
-  stub(submit_slurm, "batchtools::makeRegistry", function(file.dir, ...) {
-    expect_equal(file.dir, reg_dir_norm)
-    expect_false(dir.exists(file.dir))
-    dir.create(file.dir, recursive = TRUE)
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    expect_equal(reg_dir, reg_dir_norm)
+    expect_false(dir.exists(reg_dir))
+    dir.create(reg_dir, recursive = TRUE)
     mock_reg
   })
   stub(submit_slurm, "batchtools::batchMap", invisible(NULL))
@@ -176,10 +176,10 @@ test_that("submit_slurm uses default values when not specified", {
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", mock_cf)
-  stub(submit_slurm, "batchtools::makeRegistry", function(file.dir, ...) {
-    expect_equal(file.dir, reg_dir_norm)
-    expect_false(dir.exists(file.dir))
-    dir.create(file.dir, recursive = TRUE)
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    expect_equal(reg_dir, reg_dir_norm)
+    expect_false(dir.exists(reg_dir))
+    dir.create(reg_dir, recursive = TRUE)
     mock_reg
   })
   stub(submit_slurm, "batchtools::batchMap", invisible(NULL))
@@ -537,10 +537,10 @@ test_that("submit_slurm saves metadata files", {
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", mock_cf)
-  stub(submit_slurm, "batchtools::makeRegistry", function(file.dir, ...) {
-    expect_equal(file.dir, reg_dir_norm)
-    expect_false(dir.exists(file.dir))
-    dir.create(file.dir, recursive = TRUE)
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    expect_equal(reg_dir, reg_dir_norm)
+    expect_false(dir.exists(reg_dir))
+    dir.create(reg_dir, recursive = TRUE)
     mock_reg
   })
   stub(submit_slurm, "batchtools::batchMap", invisible(NULL))
@@ -578,7 +578,10 @@ test_that("submit_slurm saves metadata files", {
   expect_type(saved_meta, "list")
   expect_equal(saved_meta$name, "metadata_test")
   expect_equal(saved_meta$job_id, 99L)
-  expect_equal(normalizePath(saved_meta$registry), reg_dir_norm)
+  expect_equal(
+    normalizePath(saved_meta$registry, mustWork = FALSE),
+    normalizePath(reg_dir_norm, mustWork = FALSE)
+  )
 })
 
 test_that("submit_slurm handles custom working directory", {
@@ -586,6 +589,9 @@ test_that("submit_slurm handles custom working directory", {
 
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
+  reg_root <- file.path(test_dir, "registry")
+  dir.create(reg_root, recursive = TRUE)
+  reg_dir <- file.path(reg_root, "script-wd")
   custom_wd <- file.path(test_dir, "custom_wd")
   dir.create(custom_wd)
   
@@ -594,7 +600,10 @@ test_that("submit_slurm handles custom working directory", {
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", list(name = "Slurm"))
-  stub(submit_slurm, "batchtools::makeRegistry", create_mock_registry())
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)
+    create_mock_registry()
+  })
   stub(submit_slurm, "batchtools::batchMap", function(fun, i, more.args, ...) {
     batchmap_args <<- more.args
     invisible(NULL)
@@ -608,7 +617,7 @@ test_that("submit_slurm handles custom working directory", {
   stub(submit_slurm, "resolve_path", function(x, ...) x)
   stub(submit_slurm, "file.exists", TRUE)
   
-  submit_slurm(script_path, wd = custom_wd)
+  submit_slurm(script_path, wd = custom_wd, registry_dir = reg_dir)
   
   expect_equal(batchmap_args$wd, custom_wd)
 })
@@ -618,13 +627,19 @@ test_that("submit_slurm handles custom environment variables", {
 
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
+  reg_root <- file.path(test_dir, "registry")
+  dir.create(reg_root, recursive = TRUE)
+  reg_dir <- file.path(reg_root, "script-env")
   
   # Track batchMap call
   batchmap_args <- NULL
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", list(name = "Slurm"))
-  stub(submit_slurm, "batchtools::makeRegistry", create_mock_registry())
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)
+    create_mock_registry()
+  })
   stub(submit_slurm, "batchtools::batchMap", function(fun, i, more.args, ...) {
     batchmap_args <<- more.args
     invisible(NULL)
@@ -640,7 +655,7 @@ test_that("submit_slurm handles custom environment variables", {
   
   env_vars <- c("value1", "value2")
   names(env_vars) <- c("CUSTOM_VAR", "ANOTHER_VAR")
-  submit_slurm(script_path, env = env_vars)
+  submit_slurm(script_path, env = env_vars, registry_dir = reg_dir)
   
   expect_equal(batchmap_args$env, env_vars)
 })
@@ -650,13 +665,19 @@ test_that("submit_slurm handles custom library paths", {
 
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
+  reg_root <- file.path(test_dir, "registry")
+  dir.create(reg_root, recursive = TRUE)
+  reg_dir <- file.path(reg_root, "script-lib")
   
   # Track batchMap call
   batchmap_args <- NULL
   
   stub(submit_slurm, "requireNamespace", TRUE)
   stub(submit_slurm, "batchtools::makeClusterFunctionsSlurm", list(name = "Slurm"))
-  stub(submit_slurm, "batchtools::makeRegistry", create_mock_registry())
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    dir.create(reg_dir, recursive = TRUE, showWarnings = FALSE)
+    create_mock_registry()
+  })
   stub(submit_slurm, "batchtools::batchMap", function(fun, i, more.args, ...) {
     batchmap_args <<- more.args
     invisible(NULL)
@@ -671,7 +692,7 @@ test_that("submit_slurm handles custom library paths", {
   stub(submit_slurm, "file.exists", TRUE)
   
   lib_paths <- c("/custom/lib1", "/custom/lib2")
-  submit_slurm(script_path, lib_paths = lib_paths)
+  submit_slurm(script_path, lib_paths = lib_paths, registry_dir = reg_dir)
   
   expect_equal(batchmap_args$lib_paths, lib_paths)
 })
