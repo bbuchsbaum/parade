@@ -6,7 +6,7 @@ test_that("apply_waves submits jobs in order (no wait)", {
 
   submit_fn <- function(spec) {
     submitted <<- c(submitted, spec)
-    structure(list(id = spec), class = "test_job")
+    structure(list(id = spec), class = "waves_test_job")
   }
 
   wave_policy <- parade::in_waves_of(2, wait = FALSE, delay = 0)
@@ -33,10 +33,10 @@ test_that("apply_concurrency_limit never exceeds max_in_flight", {
     }, logical(1)))
     if (n_running > 2L) stop("submitted more than max_concurrent")
     state$max_seen <- max(state$max_seen, n_running)
-    structure(list(id = spec, .state = state), class = "test_job")
+    structure(list(id = spec, .state = state), class = "waves_test_job")
   }
 
-  job_status.test_job <- function(x) {
+  job_status.waves_test_job <- function(x) {
     st <- get(as.character(x$id), envir = x$.state$status, inherits = FALSE)
     if (identical(st, "RUNNING")) {
       chk <- get(as.character(x$id), envir = x$.state$checks, inherits = FALSE)
@@ -53,8 +53,8 @@ test_that("apply_concurrency_limit never exceeds max_in_flight", {
 
   base::registerS3method(
     "job_status",
-    "test_job",
-    job_status.test_job,
+    "waves_test_job",
+    job_status.waves_test_job,
     envir = asNamespace("parade")
   )
 

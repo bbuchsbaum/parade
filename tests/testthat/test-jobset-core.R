@@ -4,20 +4,20 @@ test_that("jobset status/filters/collect work for custom job classes", {
   mk_job <- function(name, state, result) {
     structure(
       list(name = name, state = state, result = result),
-      class = c("test_job", "parade_job")
+      class = c("jobset_test_job", "parade_job")
     )
   }
 
-  job_status.test_job <- function(x) {
+  job_status.jobset_test_job <- function(x) {
     tibble::tibble(name = x$name, state = x$state, kind = "test")
   }
-  collect_result.test_job <- function(x) x$result
+  collect_result.jobset_test_job <- function(x) x$result
 
-  assign("job_status.test_job", job_status.test_job, envir = .GlobalEnv)
-  assign("collect_result.test_job", collect_result.test_job, envir = .GlobalEnv)
+  assign("job_status.jobset_test_job", job_status.jobset_test_job, envir = .GlobalEnv)
+  assign("collect_result.jobset_test_job", collect_result.jobset_test_job, envir = .GlobalEnv)
   on.exit(
     rm(
-      list = c("job_status.test_job", "collect_result.test_job"),
+      list = c("job_status.jobset_test_job", "collect_result.jobset_test_job"),
       envir = .GlobalEnv
     ),
     add = TRUE
@@ -56,20 +56,20 @@ test_that("collect() flattens packed jobsets into element-level results", {
   mk_job <- function(name, elements) {
     structure(
       list(name = name, state = "COMPLETED", elements = elements),
-      class = c("packed_test_job", "parade_job")
+      class = c("packed_jobset_test_job", "parade_job")
     )
   }
 
-  job_status.packed_test_job <- function(x) {
+  job_status.packed_jobset_test_job <- function(x) {
     tibble::tibble(name = x$name, state = x$state, kind = "test")
   }
-  collect_result.packed_test_job <- function(x) x$elements
+  collect_result.packed_jobset_test_job <- function(x) x$elements
 
-  assign("job_status.packed_test_job", job_status.packed_test_job, envir = .GlobalEnv)
-  assign("collect_result.packed_test_job", collect_result.packed_test_job, envir = .GlobalEnv)
+  assign("job_status.packed_jobset_test_job", job_status.packed_jobset_test_job, envir = .GlobalEnv)
+  assign("collect_result.packed_jobset_test_job", collect_result.packed_jobset_test_job, envir = .GlobalEnv)
   on.exit(
     rm(
-      list = c("job_status.packed_test_job", "collect_result.packed_test_job"),
+      list = c("job_status.packed_jobset_test_job", "collect_result.packed_jobset_test_job"),
       envir = .GlobalEnv
     ),
     add = TRUE
