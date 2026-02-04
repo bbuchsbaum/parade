@@ -33,15 +33,15 @@ Data frame of jobs
 # List all jobs
 registry_ls()
 #>              name      status             created
-#> 2 parade-675725a0 NO_JOB_FILE 2026-02-03 17:20:35
-#> 1 parade-0d1e3539 NO_JOB_FILE 2026-02-03 17:20:33
-#> 3 parade-7e69ebe2 NO_JOB_FILE 2026-02-03 17:20:30
-#> 4 parade-cd32097b NO_JOB_FILE 2026-02-03 17:20:28
+#> 1 parade-45e11179 NO_JOB_FILE 2026-02-04 02:44:46
+#> 2 parade-5a845bcb NO_JOB_FILE 2026-02-04 02:44:44
+#> 3 parade-a341ef82 NO_JOB_FILE 2026-02-04 02:44:41
+#> 4 parade-c07f29a6 NO_JOB_FILE 2026-02-04 02:44:38
 #>                                              path
-#> 2 /tmp/RtmpZ0gHww/parade-registry/parade-675725a0
-#> 1 /tmp/RtmpZ0gHww/parade-registry/parade-0d1e3539
-#> 3 /tmp/RtmpZ0gHww/parade-registry/parade-7e69ebe2
-#> 4 /tmp/RtmpZ0gHww/parade-registry/parade-cd32097b
+#> 1 /tmp/RtmptMwMcX/parade-registry/parade-45e11179
+#> 2 /tmp/RtmptMwMcX/parade-registry/parade-5a845bcb
+#> 3 /tmp/RtmptMwMcX/parade-registry/parade-a341ef82
+#> 4 /tmp/RtmptMwMcX/parade-registry/parade-c07f29a6
 
 # List jobs matching pattern
 registry_ls(pattern = "analysis_*")
@@ -52,14 +52,14 @@ registry_ls(pattern = "analysis_*")
 # List most recent 10 jobs
 registry_ls(limit = 10)
 #>              name      status             created
-#> 2 parade-675725a0 NO_JOB_FILE 2026-02-03 17:20:35
-#> 1 parade-0d1e3539 NO_JOB_FILE 2026-02-03 17:20:33
-#> 3 parade-7e69ebe2 NO_JOB_FILE 2026-02-03 17:20:30
-#> 4 parade-cd32097b NO_JOB_FILE 2026-02-03 17:20:28
+#> 1 parade-45e11179 NO_JOB_FILE 2026-02-04 02:44:46
+#> 2 parade-5a845bcb NO_JOB_FILE 2026-02-04 02:44:44
+#> 3 parade-a341ef82 NO_JOB_FILE 2026-02-04 02:44:41
+#> 4 parade-c07f29a6 NO_JOB_FILE 2026-02-04 02:44:38
 #>                                              path
-#> 2 /tmp/RtmpZ0gHww/parade-registry/parade-675725a0
-#> 1 /tmp/RtmpZ0gHww/parade-registry/parade-0d1e3539
-#> 3 /tmp/RtmpZ0gHww/parade-registry/parade-7e69ebe2
-#> 4 /tmp/RtmpZ0gHww/parade-registry/parade-cd32097b
+#> 1 /tmp/RtmptMwMcX/parade-registry/parade-45e11179
+#> 2 /tmp/RtmptMwMcX/parade-registry/parade-5a845bcb
+#> 3 /tmp/RtmptMwMcX/parade-registry/parade-a341ef82
+#> 4 /tmp/RtmptMwMcX/parade-registry/parade-c07f29a6
 # }
 ```

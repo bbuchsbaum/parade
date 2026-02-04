@@ -102,10 +102,10 @@ parade_init_hpc(
 #> --------------
 #> - Paths initialized (profile='hpc')
 #> - Project:   /home/runner/work/parade/parade/docs/reference
-#> - Scratch:   /tmp/RtmpZ0gHww
-#> - Artifacts: /tmp/RtmpZ0gHww/parade-artifacts
-#> - Registry:  /tmp/RtmpZ0gHww/parade-registry
-#> - Template:  /tmp/RtmpZ0gHww/file1c8a3ba95d00.tmpl
+#> - Scratch:   /tmp/RtmptMwMcX
+#> - Artifacts: /tmp/RtmptMwMcX/parade-artifacts
+#> - Registry:  /tmp/RtmptMwMcX/parade-registry
+#> - Template:  /tmp/RtmptMwMcX/file1c90f5871cd.tmpl
 #> 
 #> Warnings
 #> --------
