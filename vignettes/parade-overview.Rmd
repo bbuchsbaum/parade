@@ -1,10 +1,8 @@
 ---
 title: 'Overview: Parade in 10 Minutes'
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{0. Overview: Parade in 10 Minutes}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+vignette: |
+  %\VignetteIndexEntry{0. Overview: Parade in 10 Minutes} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 params:
   family: red
 css: albers.css
@@ -14,7 +12,7 @@ resource_files:
 includes:
   in_header: |-
     <script src="albers.js"></script>
-    <script>document.addEventListener('DOMContentLoaded',()=>document.body.classList.add('palette-red'));</script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
 
 ---
 

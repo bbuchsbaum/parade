@@ -1,6 +1,7 @@
 url: https://bbuchsbaum.github.io/parade/
 template:
   bootstrap: 5
+  package: albersdown
 home:
   title: Declarative Parallel Dataflow with Future/Mirai/SLURM
   description: Parade builds typed, parallel pipelines with artifact sinks and HPC
