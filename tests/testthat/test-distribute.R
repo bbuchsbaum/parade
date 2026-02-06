@@ -81,10 +81,36 @@ test_that("distribute() requires parade_flow object", {
 test_that("distribute() accepts NULL distribution", {
   fl <- create_test_flow() |>
     distribute(dist_local())
-  
+
   fl_null <- distribute(fl, NULL)
-  
+
   expect_null(fl_null$dist)
+})
+
+test_that("distribute() string shortcut 'local' works", {
+  fl <- create_test_flow()
+  fl2 <- distribute(fl, "local", by = "group")
+  expect_equal(fl2$dist$backend, "local")
+  expect_equal(fl2$dist$by, "group")
+})
+
+test_that("distribute() string shortcut 'slurm' works", {
+  fl <- create_test_flow()
+  fl2 <- distribute(fl, "slurm", by = "group")
+  expect_equal(fl2$dist$backend, "slurm")
+  expect_equal(fl2$dist$by, "group")
+})
+
+test_that("distribute() string shortcut forwards extra args", {
+  fl <- create_test_flow()
+  fl2 <- distribute(fl, "local", by = "group", within = "sequential", chunks_per_job = 5L)
+  expect_equal(fl2$dist$within, "sequential")
+  expect_equal(fl2$dist$chunks_per_job, 5L)
+})
+
+test_that("distribute() string shortcut errors on unknown backend", {
+  fl <- create_test_flow()
+  expect_error(distribute(fl, "bogus"), "should be one of")
 })
 
 # ============================================================================

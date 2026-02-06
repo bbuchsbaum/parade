@@ -2,14 +2,37 @@
 #' Add distribution settings to a parade flow
 #'
 #' @param fl A `parade_flow` object
-#' @param dist A distribution specification from `dist_local()`, `dist_slurm()`,
-#'   `dist_mirai()`, or `dist_crew()`
+#' @param dist A distribution specification object (from `dist_local()`,
+#'   `dist_slurm()`, `dist_mirai()`, `dist_crew()`), or a **string
+#'   shortcut**: `"local"`, `"slurm"`, `"mirai"`, or `"crew"`. When a
+#'   string is given, the corresponding `dist_*()` constructor is called
+#'   with any extra arguments passed via `...`.
+#' @param ... Additional arguments forwarded to the `dist_*()` constructor
+#'   when `dist` is a string shortcut. Ignored when `dist` is already a
+#'   `parade_dist` object.
 #' @return The input flow with distribution settings applied
 #' @export
 #' @examples
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+#'
+#' # Full form
 #' fl <- flow(grid) |> distribute(dist_local(by = "group"))
-distribute <- function(fl, dist) { stopifnot(inherits(fl, "parade_flow")); fl$dist <- dist; fl }
+#'
+#' # String shortcut — equivalent
+#' fl <- flow(grid) |> distribute("local", by = "group")
+distribute <- function(fl, dist, ...) {
+  stopifnot(inherits(fl, "parade_flow"))
+  if (is.character(dist)) {
+    dist <- switch(match.arg(dist, c("local", "slurm", "mirai", "crew")),
+      local = dist_local(...),
+      slurm = dist_slurm(...),
+      mirai = dist_mirai(...),
+      crew  = dist_crew(...)
+    )
+  }
+  fl$dist <- dist
+  fl
+}
 #' Create local distribution specification
 #'
 #' Configure local parallel execution using the future framework.

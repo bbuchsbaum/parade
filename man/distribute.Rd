@@ -4,13 +4,20 @@
 \alias{distribute}
 \title{Add distribution settings to a parade flow}
 \usage{
-distribute(fl, dist)
+distribute(fl, dist, ...)
 }
 \arguments{
 \item{fl}{A \code{parade_flow} object}
 
-\item{dist}{A distribution specification from \code{dist_local()}, \code{dist_slurm()},
-\code{dist_mirai()}, or \code{dist_crew()}}
+\item{dist}{A distribution specification object (from \code{dist_local()},
+\code{dist_slurm()}, \code{dist_mirai()}, \code{dist_crew()}), or a \strong{string
+shortcut}: \code{"local"}, \code{"slurm"}, \code{"mirai"}, or \code{"crew"}. When a
+string is given, the corresponding \verb{dist_*()} constructor is called
+with any extra arguments passed via \code{...}.}
+
+\item{...}{Additional arguments forwarded to the \verb{dist_*()} constructor
+when \code{dist} is a string shortcut. Ignored when \code{dist} is already a
+\code{parade_dist} object.}
 }
 \value{
 The input flow with distribution settings applied
@@ -20,5 +27,10 @@ Add distribution settings to a parade flow
 }
 \examples{
 grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+
+# Full form
 fl <- flow(grid) |> distribute(dist_local(by = "group"))
+
+# String shortcut — equivalent
+fl <- flow(grid) |> distribute("local", by = "group")
 }
