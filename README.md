@@ -88,15 +88,22 @@ jobs_top(list(job1, job2, job3))
 
 ## Mirai backend (optional)
 
-Use mirai for low-latency, scalable fan-out (no socket limits; SSH/TLS if needed).
+Standard future/furrr parallelism is capped at ~125 connections. The
+[mirai](https://cran.r-project.org/package=mirai) backend lifts that
+limit by running persistent **daemon** workers that pull tasks from a
+central dispatcher — giving you low-latency fan-out, automatic load
+balancing, and optional SSH/TLS transport.
 
 ```r
-# dev: local daemons
+# Local: spin up 8 daemon workers on this machine.
+# The dispatcher feeds tasks to whichever worker is free next.
 fl |>
   distribute(dist_mirai(n = 8, dispatcher = TRUE)) |>
   collect()
 
-# HPC: daemon pools under SLURM
+# HPC: launch 32 daemon workers as SLURM jobs.
+# Each worker is a persistent R process that pulls work from the dispatcher,
+# so you get load balancing across nodes without pre-partitioning the grid.
 handle <- fl |>
   distribute(use_mirai_slurm(n = 32, partition = "compute", time = "2h")) |>
   submit()
