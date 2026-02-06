@@ -113,11 +113,23 @@ See [Mirai backend](https://bbuchsbaum.github.io/parade/articles/parade-mirai.ht
 
 ## Portable paths (laptop ↔ HPC without edits)
 
-Write once, run anywhere:
-- `artifacts://` → `$PARADE_SCRATCH/parade-artifacts` (preferred) or `$SCRATCH/parade-artifacts` on SLURM; falls back to `$SLURM_TMPDIR` (node-local) or tempdir
-- `data://`, `project://`, `scratch://`, `registry://`, `config://`, `cache://`
+Hard-coded paths break when you move between your laptop and a cluster.
+Parade solves this with **protocol-style aliases** that resolve to the
+right directory on each machine:
 
-Configure via `paths_set()` or env vars (`PARADE_ARTIFACTS`, `PARADE_SCRATCH`, …). See [Smart Path Management](https://bbuchsbaum.github.io/parade/articles/parade-paths.html).
+```r
+sink_spec(fields = "model", dir = "artifacts://fits")
+#  on laptop → /tmp/parade-artifacts/fits
+#  on HPC    → $SCRATCH/parade-artifacts/fits
+```
+
+The aliases — `artifacts://`, `data://`, `scratch://`, `registry://`,
+`config://`, `cache://` — check environment variables first
+(`PARADE_ARTIFACTS`, `PARADE_SCRATCH`, …), then fall back to sensible
+defaults (shared scratch on SLURM, tempdir locally). Override any of
+them with `paths_set()` or `parade_init_hpc()`.
+
+See [Smart Path Management](https://bbuchsbaum.github.io/parade/articles/parade-paths.html).
 
 ## Artifact catalog (discoverability)
 
