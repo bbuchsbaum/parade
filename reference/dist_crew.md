@@ -109,7 +109,7 @@ if (requireNamespace("crew", quietly = TRUE)) {
 #> $crew$controller
 #> function () 
 #> crew::crew_controller_local(workers = 4)
-#> <environment: 0x56014585a498>
+#> <environment: 0x55d198ab8c48>
 #> 
 #> $crew$persist
 #> [1] FALSE

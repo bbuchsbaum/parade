@@ -67,7 +67,9 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/distribute.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-formula_to_function.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-get_writer_reader.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-guess_interpreter.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-is_missing.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-make_file_ref.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parade_check_type.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parse_sacct_output.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parse_squeue_output.html</loc></url>
@@ -93,6 +95,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/find_file_arg.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/flow.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/flow_control.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/get_arg.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/get_errors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/get_job_id.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/get_running.html</loc></url>
@@ -212,6 +215,8 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/script_load.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/script_logs.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/script_metrics.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/script_returns.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/script_stage.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/script_status.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/script_tail.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/script_top.html</loc></url>

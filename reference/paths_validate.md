@@ -66,10 +66,10 @@ paths_validate()
 #>   alias     path                           exists writable created level message
 #>   <chr>     <chr>                          <lgl>  <lgl>    <lgl>   <chr> <chr>  
 #> 1 project   /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 2 scratch   /tmp/RtmpcIXu7x                TRUE   TRUE     FALSE   ok    ""     
+#> 2 scratch   /tmp/RtmpjoVM1G                TRUE   TRUE     FALSE   ok    ""     
 #> 3 data      /home/runner/work/parade/para… FALSE  TRUE     FALSE   warn  "Direc…
-#> 4 artifacts /tmp/RtmpcIXu7x/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
-#> 5 registry  /tmp/RtmpcIXu7x/parade-regist… TRUE   TRUE     FALSE   ok    ""     
+#> 4 artifacts /tmp/RtmpjoVM1G/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
+#> 5 registry  /tmp/RtmpjoVM1G/parade-regist… TRUE   TRUE     FALSE   ok    ""     
 #> 6 config    /home/runner/work/parade/para… FALSE  TRUE     FALSE   warn  "Direc…
 #> 7 cache     /home/runner/.cache/R/parade   FALSE  TRUE     FALSE   warn  "Direc…
 #> 
@@ -88,10 +88,10 @@ paths_validate(create = TRUE)
 #>   alias     path                           exists writable created level message
 #>   <chr>     <chr>                          <lgl>  <lgl>    <lgl>   <chr> <chr>  
 #> 1 project   /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 2 scratch   /tmp/RtmpcIXu7x                TRUE   TRUE     FALSE   ok    ""     
+#> 2 scratch   /tmp/RtmpjoVM1G                TRUE   TRUE     FALSE   ok    ""     
 #> 3 data      /home/runner/work/parade/para… TRUE   TRUE     TRUE    ok    ""     
-#> 4 artifacts /tmp/RtmpcIXu7x/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
-#> 5 registry  /tmp/RtmpcIXu7x/parade-regist… TRUE   TRUE     FALSE   ok    ""     
+#> 4 artifacts /tmp/RtmpjoVM1G/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
+#> 5 registry  /tmp/RtmpjoVM1G/parade-regist… TRUE   TRUE     FALSE   ok    ""     
 #> 6 config    /home/runner/work/parade/para… TRUE   TRUE     TRUE    ok    ""     
 #> 7 cache     /home/runner/.cache/R/parade   TRUE   TRUE     TRUE    ok    ""     
 #> 

@@ -359,6 +359,9 @@ uses `template: { package: albersdown }`.
 - [`flow_control()`](https://bbuchsbaum.github.io/parade/reference/flow_control.md)
   : Combine flow control policies
 
+- [`get_arg()`](https://bbuchsbaum.github.io/parade/reference/get_arg.md)
+  : Retrieve a command-line argument
+
 - [`get_errors()`](https://bbuchsbaum.github.io/parade/reference/get_errors.md)
   : Get collected errors from a policy
 
@@ -685,6 +688,12 @@ uses `template: { package: albersdown }`.
 
 - [`script_metrics()`](https://bbuchsbaum.github.io/parade/reference/script_metrics.md)
   : Get CPU and memory metrics for a SLURM job
+
+- [`script_returns()`](https://bbuchsbaum.github.io/parade/reference/script_returns.md)
+  : Declare script output files
+
+- [`script_stage()`](https://bbuchsbaum.github.io/parade/reference/script_stage.md)
+  : Add a script-based stage to a parade flow
 
 - [`script_status()`](https://bbuchsbaum.github.io/parade/reference/script_status.md)
   : Get status of a SLURM script job
