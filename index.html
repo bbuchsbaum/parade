@@ -146,14 +146,17 @@
 <div class="section level2">
 <h2 id="mirai-backend-optional">Mirai backend (optional)<a class="anchor" aria-label="anchor" href="#mirai-backend-optional"></a>
 </h2>
-<p>Use mirai for low-latency, scalable fan-out (no socket limits; SSH/TLS if needed).</p>
+<p>Standard future/furrr parallelism is capped at ~125 connections. The <a href="https://cran.r-project.org/package=mirai" class="external-link">mirai</a> backend lifts that limit by running persistent <strong>daemon</strong> workers that pull tasks from a central dispatcher — giving you low-latency fan-out, automatic load balancing, and optional SSH/TLS transport.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># dev: local daemons</span></span>
+<code class="sourceCode R"><span><span class="co"># Local: spin up 8 daemon workers on this machine.</span></span>
+<span><span class="co"># The dispatcher feeds tasks to whichever worker is free next.</span></span>
 <span><span class="va">fl</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="reference/dist_mirai.html">dist_mirai</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8</span>, dispatcher <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/collect.html">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># HPC: daemon pools under SLURM</span></span>
+<span><span class="co"># HPC: launch 32 daemon workers as SLURM jobs.</span></span>
+<span><span class="co"># Each worker is a persistent R process that pulls work from the dispatcher,</span></span>
+<span><span class="co"># so you get load balancing across nodes without pre-partitioning the grid.</span></span>
 <span><span class="va">handle</span> <span class="op">&lt;-</span> <span class="va">fl</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/distribute.html">distribute</a></span><span class="op">(</span><span class="fu"><a href="reference/use_mirai_slurm.html">use_mirai_slurm</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">32</span>, partition <span class="op">=</span> <span class="st">"compute"</span>, time <span class="op">=</span> <span class="st">"2h"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/submit.html">submit</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
