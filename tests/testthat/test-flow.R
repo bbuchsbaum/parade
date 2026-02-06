@@ -83,10 +83,10 @@ test_that("print.parade_flow displays correct information", {
   
   output <- capture.output(print(fl))
   expect_match(output[1], "<parade_flow>")
-  expect_match(output[2], "Grid rows : 5")
-  expect_match(output[3], "Stages    : 0")
-  expect_match(output[4], "Seed col  : id")
-  expect_match(output[5], "Error     : keep")
+  expect_match(output[2], "Grid.*5 rows.*3 cols")
+  expect_match(output[3], "Stages.*0")
+  expect_match(output[4], "Seed col.*id")
+  expect_match(output[5], "Error.*keep")
 })
 
 # ============================================================================

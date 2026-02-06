@@ -11,7 +11,8 @@ submit(
   registry_dir = NULL,
   index_dir = NULL,
   seed_furrr = TRUE,
-  scheduling = 1
+  scheduling = 1,
+  clean = FALSE
 )
 }
 \arguments{
@@ -28,6 +29,9 @@ submit(
 \item{seed_furrr}{Whether to enable deterministic random number generation}
 
 \item{scheduling}{Furrr scheduling parameter}
+
+\item{clean}{If \code{TRUE}, remove an existing registry directory before
+creating a new one. Useful when retrying after a failed submission.}
 }
 \value{
 A \code{parade_deferred} object for monitoring execution

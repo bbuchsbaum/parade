@@ -148,6 +148,7 @@ list_submit_backends <- function() {
   if (!requireNamespace("crew", quietly = TRUE)) {
     stop("submit(): dist_crew requires the 'crew' package.", call. = FALSE)
   }
+  .save_registry_files(handle)
 
   controller <- dist$crew$controller
   controller <- if (is.function(controller)) controller() else controller
@@ -198,7 +199,9 @@ list_submit_backends <- function() {
   }
   tmpl <- resolve_path(dist$slurm$template, create = FALSE)
   cf <- batchtools::makeClusterFunctionsSlurm(tmpl)
+  # batchtools::makeRegistry() creates the directory; save flow/chunks after.
   reg <- bt_make_registry(reg_dir = handle$registry_dir, cf = cf)
+  .save_registry_files(handle)
 
   batchtools::batchMap(
     fun = parade_run_chunk_bt,
@@ -223,6 +226,7 @@ list_submit_backends <- function() {
   if (!requireNamespace("mirai", quietly = TRUE) || !requireNamespace("future.mirai", quietly = TRUE)) {
     stop("submit(): dist_mirai requires 'mirai' and 'future.mirai'.", call. = FALSE)
   }
+  .save_registry_files(handle)
 
   # Initialize mirai daemons based on configuration
   if (!is.null(dist$n)) {
@@ -281,6 +285,7 @@ list_submit_backends <- function() {
 }
 
 .submit_backend_local <- function(handle, dist, chunks, index_dir_resolved, mode, seed_furrr, scheduling) {
+  .save_registry_files(handle)
   op <- future::plan()
   on.exit(future::plan(op), add = TRUE)
 

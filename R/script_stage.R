@@ -422,8 +422,15 @@ script_stage <- function(fl, id, script, produces,
   names(new_formals) <- all_cols
   formals(wrapper) <- new_formals
 
-  stage(fl, id = id, f = wrapper, needs = .needs, schema = sch,
-        prefix = prefix, ...)
+  fl <- stage(fl, id = id, f = wrapper, needs = .needs, schema = sch,
+              prefix = prefix, ...)
+  # Attach script metadata so print.parade_flow can show it
+  fl$stages[[length(fl$stages)]]$script_meta <- list(
+    script = script,
+    produces = .produces,
+    engine = engine
+  )
+  fl
 }
 
 

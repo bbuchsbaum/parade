@@ -39,14 +39,68 @@ pipeline <- function(grid, seed_col = NULL, error = c("propagate","keep","omit",
 #' @param ... Additional arguments (ignored)
 #' @return The input object (invisibly)
 #' @export
-print.parade_flow <- function(x, ...) { 
+print.parade_flow <- function(x, ...) {
   cat("<parade_flow>\n")
-  cat("  Grid rows : ", nrow(x$grid), "\n", sep = "")
-  cat("  Stages    : ", length(x$stages), " [", paste(vapply(x$stages, function(s) s$id, ""), collapse = " -> "), "]\n", sep = "")
-  if (!is.null(x$options$seed_col)) cat("  Seed col  : ", x$options$seed_col, "\n", sep = "")
-  cat("  Error     : ", x$options$error, "\n", sep = "")
-  if (!is.null(x$dist)) cat("  Distribution : ", x$dist$backend, " by ", paste(x$dist$by, collapse = ","), " (chunks=", x$dist$chunks_per_job, ")", "\n", sep = "")
-  invisible(x) 
+
+  # Grid summary with column names
+  nc <- ncol(x$grid)
+  col_names <- names(x$grid)
+  if (nc <= 6L) {
+    col_str <- paste(col_names, collapse = ", ")
+  } else {
+    col_str <- paste0(paste(col_names[1:5], collapse = ", "), ", ... +", nc - 5L, " more")
+  }
+  cat("  Grid     : ", nrow(x$grid), " rows \u00d7 ", nc, " cols [", col_str, "]\n", sep = "")
+
+  # Stages with detail
+  ids <- vapply(x$stages, function(s) s$id, "")
+  cat("  Stages   : ", length(x$stages), " [", paste(ids, collapse = " -> "), "]\n", sep = "")
+  for (s in x$stages) {
+    needs_str <- if (length(s$needs) > 0L) paste0("  needs: ", paste(s$needs, collapse = ", ")) else ""
+    if (!is.null(s$script_meta)) {
+      cat("    ", s$id, " : script(\"", basename(s$script_meta$script), "\")", needs_str, "\n", sep = "")
+      cat("             produces: ", paste(names(s$script_meta$produces), collapse = ", "), "\n", sep = "")
+    } else {
+      out_names <- if (!is.null(s$ptype)) paste(names(s$ptype), collapse = ", ") else ""
+      cat("    ", s$id, " : fn()", needs_str, "\n", sep = "")
+      if (nzchar(out_names)) cat("             returns: ", out_names, "\n", sep = "")
+    }
+  }
+
+  if (!is.null(x$options$seed_col)) cat("  Seed col : ", x$options$seed_col, "\n", sep = "")
+  cat("  Error    : ", x$options$error, "\n", sep = "")
+
+  # Distribution detail
+  if (!is.null(x$dist)) {
+    d <- x$dist
+    cat("  Dist     : ", d$backend, "\n", sep = "")
+    if (length(d$by) > 0L) {
+      n_groups <- tryCatch({
+        key <- tibble::as_tibble(x$grid[d$by])
+        nlevels(interaction(key, drop = TRUE))
+      }, error = function(e) NA_integer_)
+      by_str <- paste(d$by, collapse = ", ")
+      if (!is.na(n_groups)) {
+        cat("    by     : ", by_str, " (", n_groups, " groups)\n", sep = "")
+      } else {
+        cat("    by     : ", by_str, "\n", sep = "")
+      }
+    }
+    cat("    within : ", d$within, "\n", sep = "")
+    if (!is.null(d$target_jobs)) {
+      cat("    jobs   : ~", d$target_jobs, " (target)\n", sep = "")
+    } else {
+      cat("    chunks : ", d$chunks_per_job, " per job\n", sep = "")
+    }
+    if (!is.null(d$slurm) && length(d$slurm$resources) > 0L) {
+      cat("    resources:\n")
+      for (nm in names(d$slurm$resources)) {
+        cat("      ", nm, " = ", as.character(d$slurm$resources[[nm]]), "\n", sep = "")
+      }
+    }
+  }
+
+  invisible(x)
 }
 #' Add a processing stage to a parade flow
 #'

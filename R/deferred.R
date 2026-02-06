@@ -33,6 +33,8 @@
 #' @param index_dir Directory for result indices
 #' @param seed_furrr Whether to enable deterministic random number generation
 #' @param scheduling Furrr scheduling parameter
+#' @param clean If `TRUE`, remove an existing registry directory before
+#'   creating a new one. Useful when retrying after a failed submission.
 #' @return A `parade_deferred` object for monitoring execution
 #' @export
 #' @examples
@@ -44,7 +46,7 @@
 #' 
 #' deferred <- submit(fl)
 #' }
-submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir = NULL, index_dir = NULL, seed_furrr = TRUE, scheduling = 1) {
+submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir = NULL, index_dir = NULL, seed_furrr = TRUE, scheduling = 1, clean = FALSE) {
   stopifnot(inherits(fl, "parade_flow"))
   mode <- match.arg(mode)
   dist <- fl$dist
@@ -71,9 +73,25 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
   chunks <- split(groups, ceiling(seq_along(groups) / chunks_per_job))
   run_id <- run_id %||% substr(digest::digest(list(Sys.time(), nrow(grid), names(grid))), 1, 8)
   registry_dir <- registry_dir %||% paste0("registry://", paste0("parade-", run_id))
-  registry_dir_real <- resolve_path(registry_dir)
-  flow_path <- file.path(registry_dir_real, "flow.rds"); chunks_path <- file.path(registry_dir_real, "chunks.rds")
-  dir.create(registry_dir_real, recursive = TRUE, showWarnings = FALSE)
+  # Resolve path without creating the directory — backends handle creation
+  # so that batchtools::makeRegistry() can own the directory for SLURM.
+  registry_dir_real <- resolve_path(registry_dir, create = FALSE)
+  dir.create(dirname(registry_dir_real), recursive = TRUE, showWarnings = FALSE)
+
+  # Handle existing registry from a previous (possibly failed) run
+  if (dir.exists(registry_dir_real)) {
+    if (isTRUE(clean)) {
+      unlink(registry_dir_real, recursive = TRUE)
+    } else {
+      stop(sprintf(
+        "submit(): registry already exists:\n  %s\nUse submit(fl, clean = TRUE) to replace it, or specify a different run_id.",
+        registry_dir_real
+      ), call. = FALSE)
+    }
+  }
+
+  flow_path <- file.path(registry_dir_real, "flow.rds")
+  chunks_path <- file.path(registry_dir_real, "chunks.rds")
 
   # Avoid serializing external controller objects into the worker-side flow.
   fl_for_worker <- fl
@@ -81,11 +99,9 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     fl_for_worker$dist$crew$controller <- NULL
   }
 
-  saveRDS(fl_for_worker, flow_path)
-  saveRDS(chunks, chunks_path)
   index_dir <- if (is.null(index_dir)) file.path("artifacts://runs", run_id, "index") else index_dir
   index_dir_resolved <- resolve_path(index_dir); dir.create(index_dir_resolved, recursive = TRUE, showWarnings = FALSE)
-  handle <- list(backend = dist$backend, by = dist$by, mode = mode, run_id = run_id, registry_dir = normalizePath(registry_dir_real, mustWork = FALSE), flow_path = normalizePath(flow_path, mustWork = FALSE), chunks_path = normalizePath(chunks_path, mustWork = FALSE), index_dir = index_dir, submitted_at = as.character(Sys.time()), jobs = NULL); class(handle) <- "parade_deferred"
+  handle <- list(backend = dist$backend, by = dist$by, mode = mode, run_id = run_id, registry_dir = normalizePath(registry_dir_real, mustWork = FALSE), flow_path = normalizePath(flow_path, mustWork = FALSE), chunks_path = normalizePath(chunks_path, mustWork = FALSE), index_dir = index_dir, submitted_at = as.character(Sys.time()), jobs = NULL, .fl_data = fl_for_worker, .chunks_data = chunks); class(handle) <- "parade_deferred"
   submitter <- .get_submit_backend(dist$backend)
   if (is.null(submitter)) {
     stop(
@@ -106,7 +122,18 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     seed_furrr = seed_furrr,
     scheduling = scheduling
   )
+  handle$.fl_data <- NULL
+  handle$.chunks_data <- NULL
   handle
+}
+
+# Save flow and chunk definitions into the registry directory.
+# Backends call this after ensuring the directory exists.
+.save_registry_files <- function(handle) {
+  dir.create(dirname(handle$flow_path), recursive = TRUE, showWarnings = FALSE)
+  saveRDS(handle$.fl_data, handle$flow_path)
+  saveRDS(handle$.chunks_data, handle$chunks_path)
+  invisible(handle)
 }
 #' Run a single distributed chunk via batchtools
 #'
