@@ -33,15 +33,15 @@ Data frame of jobs
 # List all jobs
 registry_ls()
 #>              name      status             created
-#> 3 parade-80919871 NO_JOB_FILE 2026-02-06 02:45:21
-#> 2 parade-72d7eecf NO_JOB_FILE 2026-02-06 02:45:18
-#> 4 parade-89759c69 NO_JOB_FILE 2026-02-06 02:45:16
-#> 1 parade-227012a5 NO_JOB_FILE 2026-02-06 02:45:13
+#> 2 parade-7756a928 NO_JOB_FILE 2026-02-06 03:02:51
+#> 4 parade-902c44ee NO_JOB_FILE 2026-02-06 03:02:48
+#> 3 parade-8cf5c35b NO_JOB_FILE 2026-02-06 03:02:46
+#> 1 parade-71150a87 NO_JOB_FILE 2026-02-06 03:02:43
 #>                                              path
-#> 3 /tmp/RtmpUllyCd/parade-registry/parade-80919871
-#> 2 /tmp/RtmpUllyCd/parade-registry/parade-72d7eecf
-#> 4 /tmp/RtmpUllyCd/parade-registry/parade-89759c69
-#> 1 /tmp/RtmpUllyCd/parade-registry/parade-227012a5
+#> 2 /tmp/RtmpfrGA9U/parade-registry/parade-7756a928
+#> 4 /tmp/RtmpfrGA9U/parade-registry/parade-902c44ee
+#> 3 /tmp/RtmpfrGA9U/parade-registry/parade-8cf5c35b
+#> 1 /tmp/RtmpfrGA9U/parade-registry/parade-71150a87
 
 # List jobs matching pattern
 registry_ls(pattern = "analysis_*")
@@ -52,14 +52,14 @@ registry_ls(pattern = "analysis_*")
 # List most recent 10 jobs
 registry_ls(limit = 10)
 #>              name      status             created
-#> 3 parade-80919871 NO_JOB_FILE 2026-02-06 02:45:21
-#> 2 parade-72d7eecf NO_JOB_FILE 2026-02-06 02:45:18
-#> 4 parade-89759c69 NO_JOB_FILE 2026-02-06 02:45:16
-#> 1 parade-227012a5 NO_JOB_FILE 2026-02-06 02:45:13
+#> 2 parade-7756a928 NO_JOB_FILE 2026-02-06 03:02:51
+#> 4 parade-902c44ee NO_JOB_FILE 2026-02-06 03:02:48
+#> 3 parade-8cf5c35b NO_JOB_FILE 2026-02-06 03:02:46
+#> 1 parade-71150a87 NO_JOB_FILE 2026-02-06 03:02:43
 #>                                              path
-#> 3 /tmp/RtmpUllyCd/parade-registry/parade-80919871
-#> 2 /tmp/RtmpUllyCd/parade-registry/parade-72d7eecf
-#> 4 /tmp/RtmpUllyCd/parade-registry/parade-89759c69
-#> 1 /tmp/RtmpUllyCd/parade-registry/parade-227012a5
+#> 2 /tmp/RtmpfrGA9U/parade-registry/parade-7756a928
+#> 4 /tmp/RtmpfrGA9U/parade-registry/parade-902c44ee
+#> 3 /tmp/RtmpfrGA9U/parade-registry/parade-8cf5c35b
+#> 1 /tmp/RtmpfrGA9U/parade-registry/parade-71150a87
 # }
 ```
