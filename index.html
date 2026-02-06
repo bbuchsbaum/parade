@@ -165,13 +165,18 @@
 <div class="section level2">
 <h2 id="portable-paths-laptop--hpc-without-edits">Portable paths (laptop ↔︎ HPC without edits)<a class="anchor" aria-label="anchor" href="#portable-paths-laptop--hpc-without-edits"></a>
 </h2>
-<p>Write once, run anywhere: - <code>artifacts://</code> → <code>$PARADE_SCRATCH/parade-artifacts</code> (preferred) or <code>$SCRATCH/parade-artifacts</code> on SLURM; falls back to <code>$SLURM_TMPDIR</code> (node-local) or tempdir - <code>data://</code>, <code>project://</code>, <code>scratch://</code>, <code>registry://</code>, <code>config://</code>, <code>cache://</code></p>
-<p>Configure via <code><a href="reference/paths_set.html">paths_set()</a></code> or env vars (<code>PARADE_ARTIFACTS</code>, <code>PARADE_SCRATCH</code>, …). See <a href="https://bbuchsbaum.github.io/parade/articles/parade-paths.html">Smart Path Management</a>.</p>
+<p>Hard-coded paths break when you move between your laptop and a cluster. Parade solves this with <strong>protocol-style aliases</strong> that resolve to the right directory on each machine:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/sink_spec.html">sink_spec</a></span><span class="op">(</span>fields <span class="op">=</span> <span class="st">"model"</span>, dir <span class="op">=</span> <span class="st">"artifacts://fits"</span><span class="op">)</span></span>
+<span><span class="co">#  on laptop → /tmp/parade-artifacts/fits</span></span>
+<span><span class="co">#  on HPC    → $SCRATCH/parade-artifacts/fits</span></span></code></pre></div>
+<p>The aliases — <code>artifacts://</code>, <code>data://</code>, <code>scratch://</code>, <code>registry://</code>, <code>config://</code>, <code>cache://</code> — check environment variables first (<code>PARADE_ARTIFACTS</code>, <code>PARADE_SCRATCH</code>, …), then fall back to sensible defaults (shared scratch on SLURM, tempdir locally). Override any of them with <code><a href="reference/paths_set.html">paths_set()</a></code> or <code><a href="reference/parade_init_hpc.html">parade_init_hpc()</a></code>.</p>
+<p>See <a href="https://bbuchsbaum.github.io/parade/articles/parade-paths.html">Smart Path Management</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="artifact-catalog-discoverability">Artifact catalog (discoverability)<a class="anchor" aria-label="anchor" href="#artifact-catalog-discoverability"></a>
 </h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List artifacts under your artifacts root (uses sink sidecars when present)</span></span>
 <span><span class="fu"><a href="reference/artifact_catalog.html">artifact_catalog</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
