@@ -86,7 +86,7 @@ scaffold_flow_job <- function(flow,
   if (!is.null(modules) && length(modules) > 0) {
     sb <- c(sb, paste0("module load ", modules))
   } else {
-    sb <- c(sb, "module load R || true")
+    sb <- c(sb, "module load r")
   }
   
   if (is.list(exports) && length(exports) > 0) {

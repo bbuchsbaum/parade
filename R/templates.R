@@ -6,7 +6,7 @@
 #'
 #' @param system Character string specifying the batch system. Currently only "slurm" is supported.
 #' @param out Path where the template file should be written. Defaults to "batchtools/parade-slurm.tmpl".
-#' @param modules Character vector of modules to load. Default is "R".
+#' @param modules Character vector of modules to load. Default is "r".
 #' @param exports Named character vector of environment variables to export in the job script.
 #' @param preamble Character vector of additional shell commands to include in the template preamble.
 #' @param overwrite Logical indicating whether to overwrite an existing template file.
@@ -30,7 +30,7 @@
 #' }
 scaffold_batch_template <- function(system = c("slurm"),
                                    out = file.path("batchtools", paste0("parade-", match.arg(system), ".tmpl")),
-                                   modules = "R",
+                                   modules = "r",
                                    exports = c(PARADE_SCRATCH='${PARADE_SCRATCH:-${SCRATCH:-${SCRATCHDIR:-${PSCRATCH:-${WORK:-${SLURM_TMPDIR:-${TMPDIR:-/tmp}}}}}}}',
                                                OMP_NUM_THREADS='1', MKL_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1'),
                                    preamble = character(),
@@ -51,7 +51,7 @@ scaffold_batch_template <- function(system = c("slurm"),
     if (any(grepl("\\s", modules))) stop("modules must not contain whitespace")
     mod_lines <- paste0("module load ", modules)
   } else {
-    mod_lines <- c("module purge || true", "module load R || true")
+    mod_lines <- c("module purge || true", "module load r")
   }
   exp_lines <- character()
   if (!is.null(exports) && length(exports)) {
