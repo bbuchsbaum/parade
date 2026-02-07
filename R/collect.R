@@ -97,7 +97,7 @@ collect.parade_flow <- function(x,
       for (nm in names(a)) a[[nm]] <- .materialize(a[[nm]], reader) 
     }
     res <- try(.autowire_exec(st$f, a), silent = (error != "stop"))
-    if (inherits(res, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' failed: %s", id, as.character(res))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res))); if (identical(error, "propagate")) next else next }
+    if (inherits(res, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' failed: %s", id, as.character(res))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res))); message(sprintf("[parade] Stage '%s' failed: %s", id, trimws(as.character(res)))); if (identical(error, "propagate")) next else next }
     if (!is.null(st$sink)) {
       # Apply sink writing and wrap outputs as file references
       res <- try(.apply_sink(res, st$sink, row, id), silent = (error != "stop"))
@@ -108,6 +108,7 @@ collect.parade_flow <- function(x,
         block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
         acc <- vctrs::vec_cbind(acc, block)
         diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(res, "condition") %||% simpleError(as.character(res)))
+        message(sprintf("[parade] Stage '%s' sink failed: %s", id, trimws(as.character(res))))
         if (identical(error, "propagate")) next else next
       }
       # If autoload is enabled for this stage's sink, materialize sinked
@@ -127,7 +128,7 @@ collect.parade_flow <- function(x,
         }
       }
     }
-    block <- try(.parade_cast_to_ptype_row(res, st$ptype), silent = (error != "stop")); if (inherits(block, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' typing failed: %s", id, as.character(block))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(block, "condition") %||% simpleError(as.character(block))); if (identical(error, "propagate")) next else next }
+    block <- try(.parade_cast_to_ptype_row(res, st$ptype), silent = (error != "stop")); if (inherits(block, "try-error")) { if (identical(error, "stop")) stop(sprintf("Stage '%s' typing failed: %s", id, as.character(block))); if (identical(error, "omit")) return(NULL); block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct); acc <- vctrs::vec_cbind(acc, block); diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = attr(block, "condition") %||% simpleError(as.character(block))); message(sprintf("[parade] Stage '%s' typing failed: %s", id, trimws(as.character(block)))); if (identical(error, "propagate")) next else next }
     # Validate flexible types if present in schema
     flex_types <- attr(st$ptype, "flex_types", exact = TRUE)
     if (!is.null(flex_types) && exists(".validate_flex_row", mode = "function")) {
@@ -143,6 +144,7 @@ collect.parade_flow <- function(x,
         block <- .parade_cast_to_ptype_row(list(), st$ptype); block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
         acc <- vctrs::vec_cbind(acc, block)
         diag[[id]] <- list(ok = FALSE, skipped = FALSE, error = simpleError(err_msg))
+        message(sprintf("[parade] Stage '%s' validation failed: %s", id, err_msg))
         if (identical(error, "propagate")) next else next
       }
     }

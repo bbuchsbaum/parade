@@ -407,6 +407,18 @@ script_stage <- function(fl, id, script, produces,
           env[[paste0(nm, "_path")]] <- unname(paths[[nm]])
         }
       }
+      # Store original file_refs for get_file_ref() access
+      file_refs <- list()
+      for (nm in names(env)) {
+        if (.is_file_ref(env[[nm]])) file_refs[[nm]] <- env[[nm]]
+      }
+      old_refs <- getOption("parade.args.file_refs")
+      on.exit(options(parade.args.file_refs = old_refs), add = TRUE)
+      options(parade.args.file_refs = file_refs)
+
+      # Flatten file_ref values so get_arg() returns plain path strings
+      env <- .flatten_file_refs_for_env(env)
+
       # Set parade.args so get_arg() works in source engine
       old_args <- getOption("parade.args")
       on.exit(options(parade.args = old_args), add = TRUE)
@@ -519,6 +531,64 @@ script_stage <- function(fl, id, script, produces,
     written = FALSE,
     existed = TRUE
   ))
+}
+
+# file_ref detection and flattening helpers ---------------------------------
+
+#' Check if a value is a file_ref structure
+#'
+#' A file_ref is a length-1 list containing a single-row tibble with a
+#' \code{path} column, as produced by \code{.make_file_ref()} and
+#' \code{.make_file_ref_cached()}.
+#'
+#' @param val Any R value.
+#' @return Logical scalar.
+#' @keywords internal
+.is_file_ref <- function(val) {
+  is.list(val) && length(val) == 1L && is.data.frame(val[[1L]]) &&
+    "path" %in% names(val[[1L]]) && nrow(val[[1L]]) == 1L
+}
+
+#' Flatten file_ref values in an environment list
+#'
+#' Walks an environment list (as used for \code{parade.args}) and replaces
+#' any file_ref structures with the plain path string. This makes
+#' \code{get_arg("upstream.output")} return a simple path instead of the
+#' raw \code{list(tibble(path, ...))} structure.
+#'
+#' @param env Named list of values.
+#' @return The same list with file_ref values replaced by their path strings.
+#' @keywords internal
+.flatten_file_refs_for_env <- function(env) {
+  for (nm in names(env)) {
+    if (.is_file_ref(env[[nm]])) {
+      env[[nm]] <- env[[nm]][[1L]]$path[1L]
+    }
+  }
+  env
+}
+
+#' Retrieve full file_ref metadata for an upstream output
+#'
+#' Returns the original file_ref structure (a list containing a one-row tibble
+#' with columns \code{path}, \code{bytes}, \code{sha256}, \code{written},
+#' \code{existed}) for a given key. Use this when you need metadata beyond
+#' just the file path (e.g., file size or whether the file was freshly written).
+#'
+#' @param key Character name of the upstream output (e.g. \code{"lss.betas1"}).
+#' @return A list containing a one-row tibble with file_ref metadata.
+#' @export
+#' @examples
+#' \dontrun{
+#' # In a script_stage script:
+#' path <- get_arg("lss.betas1")       # returns "/path/to/file.rds"
+#' ref  <- get_file_ref("lss.betas1")  # returns list(tibble(path, bytes, ...))
+#' ref[[1]]$bytes                      # file size in bytes
+#' }
+get_file_ref <- function(key) {
+  injected <- getOption("parade.args.file_refs")
+  if (!is.null(injected) && !is.null(injected[[key]])) return(injected[[key]])
+  stop(sprintf("No file_ref found for '%s'", key), call. = FALSE)
 }
 
 #' Guess interpreter from script file extension

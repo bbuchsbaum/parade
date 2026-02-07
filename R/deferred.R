@@ -210,7 +210,26 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   future::plan(list(inner))
   rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
   rows <- purrr::compact(rows); res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
-  if (identical(mode, "index")) { p <- file.path(index_dir, sprintf("index-%04d.rds", as.integer(job_id))); dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE); saveRDS(res, p, compress = "gzip"); invisible(list(ok = TRUE, n = nrow(res), index = p)) } else { res }
+  if (identical(mode, "index")) {
+    p <- file.path(index_dir, sprintf("index-%04d.rds", as.integer(job_id)))
+    dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE)
+    saveRDS(res, p, compress = "gzip")
+
+    # Check for errors in results — surface them so SLURM exit code is non-zero
+    n_errors <- sum(!vapply(seq_len(nrow(res)), function(i) {
+      diag <- res$.diag[[i]]
+      all(vapply(diag, function(d) isTRUE(d$ok) || isTRUE(d$skipped), logical(1)))
+    }, logical(1)))
+
+    if (n_errors > 0L) {
+      message(sprintf("[parade] Chunk %s: %d of %d rows had stage errors (index saved to %s)",
+                      job_id, n_errors, nrow(res), p))
+      stop(sprintf("parade chunk %s: %d/%d rows failed", job_id, n_errors, nrow(res)),
+           call. = FALSE)
+    }
+
+    invisible(list(ok = TRUE, n = nrow(res), index = p))
+  } else { res }
 }
 #' Get status of a deferred execution
 #'

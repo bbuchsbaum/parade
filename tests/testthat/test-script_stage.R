@@ -607,3 +607,86 @@ test_that("multiple unnamed produces in manifest mode works", {
   expect_equal(length(fl$stages), 1)
   expect_equal(names(fl$stages[[1]]$ptype), c("model", "metrics"))
 })
+
+# ============================================================================
+# file_ref flattening Tests
+# ============================================================================
+
+test_that(".is_file_ref detects file_ref structures", {
+  ref <- parade:::.make_file_ref(tempfile())
+  # Need a real file for .make_file_ref
+  tmp <- withr::local_tempdir()
+  path <- file.path(tmp, "test.rds")
+  saveRDS(42, path)
+  ref <- parade:::.make_file_ref(path)
+  expect_true(parade:::.is_file_ref(ref))
+  expect_false(parade:::.is_file_ref("plain_string"))
+  expect_false(parade:::.is_file_ref(42))
+  expect_false(parade:::.is_file_ref(list(1, 2)))
+  expect_false(parade:::.is_file_ref(list(data.frame(a = 1))))
+})
+
+test_that(".flatten_file_refs_for_env replaces file_refs with paths", {
+  tmp <- withr::local_tempdir()
+  path <- file.path(tmp, "test.rds")
+  saveRDS(42, path)
+  ref <- parade:::.make_file_ref(path)
+
+  env <- list(x = 10L, upstream.output = ref, name = "hello")
+  flat <- parade:::.flatten_file_refs_for_env(env)
+  expect_equal(flat$x, 10L)
+  expect_equal(flat$name, "hello")
+  expect_equal(flat$upstream.output, path)
+  expect_true(is.character(flat$upstream.output))
+})
+
+test_that("get_arg returns flat path for upstream file_refs in script_stage", {
+  tmp <- withr::local_tempdir()
+
+  # Stage 1 script: produces a file
+  script1 <- file.path(tmp, "writer.R")
+  writeLines('saveRDS(list(val = x * 10), output_path)', script1)
+
+  # Stage 2 script: reads upstream path via get_arg
+  script2 <- file.path(tmp, "reader.R")
+  writeLines(c(
+    'upstream_path <- parade::get_arg("gen.output")',
+    'stopifnot(is.character(upstream_path))',
+    'dat <- readRDS(upstream_path)',
+    'saveRDS(dat$val + 1, output_path)'
+  ), script2)
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("gen",
+      script = script1,
+      produces = file.path(tmp, "gen_{x}.rds")
+    ) |>
+    script_stage("read",
+      script = script2,
+      needs = "gen",
+      produces = file.path(tmp, "read_{x}.rds")
+    )
+
+  res <- collect(fl, engine = "sequential")
+  expect_equal(nrow(res), 2)
+  expect_equal(readRDS(res$read.output[[1]]$path), 11)
+  expect_equal(readRDS(res$read.output[[2]]$path), 21)
+})
+
+test_that("get_file_ref returns full metadata when file_refs available", {
+  tmp <- withr::local_tempdir()
+  path <- file.path(tmp, "test.rds")
+  saveRDS(42, path)
+  ref <- parade:::.make_file_ref(path)
+
+  withr::local_options(parade.args.file_refs = list(upstream.output = ref))
+  result <- get_file_ref("upstream.output")
+  expect_true(parade:::.is_file_ref(result))
+  expect_equal(result[[1]]$path, path)
+})
+
+test_that("get_file_ref errors when key not found", {
+  withr::local_options(parade.args.file_refs = list())
+  expect_error(get_file_ref("nonexistent"), "No file_ref found")
+})
