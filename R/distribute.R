@@ -239,6 +239,11 @@ dist_slurm <- function(by = NULL,
                        chunks_per_job = 1L,
                        target_jobs = NULL) {
   within <- match.arg(within)
+  # Extract workers_within from resources if placed there by mistake
+  if (is.null(workers_within) && !is.null(resources$workers_within)) {
+    workers_within <- resources$workers_within
+    resources$workers_within <- NULL
+  }
   structure(
     list(
       backend = "slurm",

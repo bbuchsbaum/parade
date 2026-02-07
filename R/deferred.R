@@ -181,17 +181,28 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   sub <- grid[subrows, , drop = FALSE]
   order <- .toposort(fl$stages)
   op <- future::plan(); on.exit(future::plan(op), add = TRUE)
+  n_workers <- dist$workers_within
+  if (is.null(n_workers)) {
+    # Safe default: use parallelly::availableCores() which respects connection
+    # limits, falling back to a capped SLURM_CPUS_PER_TASK.
+    if (requireNamespace("parallelly", quietly = TRUE)) {
+      n_workers <- parallelly::availableCores()
+    } else {
+      n_workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+      # R has a hard limit on connections (default 128, minus ~4 reserved).
+      # Cap to avoid "cannot open connection" errors.
+      max_conn <- as.integer(Sys.getenv("R_MAX_NUM_DLLS", "128"))
+      n_workers <- min(n_workers, max_conn - 6L, 120L)
+    }
+  }
   inner <- switch(within,
-    "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
-    "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))),
+    "multisession" = future::tweak(future::multisession, workers = n_workers),
+    "multicore" = future::tweak(future::multicore, workers = n_workers),
     "callr" = {
       if (!requireNamespace("future.callr", quietly = TRUE)) {
         stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
       }
-      future::tweak(
-        future.callr::callr,
-        workers = dist$workers_within %||% as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-      )
+      future::tweak(future.callr::callr, workers = n_workers)
     },
     "sequential" = future::sequential,
     future::sequential  # fallback
