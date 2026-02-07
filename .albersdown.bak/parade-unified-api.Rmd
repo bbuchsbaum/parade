@@ -1,8 +1,10 @@
 ---
 title: 'Unified API: Functions and Scripts, One Surface'
 output: rmarkdown::html_vignette
-vignette: '%\VignetteIndexEntry{1. Unified API: functions and scripts} %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}'
+vignette: >
+  %\VignetteIndexEntry{1. Unified API: functions and scripts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
 css: albers.css
@@ -17,7 +19,6 @@ includes:
 ---
 
 ```{r setup, include=FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -34,7 +35,12 @@ See also:
 
 ```r
 library(parade)
+
+# Local dev:
 paths_init(quiet = TRUE)
+
+# HPC (recommended):
+# parade_init_hpc(persist = TRUE)
 
 # Submit a single function call
 job <- slurm_call(
@@ -62,6 +68,56 @@ jobs <- slurm_map(files, "scripts/process_one.R",
                   .args = args_cli(input = .x),
                   .name_by = stem())
 ```
+
+## Packed jobs (HPC-friendly) and “one big machine” best-effort
+
+When you have many tasks, HPC admins often prefer *fewer jobs that fully use a node*.
+Use packed mode:
+
+```r
+jobs <- slurm_map(
+  1:10000,
+  ~ .x^2,
+  .packed = TRUE,
+  .workers_per_node = 32,
+  .target_jobs = 200,                 # optional: choose chunk size from a target job count
+  .resources = list(nodes = 1, ntasks = 1, cpus_per_task = 32, time = "2h", mem = "16G")
+)
+```
+
+If you want to think in terms of a cluster shape (e.g., 10 nodes × 196 cores),
+use `slurm_map_cluster()`:
+
+```r
+jobs <- slurm_map_cluster(
+  1:10000,
+  ~ .x^2,
+  nodes = 10,
+  cpus_per_node = 196,
+  oversubscribe = 2,
+  .resources = list(time = "2h", mem = "64G")
+)
+```
+
+### Flows (DAGs): express an allocation shape once
+
+If you’re using `flow()` + `submit()`, you can express “10 nodes × 196 cores” as a
+distribution spec and keep the DAG itself unchanged:
+
+```r
+fl <- fl |>
+  distribute(dist_slurm_allocation(
+    nodes = 10,
+    cores_per_node = 196,
+    within = "multicore",
+    target_jobs = 20,             # optional oversubscription for heterogeneous runtimes
+    resources = list(time = "2h", mem = "64G")
+  ))
+```
+
+This is still static partitioning at submit time. If task durations vary widely, consider
+dispatcher-style backends (`dist_mirai(..., dispatcher = TRUE)` or `dist_crew(...)`) for
+more dynamic load balancing.
 
 ## Elegant naming and paths
 
@@ -140,7 +196,7 @@ To keep the surface consistent across functions and scripts, a few arguments sho
   - Macros like {run}, {stem}, {name}, {index}, {date}, {time}, {user}, {host} are expanded the same way everywhere.
 
 - resources / .resources: how much you ask SLURM for
-  - Accepts a profile name (e.g., "gpu", "standard"), a chained profile object (profile() %>% time("2h") %>% cpus(8)), or a simple list.
+  - Accepts a profile name (e.g., "gpu", "standard"), a chained profile object (profile() %>% res_time("2h") %>% cpus(8)), or a simple list.
   - Legacy shortcuts like "cpu8", "mem32G", "gpu2" are still recognized.
 
 - .as_jobset (slurm_call only): opt into the jobset surface for single jobs

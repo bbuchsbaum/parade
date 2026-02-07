@@ -1,8 +1,10 @@
 ---
 title: SLURM script submission and monitoring from R
 output: rmarkdown::html_vignette
-vignette: '%\VignetteIndexEntry{10. SLURM Scripts: submission and monitoring} %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}'
+vignette: >
+  %\VignetteIndexEntry{10. SLURM Scripts: submission and monitoring}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
 css: albers.css
@@ -17,7 +19,6 @@ includes:
 ---
 
 ```{r setup, include=FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -38,7 +39,13 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 
 ```r
 library(parade)
-paths_init()  # Sets up your data/artifact/registry roots so parade can resolve aliases like registry://
+
+# Recommended (HPC): one-command setup
+parade_init_hpc(persist = TRUE)
+
+# Manual alternative:
+# paths_init(profile = "hpc")
+# parade_doctor(create = TRUE)
 
 # Optional: Configure site defaults
 # Note: mem=NA means use cluster default memory allocation
@@ -63,6 +70,9 @@ job <- slurm_call(
 
 # Quick status check
 script_status(job)
+
+# Unified dashboard (summary; use action="top" for interactive monitoring)
+parade_dashboard(job)
 
 # View recent log output
 script_tail(job, 80)
@@ -307,7 +317,7 @@ job <- slurm_call(my_function, x = 1, resources = "highmem")
 
 # Create custom profiles with chaining
 my_profile <- profile() %>%
-  time("8:00:00") %>%
+  res_time("8:00:00") %>%
   mem("32G") %>%
   cpus(16) %>%
   partition("compute")
@@ -317,7 +327,7 @@ job <- slurm_call(my_function, x = 1, resources = my_profile)
 # Register profiles for reuse
 profile_register("ml_training",
   profile() %>%
-    time("24:00:00") %>%
+    res_time("24:00:00") %>%
     mem("64G") %>%
     cpus(32) %>%
     gpus(2)
