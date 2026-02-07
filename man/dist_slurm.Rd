@@ -15,40 +15,153 @@ dist_slurm(
 )
 }
 \arguments{
-\item{by}{Column names to group by for parallelization}
+\item{by}{Character vector of grid column names used to define groups.
+Each unique combination of these columns becomes one \strong{group}. Groups
+are the unit of distribution — each group is assigned to a SLURM job.
+\itemize{
+\item \code{by = "subject"} with 20 subjects → 20 groups → 20 SLURM jobs
+\item \code{by = c("shift", "ridge_x")} → one group per shift×ridge_x combo
+\item \code{by = NULL} (default) → every row is its own group
+}}
 
-\item{within}{Execution strategy within each SLURM job: "multisession", "multicore", "callr", or "sequential"}
+\item{within}{How to execute rows \strong{inside} each SLURM job, once the
+job is running on a compute node:
+\itemize{
+\item \code{"sequential"} (default): rows run one at a time. Use when each row
+already saturates the node (e.g., the script itself is multi-threaded).
+\item \code{"multicore"}: fork \code{workers_within} processes on the node.
+Good for many independent, single-threaded rows on a multi-core node.
+\item \code{"multisession"}: spawn \code{workers_within} R sub-sessions on the node.
+Like multicore but works everywhere (including RStudio).
+\item \code{"callr"}: same idea, but via the callr package (fully isolated R
+sessions).
+}}
 
-\item{workers_within}{Number of workers within each SLURM job}
+\item{workers_within}{Integer; how many parallel workers to use for the
+\code{within} strategy on each compute node. Only relevant when \code{within} is
+not \code{"sequential"}. Defaults to \code{NULL}, which reads
+\code{SLURM_CPUS_PER_TASK} at runtime (i.e., matches your \code{cpus_per_task}
+resource request).}
 
-\item{template}{Path to SLURM batch template file}
+\item{template}{Path to the SLURM batch template file. Defaults to
+parade's built-in template (\code{slurm_template()}). Override for custom
+preambles, module stacks, or site-specific \verb{#SBATCH} flags.}
 
-\item{resources}{Named list of SLURM resource specifications}
+\item{resources}{Named list of SLURM resource requests. These are
+passed to the batch template as \verb{#SBATCH} flags. Common keys:
+\code{account}, \code{time}, \code{mem}, \code{cpus_per_task}, \code{nodes}, \code{partition}.
+See \strong{Resource keys} for the full list.}
 
-\item{chunks_per_job}{Number of groups to process per SLURM job.}
+\item{chunks_per_job}{How many groups to pack into each SLURM job.
+Defaults to \code{1} (one group per job). Increase to reduce the total
+number of jobs when you have many small groups.
+\itemize{
+\item \code{chunks_per_job = 1}: 81 groups → 81 SLURM jobs
+\item \code{chunks_per_job = 3}: 81 groups → 27 SLURM jobs (3 groups each)
+}}
 
-\item{target_jobs}{Optional integer; target number of SLURM jobs to create
-(overrides \code{chunks_per_job} at submit time).}
+\item{target_jobs}{Integer; the total number of SLURM jobs to create.
+Overrides \code{chunks_per_job} — parade divides groups evenly across
+this many jobs. Useful when you have a fixed allocation and want to
+fill it.
+\itemize{
+\item \code{target_jobs = 10} with 81 groups → 10 jobs (~8 groups each)
+\item \code{target_jobs = NULL} (default): use \code{chunks_per_job} instead
+}}
 }
 \value{
 A \code{parade_dist} object for SLURM execution
 }
 \description{
 Configure distributed execution on SLURM clusters using batchtools.
+Each SLURM job runs one or more \strong{groups} of grid rows.
 }
+\section{Two levels of parallelism}{
+
+
+Parade distributes work in two layers:
+\enumerate{
+\item \strong{Between jobs} (\code{by}): the grid is split into groups by the \code{by}
+columns, and groups are packed into SLURM jobs. Each job is an
+independent \code{sbatch} submission.
+\item \strong{Within each job} (\code{within}): rows inside a job can themselves
+run in parallel using forked processes or R sub-sessions. This is
+useful when a single SLURM job has many cores (e.g., a full node).
+}
+}
+
+\section{Resource keys}{
+
+
+Standard SLURM resources (passed as \verb{#SBATCH} flags): \code{account},
+\code{partition}, \code{qos}, \code{time}, \code{mem}, \code{nodes}, \code{ntasks},
+\code{ntasks_per_node}, \code{cpus_per_task}.
+
+Parade-specific resource keys:
+\describe{
+\item{\code{modules}}{Character vector of environment modules to load on
+compute nodes (e.g., \code{c("StdEnv/2023", "r/4.4.0")}). By default
+parade captures the modules loaded in your current R session and
+replays them on the nodes. Set \code{modules = character(0)} to suppress
+all module handling.}
+}
+}
+
 \examples{
-# Create SLURM distribution specification
-dist <- dist_slurm(by = "condition", resources = list(time = "1h", mem = "4GB"))
+# -- Basic: one SLURM job per subject, 2-hour wall time --
+dist_slurm(
+  by = "subject",
+  resources = list(account = "my-account", time = "2:00:00", mem = "8G")
+)
 
-# Use multicore within each SLURM job for efficiency
-dist <- dist_slurm(by = "condition", within = "multicore", workers_within = 8,
-                   resources = list(cpus_per_task = 8))
+# -- Full-node jobs with within-node parallelism --
+# Each SLURM job gets one full node (192 cores). Rows inside each
+# job run in parallel across those cores via forking.
+dist_slurm(
+  by = c("shift", "ridge_x", "ridge_b"),
+  within = "multicore",                # fork on the node
+  resources = list(
+    account       = "rrg-mylab",
+    time          = "8:00:00",
+    mem           = "0",               # 0 = all node memory
+    cpus_per_task = 192L,
+    nodes         = 1L
+  )
+)
 
-# Use with a flow (configuration only, no execution)
-grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
-\dontrun{
-flow(grid) |>
-  stage("process", function(x) x * 2) |>
-  distribute(dist)
-}
+# -- Sequential within (script is already multi-threaded) --
+# Each job processes one group; the script itself uses all 192 cores.
+dist_slurm(
+  by = c("shift", "ridge_x", "ridge_b"),
+  within = "sequential",
+  resources = list(
+    account       = "rrg-mylab",
+    time          = "8:00:00",
+    cpus_per_task = 192L,
+    nodes         = 1L
+  )
+)
+
+# -- Reduce job count: pack 3 groups per job --
+dist_slurm(
+  by = "subject",
+  chunks_per_job = 3L,
+  resources = list(time = "4:00:00")
+)
+
+# -- Fixed allocation: spread across exactly 10 jobs --
+dist_slurm(
+  by = "subject",
+  target_jobs = 10L,
+  resources = list(time = "4:00:00")
+)
+
+# -- Explicit module loading (override auto-detection) --
+dist_slurm(
+  by = "subject",
+  resources = list(
+    time    = "1:00:00",
+    modules = c("StdEnv/2023", "gcc/12.3", "r/4.4.0")
+  )
+)
 }

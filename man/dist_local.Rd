@@ -13,17 +13,50 @@ dist_local(
 )
 }
 \arguments{
-\item{by}{Column names to group by for parallelization}
+\item{by}{Character vector of grid column names used to define groups.
+Each unique combination of these columns becomes one \strong{group}, and
+groups are the unit of parallelism — each group runs as an independent
+future.
+\itemize{
+\item \code{by = "subject"} with 20 subjects → 20 groups
+\item \code{by = c("subject", "session")} → one group per subject×session combo
+\item \code{by = NULL} (default) → every row is its own group
+}}
 
-\item{within}{Execution strategy: "multisession", "multicore", "callr", or "sequential"}
+\item{within}{How to run the rows \strong{inside} each group (i.e., once a
+future lands on a worker, how does it process its rows?):
+\itemize{
+\item \code{"sequential"} (default): one row at a time, no extra parallelism.
+Simplest, lowest memory.
+\item \code{"multisession"}: spawn R sub-processes inside the worker.
+Use when rows are CPU-bound and you have spare cores.
+\item \code{"multicore"}: forked processes (Linux/macOS only, not in RStudio).
+Faster startup than multisession, shares memory.
+\item \code{"callr"}: like multisession but via callr (isolated R sessions).
+}}
 
-\item{workers_within}{Number of workers within each job}
+\item{workers_within}{Integer; how many parallel workers to use for the
+\code{within} strategy inside each group. Only relevant when \code{within} is
+\code{"multisession"}, \code{"multicore"}, or \code{"callr"}.
+Defaults to \code{NULL} (auto: uses all available cores on the machine or
+\code{SLURM_CPUS_PER_TASK} on a cluster node).}
 
-\item{chunks_per_job}{Number of groups to process per job.}
+\item{chunks_per_job}{How many groups to pack into a single future.
+Defaults to \code{1} (one group per future). Increase to reduce scheduling
+overhead when you have many small groups.
+\itemize{
+\item \code{chunks_per_job = 1}: 100 groups → 100 futures
+\item \code{chunks_per_job = 5}: 100 groups → 20 futures (5 groups each)
+}}
 
-\item{target_jobs}{Optional integer; target number of jobs to create (overrides
-\code{chunks_per_job} at submit time). Useful when you want to keep a fixed number
-of jobs in flight regardless of how many groups exist.}
+\item{target_jobs}{Integer; the total number of futures to create.
+Overrides \code{chunks_per_job} — parade divides groups evenly across this
+many futures. Useful when you want a fixed number of parallel units
+regardless of how many groups exist.
+\itemize{
+\item \code{target_jobs = 10} with 100 groups → 10 futures (10 groups each)
+\item \code{target_jobs = NULL} (default): use \code{chunks_per_job} instead
+}}
 }
 \value{
 A \code{parade_dist} object for local execution
@@ -32,7 +65,15 @@ A \code{parade_dist} object for local execution
 Configure local parallel execution using the future framework.
 }
 \examples{
-dist_local(by = "group", within = "multisession")
+# One future per group, rows run sequentially inside each
+dist_local(by = "group", within = "sequential")
+
+# Same grouping, but use forked parallelism inside each group
 dist_local(by = "group", within = "multicore")
-dist_local(chunks_per_job = 2L)
+
+# Pack 2 groups per future to reduce overhead
+dist_local(by = "group", chunks_per_job = 2L)
+
+# Fix at 4 futures regardless of group count
+dist_local(by = "group", target_jobs = 4L)
 }
