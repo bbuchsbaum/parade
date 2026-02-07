@@ -14,6 +14,7 @@ script_stage(
   interpreter = NULL,
   prefix = TRUE,
   skip_when = NULL,
+  skip_if_exists = FALSE,
   ...
 )
 }
@@ -50,6 +51,12 @@ variables (grid columns, upstream outputs, constants). If it returns
 \code{TRUE}, the stage is skipped for that row and output columns are filled
 with \code{NA}. Useful for avoiding redundant work when the same outputs
 are shared across multiple grid rows.}
+
+\item{skip_if_exists}{Logical (default \code{FALSE}). If \code{TRUE}, checks whether
+\strong{all} resolved output files already exist before running the script.
+When they do, the script is skipped and valid \code{\link[=file_ref]{file_ref()}} tibbles are
+returned (with \verb{written = FALSE, existed = TRUE}). Requires template mode
+(produces with glue placeholders); using it with manifest mode will error.}
 
 \item{...}{Additional constant arguments passed through to the stage.}
 }
@@ -88,6 +95,25 @@ with both the \code{source} and \code{system} engines:
 \if{html}{\out{<div class="sourceCode">}}\preformatted{x   <- get_arg("x")
 out <- get_arg("output_path")
 }\if{html}{\out{</div>}}
+}
+
+\section{Caching with \code{skip_if_exists}}{
+
+
+Unlike \code{skip_when}, which runs \strong{before} template resolution and fills
+outputs with \code{NA}, \code{skip_if_exists} runs \strong{inside} the wrapper after
+paths are resolved. This means:
+
+\itemize{
+\item Downstream stages receive real \code{\link[=file_ref]{file_ref()}} tibbles they can read.
+\item The check uses the actual resolved file paths, so it works
+correctly when multiple grid rows map to the same output files.
+\item If \strong{any} declared output is missing, the script runs normally.
+}
+
+\code{skip_when} and \code{skip_if_exists} are orthogonal and can be combined:
+\code{skip_when} is evaluated first; if it doesn't skip, the wrapper runs
+and \code{skip_if_exists} is checked next.
 }
 
 \examples{

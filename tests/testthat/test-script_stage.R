@@ -419,6 +419,182 @@ test_that("multiple unnamed produces in template mode errors", {
   )
 })
 
+# ============================================================================
+# skip_if_exists Tests
+# ============================================================================
+
+test_that("skip_if_exists skips when all outputs exist", {
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "write_file.R")
+  writeLines('saveRDS(list(x = x), output_path)', script_path)
+
+  # Pre-create the output files with known content
+  out1 <- file.path(tmp, "out_1.rds")
+  out2 <- file.path(tmp, "out_2.rds")
+  saveRDS("original_1", out1)
+  saveRDS("original_2", out2)
+  mtime1 <- file.mtime(out1)
+  mtime2 <- file.mtime(out2)
+
+  Sys.sleep(0.1)  # ensure mtime would differ if overwritten
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("s1",
+      script = script_path,
+      produces = file.path(tmp, "out_{x}.rds"),
+      skip_if_exists = TRUE
+    )
+
+  res <- collect(fl, engine = "sequential")
+  expect_equal(nrow(res), 2)
+
+  # Files should NOT have been overwritten
+  expect_equal(file.mtime(out1), mtime1)
+  expect_equal(file.mtime(out2), mtime2)
+  expect_equal(readRDS(out1), "original_1")
+  expect_equal(readRDS(out2), "original_2")
+
+  # File refs should have written=FALSE, existed=TRUE
+  ref1 <- res$s1.output[[1]]
+  expect_s3_class(ref1, "tbl_df")
+  expect_false(ref1$written)
+  expect_true(ref1$existed)
+  expect_equal(ref1$path, out1)
+  expect_true(ref1$bytes > 0)
+})
+
+test_that("skip_if_exists runs script when outputs are missing", {
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "write_file.R")
+  writeLines('saveRDS(list(x = x), output_path)', script_path)
+
+  # Pre-create only one of two outputs
+  out1 <- file.path(tmp, "out_1.rds")
+  saveRDS("original_1", out1)
+  # out_2.rds does NOT exist
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("s1",
+      script = script_path,
+      produces = file.path(tmp, "out_{x}.rds"),
+      skip_if_exists = TRUE
+    )
+
+  res <- collect(fl, engine = "sequential")
+
+  # Row 1: was skipped (file existed)
+  ref1 <- res$s1.output[[1]]
+  expect_false(ref1$written)
+  expect_true(ref1$existed)
+
+  # Row 2: script ran (file was missing)
+  ref2 <- res$s1.output[[2]]
+  expect_true(ref2$written)
+  expect_false(ref2$existed)
+  expect_equal(readRDS(ref2$path), list(x = 2L))
+})
+
+test_that("skip_if_exists returns valid refs for downstream stages", {
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "writer.R")
+  writeLines('saveRDS(list(val = x * 10), output_path)', script_path)
+
+  # Pre-create outputs with known content
+  out1 <- file.path(tmp, "gen_1.rds")
+  out2 <- file.path(tmp, "gen_2.rds")
+  saveRDS(list(val = 10), out1)
+  saveRDS(list(val = 20), out2)
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("gen",
+      script = script_path,
+      produces = file.path(tmp, "gen_{x}.rds"),
+      skip_if_exists = TRUE
+    ) |>
+    stage("read_it",
+      f = function(gen.output) {
+        dat <- readRDS(gen.output[[1]]$path)
+        list(value = as.double(dat$val))
+      },
+      needs = "gen",
+      schema = returns(value = dbl())
+    )
+
+  res <- collect(fl, engine = "sequential")
+  expect_true("read_it.value" %in% names(res))
+  expect_equal(res$read_it.value, c(10, 20))
+})
+
+test_that("skip_if_exists with multiple named outputs", {
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "multi_out.R")
+  writeLines(c(
+    'saveRDS(list(val = x), model_path)',
+    'writeLines(as.character(x), metrics_path)'
+  ), script_path)
+
+  # Pre-create all outputs for row 1
+  model1 <- file.path(tmp, "model_1.rds")
+  metrics1 <- file.path(tmp, "metrics_1.txt")
+  saveRDS("cached_model", model1)
+  writeLines("cached_metrics", metrics1)
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("fit",
+      script = script_path,
+      produces = c(
+        model   = file.path(tmp, "model_{x}.rds"),
+        metrics = file.path(tmp, "metrics_{x}.txt")
+      ),
+      skip_if_exists = TRUE
+    )
+
+  res <- collect(fl, engine = "sequential")
+
+  # Row 1: both outputs cached — skipped
+  expect_false(res$fit.model[[1]]$written)
+  expect_true(res$fit.model[[1]]$existed)
+  expect_false(res$fit.metrics[[1]]$written)
+  expect_equal(readRDS(model1), "cached_model")  # not overwritten
+
+  # Row 2: outputs didn't exist — script ran
+  expect_true(res$fit.model[[2]]$written)
+  expect_equal(readRDS(res$fit.model[[2]]$path)$val, 2L)
+})
+
+test_that("skip_if_exists errors in manifest mode", {
+  grid <- tibble(x = 1L)
+  expect_error(
+    flow(grid) |>
+      script_stage("s1",
+        script = "dummy.R",
+        produces = c("model"),
+        skip_if_exists = TRUE
+      ),
+    "skip_if_exists requires template mode"
+  )
+})
+
+test_that(".make_file_ref_cached produces correct structure", {
+  tmp <- withr::local_tempdir()
+  path <- file.path(tmp, "cached.rds")
+  saveRDS(42, path)
+
+  ref <- parade:::.make_file_ref_cached(path)
+  expect_true(is.list(ref))
+  expect_length(ref, 1)
+  expect_s3_class(ref[[1]], "tbl_df")
+  expect_equal(ref[[1]]$path, path)
+  expect_true(ref[[1]]$bytes > 0)
+  expect_true(is.na(ref[[1]]$sha256))
+  expect_false(ref[[1]]$written)
+  expect_true(ref[[1]]$existed)
+})
+
 test_that("multiple unnamed produces in manifest mode works", {
   # Just test that it doesn't error at definition time
   tmp <- withr::local_tempdir()

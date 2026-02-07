@@ -225,7 +225,29 @@ script_returns <- function(...) {
 #'   `TRUE`, the stage is skipped for that row and output columns are filled
 #'   with `NA`. Useful for avoiding redundant work when the same outputs
 #'   are shared across multiple grid rows.
+#' @param skip_if_exists Logical (default `FALSE`). If `TRUE`, checks whether
+#'   **all** resolved output files already exist before running the script.
+#'   When they do, the script is skipped and valid [file_ref()] tibbles are
+#'   returned (with `written = FALSE, existed = TRUE`). Requires template mode
+#'   (produces with glue placeholders); using it with manifest mode will error.
 #' @param ... Additional constant arguments passed through to the stage.
+#'
+#' @section Caching with `skip_if_exists`:
+#'
+#' Unlike `skip_when`, which runs **before** template resolution and fills
+#' outputs with `NA`, `skip_if_exists` runs **inside** the wrapper after
+#' paths are resolved. This means:
+#'
+#' \itemize{
+#'   \item Downstream stages receive real [file_ref()] tibbles they can read.
+#'   \item The check uses the actual resolved file paths, so it works
+#'     correctly when multiple grid rows map to the same output files.
+#'   \item If **any** declared output is missing, the script runs normally.
+#' }
+#'
+#' `skip_when` and `skip_if_exists` are orthogonal and can be combined:
+#' `skip_when` is evaluated first; if it doesn't skip, the wrapper runs
+#' and `skip_if_exists` is checked next.
 #' @return The input flow with the new script stage appended.
 #' @export
 #' @examples
@@ -267,11 +289,15 @@ script_stage <- function(fl, id, script, produces,
                          engine = c("source", "system"),
                          interpreter = NULL,
                          prefix = TRUE,
-                         skip_when = NULL, ...) {
+                         skip_when = NULL,
+                         skip_if_exists = FALSE, ...) {
   stopifnot(inherits(fl, "parade_flow"))
   stopifnot(is.character(script), length(script) == 1L)
   stopifnot(is.character(produces), length(produces) >= 1L)
   engine <- match.arg(engine)
+
+  # --- Validate skip_if_exists --------------------------------------------
+  stopifnot(is.logical(skip_if_exists), length(skip_if_exists) == 1L)
 
   # --- Detect mode and normalise produces ---------------------------------
   is_template <- any(grepl("\\{", produces))
@@ -295,6 +321,11 @@ script_stage <- function(fl, id, script, produces,
     produces <- setNames(nms, nms)
   }
 
+  if (isTRUE(skip_if_exists) && !is_template) {
+    stop("skip_if_exists requires template mode (produces with glue placeholders); ",
+         "manifest mode paths are not known until the script runs", call. = FALSE)
+  }
+
   output_names <- names(produces)
 
   # Build schema: one file_ref() per output name
@@ -308,13 +339,14 @@ script_stage <- function(fl, id, script, produces,
   }
 
   # Capture for the closure
-  .produces      <- produces
-  .script        <- script
-  .engine        <- engine
-  .interp        <- interpreter
-  .needs         <- needs
-  .template_mode <- is_template
-  .output_names  <- output_names
+  .produces       <- produces
+  .script         <- script
+  .engine         <- engine
+  .interp         <- interpreter
+  .needs          <- needs
+  .template_mode  <- is_template
+  .output_names   <- output_names
+  .skip_if_exists <- skip_if_exists
 
   # --- Determine wrapper formals ------------------------------------------
   grid_cols <- names(fl$grid)
@@ -353,6 +385,16 @@ script_stage <- function(fl, id, script, produces,
       paths <- vapply(.produces, function(tmpl) {
         as.character(glue::glue_data(row, tmpl))
       }, character(1))
+
+      # Early return if all outputs already exist
+      if (isTRUE(.skip_if_exists) && all(file.exists(paths))) {
+        out <- list()
+        for (nm in names(paths)) {
+          out[[nm]] <- .make_file_ref_cached(paths[[nm]])
+        }
+        return(out)
+      }
+
       for (p in paths) dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE)
     }
 
@@ -456,6 +498,26 @@ script_stage <- function(fl, id, script, produces,
     sha256  = NA_character_,
     written = TRUE,
     existed = FALSE
+  ))
+}
+
+#' Build a file reference tibble for a cached (pre-existing) file
+#'
+#' Like [.make_file_ref()] but marks the file as not written by this run.
+#' Used by `skip_if_exists` to return valid file references for outputs
+#' that already exist without re-running the script.
+#'
+#' @param path Character scalar path to an existing file.
+#' @return A list containing a one-row tibble with columns
+#'   `path`, `bytes`, `sha256`, `written`, `existed`.
+#' @keywords internal
+.make_file_ref_cached <- function(path) {
+  list(tibble::tibble(
+    path    = path,
+    bytes   = as.integer(file.info(path)$size),
+    sha256  = NA_character_,
+    written = FALSE,
+    existed = TRUE
   ))
 }
 
