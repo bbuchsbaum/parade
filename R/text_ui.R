@@ -313,6 +313,33 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   result
 }
 
+# Bulk squeue query by SLURM job *ID* (not name): returns a named list keyed
+# by job ID string.  Uses `squeue -j id1,id2,...` which matches numeric IDs
+# correctly (unlike --name which matches job names).
+.deferred_squeue_bulk_by_id <- function(job_ids) {
+  if (length(job_ids) == 0L) return(list())
+  ids_arg <- paste(job_ids, collapse = ",")
+  out <- .run_cmd("squeue", c("-j", ids_arg, "-h", "-o", shQuote("%j|%i|%T|%M|%C|%R|%N")))
+  st <- attr(out, "status") %||% 0L
+  if (length(out) == 0L || st != 0L) return(list())
+
+  result <- list()
+  for (line in out) {
+    parts <- strsplit(line, "|", fixed = TRUE)[[1]]
+    if (length(parts) < 7) next
+    jid <- parts[2]  # key by SLURM job ID, not name
+    result[[jid]] <- list(
+      slurm_id = jid,
+      state    = parts[3],
+      elapsed  = .parade_parse_hms(parts[4]),
+      cpus     = suppressWarnings(as.numeric(parts[5])),
+      reason   = parts[6],
+      node     = parts[7]
+    )
+  }
+  result
+}
+
 # Get SLURM metrics for a deferred, bypassing loadRegistry.
 # Strategy:
 #   1. Try batchtools registry for the definitive chunk->batch_id mapping
@@ -348,7 +375,7 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   valid <- !is.na(batch_ids) & nzchar(as.character(batch_ids))
   job_names <- as.character(batch_ids[valid])
   sq_bulk <- if (length(job_names) > 0) {
-    .deferred_squeue_bulk(unique(job_names))
+    .deferred_squeue_bulk_by_id(unique(job_names))
   } else {
     list()
   }
@@ -638,58 +665,81 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE, 
 
     if (is_slurm) {
       if (!is.null(metrics) && length(metrics) > 0) {
+        # Untracked: jobs that batchtools knows about but aren't in metrics
+        n_untracked <- max(0L, total - length(metrics))
         .l("  pending=", n_pending, "  running=", n_running,
            "  done=", n_done, "  error=", n_error,
            if (n_other > 0) paste0("  other=", n_other) else "",
+           if (n_untracked > 0) paste0("  untracked=", n_untracked) else "",
            "\n\n")
 
         # Sort metrics by interest (failed first, then running, pending, completed)
         sorted_metrics <- .deferred_sort_metrics(metrics)
 
-        # Chunk table
-        chunk_labels <- .deferred_chunk_labels(d)
-        has_labels <- !is.null(chunk_labels) && length(chunk_labels) > 0
-        if (has_labels) {
-          hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s",
-                         "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE", "PARAMS")
-        } else {
-          hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
-                         "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
-        }
-        .l(hdr, "\n")
-        .l(strrep("-", nchar(hdr)), "\n")
-        first_running_chunk <- NULL
-        first_running_batch <- NULL
-        display_metrics <- if (length(sorted_metrics) > max_rows) sorted_metrics[seq_len(max_rows)] else sorted_metrics
-        for (m in display_metrics) {
-          cpu_str <- if (is.na(m$cpu_pct)) "   NA" else sprintf("%5.1f", m$cpu_pct)
-          rss_str <- .parade_fmt_bytes(m$max_rss)
-          el_str <- .fmt_hms(m$elapsed)
-          label <- if (has_labels && m$chunk <= length(chunk_labels)) chunk_labels[m$chunk] else ""
+        # Filter out PENDING/UNKNOWN rows (zero information) — show only
+        # interesting states in the table; summarise boring ones below.
+        interesting_states <- c("FAILED", "CANCELLED", "TIMEOUT", "RUNNING", "COMPLETED")
+        table_metrics <- Filter(function(m) (m$state %||% "UNKNOWN") %in% interesting_states, sorted_metrics)
+        n_boring <- length(sorted_metrics) - length(table_metrics)
+
+        if (length(table_metrics) > 0L) {
+          # Chunk table
+          chunk_labels <- .deferred_chunk_labels(d)
+          has_labels <- !is.null(chunk_labels) && length(chunk_labels) > 0
           if (has_labels) {
-            .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s\n",
-                       m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
-                       cpu_str, rss_str, el_str,
-                       substr(m$node %||% "?", 1, 10), label))
+            hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s",
+                           "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE", "PARAMS")
           } else {
-            .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
-                       m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
-                       cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
+            hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
+                           "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
           }
-          if (is.null(first_running_chunk) && identical(m$state, "RUNNING")) {
-            first_running_chunk <- m$chunk
-            first_running_batch <- m$batch_id
+          .l(hdr, "\n")
+          .l(strrep("-", nchar(hdr)), "\n")
+          first_running_chunk <- NULL
+          first_running_batch <- NULL
+          display_metrics <- if (length(table_metrics) > max_rows) table_metrics[seq_len(max_rows)] else table_metrics
+          for (m in display_metrics) {
+            cpu_str <- if (is.na(m$cpu_pct)) "   NA" else sprintf("%5.1f", m$cpu_pct)
+            rss_str <- .parade_fmt_bytes(m$max_rss)
+            el_str <- .fmt_hms(m$elapsed)
+            label <- if (has_labels && m$chunk <= length(chunk_labels)) chunk_labels[m$chunk] else ""
+            if (has_labels) {
+              .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s\n",
+                         m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+                         cpu_str, rss_str, el_str,
+                         substr(m$node %||% "?", 1, 10), label))
+            } else {
+              .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
+                         m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+                         cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
+            }
+            if (is.null(first_running_chunk) && identical(m$state, "RUNNING")) {
+              first_running_chunk <- m$chunk
+              first_running_batch <- m$batch_id
+            }
           }
+
+          # Truncation summary for interesting rows beyond max_rows
+          n_hidden <- length(table_metrics) - length(display_metrics)
+          if (n_hidden > 0L) {
+            hidden_states <- vapply(table_metrics[seq(length(display_metrics) + 1L, length(table_metrics))],
+                                    function(m) m$state %||% "UNKNOWN", character(1))
+            ht <- table(hidden_states)
+            summary_parts <- paste(as.integer(ht), names(ht), sep = " ")
+            .l("  ... and ", n_hidden, " more (", paste(summary_parts, collapse = ", "), ")\n")
+          }
+        } else {
+          first_running_chunk <- NULL
+          first_running_batch <- NULL
         }
 
-        # Truncation summary
-        n_hidden <- length(sorted_metrics) - length(display_metrics)
-        if (n_hidden > 0L) {
-          hidden_states <- vapply(sorted_metrics[seq(length(display_metrics) + 1L, length(sorted_metrics))],
-                                  function(m) m$state %||% "UNKNOWN", character(1))
-          ht <- table(hidden_states)
-          summary_parts <- paste(as.integer(ht), names(ht), sep = " ")
-          .l("  ... and ", n_hidden, " more (", paste(summary_parts, collapse = ", "), ")\n")
+        # Compact summary for boring states (PENDING/UNKNOWN)
+        if (n_boring > 0L) {
+          if (length(table_metrics) == 0L) {
+            .l("  All chunks pending. Waiting for SLURM allocation...\n")
+          } else {
+            .l("  (", n_boring, " pending)\n")
+          }
         }
 
         # Log tail from first running chunk
