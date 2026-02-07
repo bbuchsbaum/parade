@@ -135,6 +135,28 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   NA_integer_
 }
 
+# Read stage names from the serialized flow object.
+# Returns a character vector like c("lss", "frsa"), or NULL.
+# Cached after first read.
+.deferred_flow_cache <- new.env(parent = emptyenv())
+
+.deferred_read_flow <- function(d) {
+  cache_key <- d$run_id %||% ""
+  cached <- .deferred_flow_cache[[cache_key]]
+  if (!is.null(cached)) return(cached)
+  flow_path <- d$flow_path
+  if (is.null(flow_path) || !file.exists(flow_path)) return(NULL)
+  fl <- tryCatch(readRDS(flow_path), error = function(e) NULL)
+  if (!is.null(fl)) .deferred_flow_cache[[cache_key]] <- fl
+  fl
+}
+
+.deferred_stage_names <- function(d) {
+  fl <- .deferred_read_flow(d)
+  if (is.null(fl) || is.null(fl$stages) || length(fl$stages) == 0L) return(NULL)
+  vapply(fl$stages, function(s) s$id %||% "?", character(1))
+}
+
 # Build a label for each chunk from the grid's `by` columns.
 # Returns a character vector (one per chunk) like "shift=3, ridge_x=0.10".
 # Cached after first call to avoid re-reading files each refresh.
@@ -148,10 +170,7 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   by_cols <- d$by
   if (is.null(by_cols) || length(by_cols) == 0L) return(NULL)
 
-  # Read the flow to get the grid
-  flow_path <- d$flow_path
-  if (is.null(flow_path) || !file.exists(flow_path)) return(NULL)
-  fl <- tryCatch(readRDS(flow_path), error = function(e) NULL)
+  fl <- .deferred_read_flow(d)
   if (is.null(fl) || is.null(fl$grid)) return(NULL)
   grid <- fl$grid
 
@@ -510,9 +529,14 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
     .l("parade::deferred_top  ", frame, "\n\n")
     .l("Run: ", d$run_id %||% "?", "  Backend: ", d$backend %||% "?",
        "  Submitted: ", d$submitted_at %||% "?", "\n")
+    stage_names <- .deferred_stage_names(d)
     .l("Elapsed: ", .fmt_hms(elapsed_sec),
        if (!is.null(d$by) && length(d$by)) paste0("  By: ", paste(d$by, collapse = ", ")) else "",
-       "  Mode: ", d$mode %||% "?", "\n\n")
+       "  Mode: ", d$mode %||% "?", "\n")
+    if (!is.null(stage_names)) {
+      .l("Stages: ", paste(stage_names, collapse = " -> "), "\n")
+    }
+    .l("\n")
 
     # Progress bar
     pct <- if (total > 0) round(100 * n_index / total) else 0
