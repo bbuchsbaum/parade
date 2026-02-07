@@ -135,6 +135,48 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   NA_integer_
 }
 
+# Build a label for each chunk from the grid's `by` columns.
+# Returns a character vector (one per chunk) like "shift=3, ridge_x=0.10".
+# Cached after first call to avoid re-reading files each refresh.
+.deferred_chunk_labels_cache <- new.env(parent = emptyenv())
+
+.deferred_chunk_labels <- function(d) {
+  cache_key <- d$run_id %||% ""
+  cached <- .deferred_chunk_labels_cache[[cache_key]]
+  if (!is.null(cached)) return(cached)
+
+  by_cols <- d$by
+  if (is.null(by_cols) || length(by_cols) == 0L) return(NULL)
+
+  # Read the flow to get the grid
+  flow_path <- d$flow_path
+  if (is.null(flow_path) || !file.exists(flow_path)) return(NULL)
+  fl <- tryCatch(readRDS(flow_path), error = function(e) NULL)
+  if (is.null(fl) || is.null(fl$grid)) return(NULL)
+  grid <- fl$grid
+
+  # Read the chunks to get row-index mapping
+  chunks_path <- d$chunks_path
+  if (is.null(chunks_path) || !file.exists(chunks_path)) return(NULL)
+  chunks <- tryCatch(readRDS(chunks_path), error = function(e) NULL)
+  if (is.null(chunks)) return(NULL)
+
+  # For each chunk, get the by-column values from the first row
+  labels <- vapply(chunks, function(ch) {
+    rows <- unlist(ch, use.names = FALSE)
+    if (length(rows) == 0L) return("")
+    first_row <- grid[rows[1], by_cols, drop = FALSE]
+    vals <- vapply(by_cols, function(col) {
+      v <- first_row[[col]]
+      if (is.numeric(v)) format(v, digits = 3, trim = TRUE) else as.character(v)
+    }, character(1))
+    paste(by_cols, vals, sep = "=", collapse = ", ")
+  }, character(1))
+
+  .deferred_chunk_labels_cache[[cache_key]] <- labels
+  labels
+}
+
 # Scan the registry's jobs/ directory for batchtools job names.
 # Returns a character vector of job names (filenames without .job extension).
 # This works without loading the batchtools registry.
@@ -488,8 +530,15 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
            "\n\n")
 
         # Chunk table
-        hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
-                       "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
+        chunk_labels <- .deferred_chunk_labels(d)
+        has_labels <- !is.null(chunk_labels) && length(chunk_labels) > 0
+        if (has_labels) {
+          hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s",
+                         "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE", "PARAMS")
+        } else {
+          hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
+                         "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
+        }
         .l(hdr, "\n")
         .l(strrep("-", nchar(hdr)), "\n")
         first_running_chunk <- NULL
@@ -498,9 +547,17 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
           cpu_str <- if (is.na(m$cpu_pct)) "   NA" else sprintf("%5.1f", m$cpu_pct)
           rss_str <- .parade_fmt_bytes(m$max_rss)
           el_str <- .fmt_hms(m$elapsed)
-          .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
-                     m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
-                     cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
+          label <- if (has_labels && m$chunk <= length(chunk_labels)) chunk_labels[m$chunk] else ""
+          if (has_labels) {
+            .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s\n",
+                       m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+                       cpu_str, rss_str, el_str,
+                       substr(m$node %||% "?", 1, 10), label))
+          } else {
+            .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
+                       m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+                       cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
+          }
           if (is.null(first_running_chunk) && identical(m$state, "RUNNING")) {
             first_running_chunk <- m$chunk
             first_running_batch <- m$batch_id
