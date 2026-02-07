@@ -135,36 +135,89 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   NA_integer_
 }
 
+# Scan the registry's jobs/ directory for batchtools job names.
+# Returns a character vector of job names (filenames without .job extension).
+# This works without loading the batchtools registry.
+.deferred_slurm_job_names <- function(d) {
+  jobs_dir <- file.path(d$registry_dir, "jobs")
+  if (!dir.exists(jobs_dir)) return(character())
+  files <- list.files(jobs_dir, pattern = "\\.job$", full.names = FALSE)
+  tools::file_path_sans_ext(files)
+}
+
+# Bulk squeue query: returns a named list keyed by SLURM job name.
+# Each element is a list with: slurm_id, state, elapsed, cpus, node.
+# Uses a single squeue call for all job names (efficient).
+.deferred_squeue_bulk <- function(job_names) {
+  if (length(job_names) == 0L) return(list())
+  # Query squeue for all jobs by name in one call
+  # Format: JobName|JobID|State|TimeUsed|NumCPUs|NodeList
+  names_arg <- paste(job_names, collapse = ",")
+  out <- .run_cmd("squeue", c("--name", names_arg, "-h", "-o", "%j|%i|%T|%M|%C|%R|%N"))
+  st <- attr(out, "status") %||% 0L
+  if (length(out) == 0L || st != 0L) return(list())
+
+  result <- list()
+  for (line in out) {
+    parts <- strsplit(line, "|", fixed = TRUE)[[1]]
+    if (length(parts) < 7) next
+    jname <- parts[1]
+    result[[jname]] <- list(
+      slurm_id = parts[2],
+      state    = parts[3],
+      elapsed  = .parade_parse_hms(parts[4]),
+      cpus     = suppressWarnings(as.numeric(parts[5])),
+      reason   = parts[6],
+      node     = parts[7]
+    )
+  }
+  result
+}
+
+# Get SLURM metrics for a deferred, bypassing loadRegistry.
+# Strategy:
+#   1. Try batchtools registry for the definitive chunk->batch_id mapping
+#   2. Fall back to scanning jobs/ dir + squeue + sacct
 .deferred_slurm_metrics <- function(d) {
   if (!identical(d$backend, "slurm")) return(NULL)
-  if (!requireNamespace("batchtools", quietly = TRUE)) return(NULL)
 
-  reg <- tryCatch(
-    suppressMessages(suppressWarnings(
-      batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
-    )),
-    error = function(e) NULL
-  )
-  if (is.null(reg)) return(NULL)
+  # --- Try batchtools registry first (best: has chunk<->batch mapping) ---
+  jt <- NULL
+  if (requireNamespace("batchtools", quietly = TRUE)) {
+    reg <- tryCatch(
+      suppressMessages(suppressWarnings(
+        batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
+      )),
+      error = function(e) NULL
+    )
+    if (!is.null(reg)) {
+      jt <- tryCatch(
+        suppressMessages(batchtools::getJobTable(reg)),
+        error = function(e) NULL
+      )
+    }
+  }
 
-  jt <- tryCatch(
-    suppressMessages(batchtools::getJobTable(reg)),
-    error = function(e) NULL
-  )
-  if (is.null(jt) || nrow(jt) == 0L) return(NULL)
+  # --- Fallback: scan job files + squeue ---
+  if (is.null(jt) || nrow(jt) == 0L) {
+    return(.deferred_slurm_metrics_fallback(d))
+  }
 
-  # Cache completed job metrics to avoid re-querying SLURM
-  if (is.null(.deferred_slurm_cache)) {
-    assign(".deferred_slurm_cache", new.env(parent = emptyenv()), envir = parent.env(environment()))
+  # --- Primary path: we have the job table ---
+  # Get all job names and do a single bulk squeue query
+  batch_ids <- jt$batch.id
+  valid <- !is.na(batch_ids) & nzchar(as.character(batch_ids))
+  job_names <- as.character(batch_ids[valid])
+  sq_bulk <- if (length(job_names) > 0) {
+    .deferred_squeue_bulk(unique(job_names))
+  } else {
+    list()
   }
 
   results <- vector("list", nrow(jt))
   for (idx in seq_len(nrow(jt))) {
-    row <- jt[idx, , drop = FALSE]
-    chunk_id <- row$job.id
-    batch_id <- row$batch.id
-
-    # Use cached result for completed jobs
+    chunk_id <- jt$job.id[idx]
+    batch_id <- jt$batch.id[idx]
     cache_key <- paste0(d$run_id, "-", chunk_id)
     cached <- .deferred_slurm_cache[[cache_key]]
     if (!is.null(cached) && cached$state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT")) {
@@ -180,37 +233,36 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
       next
     }
 
-    bid <- as.character(batch_id)
-    sq <- .slurm_squeue_info(bid)
-    state <- sq$state %||% "UNKNOWN"
+    bname <- as.character(batch_id)
+    sq <- sq_bulk[[bname]]
+    bid <- if (!is.null(sq)) sq$slurm_id else bname
+    state <- if (!is.null(sq)) sq$state else "UNKNOWN"
 
-    # Only query sstat for running jobs (it fails for pending/completed)
+    # Detailed per-job queries for running/completed
     ss <- NULL
     sa <- NULL
-    if (state == "RUNNING") {
+    if (identical(state, "RUNNING") && grepl("^\\d+$", bid)) {
       ss <- .slurm_sstat_info(bid)
     }
-    if (state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "UNKNOWN")) {
+    if (state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "UNKNOWN") && grepl("^\\d+$", bid)) {
       sa <- .slurm_sacct_info(bid)
       if (!is.null(sa)) state <- sa$State %||% state
     }
 
-    alloc_cpus <- sa$AllocCPUS %||% sq$cpus %||% NA_real_
-    elapsed <- if (!is.null(ss$Elapsed)) ss$Elapsed else (sa$ElapsedRaw %||% sq$time %||% NA_real_)
+    alloc_cpus <- sa$AllocCPUS %||% (sq$cpus %||% NA_real_)
+    elapsed <- if (!is.null(ss$Elapsed)) ss$Elapsed else (sa$ElapsedRaw %||% (sq$elapsed %||% NA_real_))
     cpu_used <- if (!is.null(ss$CPUUtilized)) ss$CPUUtilized else (sa$TotalCPU %||% NA_real_)
     cpu_pct <- NA_real_
     if (!is.na(elapsed) && !is.na(alloc_cpus) && alloc_cpus > 0 && !is.na(cpu_used)) {
       cpu_pct <- min(100, 100 * cpu_used / (elapsed * alloc_cpus))
     }
     max_rss <- ss$MaxRSS %||% sa$MaxRSS %||% NA_real_
-    node <- sq$nodelist %||% "?"
+    node <- if (!is.null(sq)) sq$node else (sa$NodeList %||% "?")
 
     entry <- list(
       chunk = chunk_id, batch_id = bid, state = state,
       cpu_pct = cpu_pct, max_rss = max_rss, elapsed = elapsed, node = node
     )
-
-    # Cache completed entries
     if (state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT")) {
       .deferred_slurm_cache[[cache_key]] <- entry
     }
@@ -219,20 +271,115 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   results
 }
 
+# Fallback when batchtools registry cannot be loaded:
+# scan jobs/ dir for job file names, use squeue to get status.
+.deferred_slurm_metrics_fallback <- function(d) {
+  job_names <- .deferred_slurm_job_names(d)
+  if (length(job_names) == 0L) return(NULL)
+
+  sq_bulk <- .deferred_squeue_bulk(job_names)
+
+  # Also check sacct for jobs that have left squeue (completed/failed).
+  # sacct by job name: sacct --name=name1,name2 -n -p -X -o JobName,JobID,State,...
+  completed_info <- .deferred_sacct_bulk(job_names, sq_bulk)
+
+  results <- vector("list", length(job_names))
+  for (idx in seq_along(job_names)) {
+    jname <- job_names[idx]
+    cache_key <- paste0(d$run_id, "-", jname)
+    cached <- .deferred_slurm_cache[[cache_key]]
+    if (!is.null(cached) && cached$state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT")) {
+      results[[idx]] <- cached
+      next
+    }
+
+    sq <- sq_bulk[[jname]]
+    ci <- completed_info[[jname]]
+
+    if (!is.null(sq)) {
+      # Job is in squeue (pending/running)
+      entry <- list(
+        chunk = idx, batch_id = sq$slurm_id, state = sq$state,
+        cpu_pct = NA_real_, max_rss = NA_real_, elapsed = sq$elapsed,
+        node = sq$node %||% "?"
+      )
+    } else if (!is.null(ci)) {
+      # Job finished, info from sacct
+      entry <- list(
+        chunk = idx, batch_id = ci$slurm_id, state = ci$state,
+        cpu_pct = NA_real_, max_rss = ci$max_rss, elapsed = ci$elapsed,
+        node = "?"
+      )
+    } else {
+      # No info at all (maybe not yet submitted or purged)
+      entry <- list(
+        chunk = idx, batch_id = NA_character_, state = "UNKNOWN",
+        cpu_pct = NA_real_, max_rss = NA_real_, elapsed = NA_real_, node = "?"
+      )
+    }
+    if (entry$state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT")) {
+      .deferred_slurm_cache[[cache_key]] <- entry
+    }
+    results[[idx]] <- entry
+  }
+  results
+}
+
+# Bulk sacct query for jobs NOT in squeue (already finished).
+# Returns a named list keyed by job name.
+.deferred_sacct_bulk <- function(job_names, sq_bulk) {
+  # Only query jobs not currently in squeue
+  missing <- setdiff(job_names, names(sq_bulk))
+  if (length(missing) == 0L) return(list())
+
+  names_arg <- paste(missing, collapse = ",")
+  out <- .run_cmd("sacct", c("--name", names_arg, "-n", "-p", "-X",
+                              "-o", "JobName,JobID,State,ElapsedRaw,MaxRSS"))
+  st <- attr(out, "status") %||% 0L
+  if (length(out) == 0L || st != 0L) return(list())
+
+  result <- list()
+  for (line in out) {
+    parts <- strsplit(line, "|", fixed = TRUE)[[1]]
+    if (length(parts) < 5) next
+    jname <- parts[1]
+    if (!jname %in% missing) next
+    # Keep first match per job name
+    if (!is.null(result[[jname]])) next
+    result[[jname]] <- list(
+      slurm_id = parts[2],
+      state    = parts[3],
+      elapsed  = suppressWarnings(as.numeric(parts[4])),
+      max_rss  = .parade_parse_mem(parts[5])
+    )
+  }
+  result
+}
+
 # Module-level cache env for SLURM metrics (completed jobs don't change)
 .deferred_slurm_cache <- new.env(parent = emptyenv())
 
 .deferred_log_tail <- function(d, chunk_id, batch_id, nlog = 20) {
   if (is.null(d$registry_dir) || !dir.exists(d$registry_dir)) return(NULL)
-  log_path <- file.path(d$registry_dir, "logs", paste0(chunk_id, ".log"))
-  if (!file.exists(log_path)) {
-    # Try globbing for matching files
-    logs_dir <- file.path(d$registry_dir, "logs")
-    if (!dir.exists(logs_dir)) return(NULL)
-    candidates <- list.files(logs_dir, pattern = paste0("^", chunk_id, "\\b"), full.names = TRUE)
-    if (length(candidates) == 0L) return(NULL)
-    log_path <- candidates[[1]]
+  # Try exact match first (batchtools numeric id), then by batch name
+  for (name in unique(c(as.character(chunk_id), as.character(batch_id)))) {
+    log_path <- file.path(d$registry_dir, "logs", paste0(name, ".log"))
+    if (file.exists(log_path)) {
+      lines <- tryCatch(readLines(log_path, warn = FALSE), error = function(e) NULL)
+      if (!is.null(lines) && length(lines) > 0) {
+        if (length(lines) > nlog) lines <- tail(lines, nlog)
+        return(lines)
+      }
+    }
   }
+  # Glob fallback
+  logs_dir <- file.path(d$registry_dir, "logs")
+  if (!dir.exists(logs_dir)) return(NULL)
+  all_logs <- list.files(logs_dir, pattern = "\\.log$", full.names = TRUE)
+  if (length(all_logs) == 0L) return(NULL)
+  # Pick most recently modified log
+  mtimes <- file.info(all_logs)$mtime
+  log_path <- all_logs[which.max(mtimes)]
   lines <- tryCatch(readLines(log_path, warn = FALSE), error = function(e) NULL)
   if (is.null(lines) || length(lines) == 0L) return(NULL)
   if (length(lines) > nlog) lines <- tail(lines, nlog)
@@ -279,30 +426,46 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
     i <- i + 1L
     frame <- spin[(i - 1L) %% length(spin) + 1L]
 
-    # --- Fetch all data (suppressing batchtools/library messages) ---
-    st <- tryCatch(
-      suppressMessages(suppressWarnings(deferred_status(d))),
-      error = function(e) NULL
-    )
+    # --- Fetch all data ---
     n_index <- .count_index_files(d$index_dir)
     total <- .deferred_total_chunks(d)
-    if (is.na(total)) total <- n_index  # best guess
+    if (is.na(total)) total <- n_index
 
     metrics <- NULL
+    st <- NULL
+
     if (is_slurm) {
+      # For SLURM: derive status from squeue/sacct directly (robust)
       metrics <- tryCatch(
         suppressMessages(.deferred_slurm_metrics(d)),
+        error = function(e) NULL
+      )
+      # Derive status counts from metrics
+      if (!is.null(metrics) && length(metrics) > 0) {
+        states <- vapply(metrics, function(m) m$state %||% "UNKNOWN", character(1))
+        n_pending  <- sum(states == "PENDING")
+        n_running  <- sum(states == "RUNNING")
+        n_done     <- sum(states %in% c("COMPLETED"))
+        n_error    <- sum(states %in% c("FAILED", "CANCELLED", "TIMEOUT"))
+        n_other    <- sum(!states %in% c("PENDING", "RUNNING", "COMPLETED",
+                                          "FAILED", "CANCELLED", "TIMEOUT"))
+        total <- max(total, length(metrics))
+      }
+    } else {
+      # For local/crew/mirai: use deferred_status
+      st <- tryCatch(
+        suppressMessages(suppressWarnings(deferred_status(d))),
         error = function(e) NULL
       )
     }
 
     elapsed_sec <- as.numeric(difftime(Sys.time(), started, units = "secs"))
 
-    # --- Build output buffer (so clear + print is atomic) ---
+    # --- Build output buffer (clear + print is atomic) ---
     buf <- character()
     .l <- function(...) buf <<- c(buf, paste0(...))
 
-    .l("parade::deferred_top  ", frame, "\n")
+    .l("parade::deferred_top  ", frame, "\n\n")
     .l("Run: ", d$run_id %||% "?", "  Backend: ", d$backend %||% "?",
        "  Submitted: ", d$submitted_at %||% "?", "\n")
     .l("Elapsed: ", .fmt_hms(elapsed_sec),
@@ -317,17 +480,14 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
 
     all_done <- FALSE
 
-    # Backend-specific status
-    if (is_slurm && !is.null(st)) {
-      pending <- st$pending %||% 0
-      running <- st$running %||% 0
-      done <- st$done %||% 0
-      err <- st$error %||% 0
-      .l("  pending=", pending, "  running=", running,
-         "  done=", done, "  error=", err, "\n\n")
-
-      # Chunk table
+    if (is_slurm) {
       if (!is.null(metrics) && length(metrics) > 0) {
+        .l("  pending=", n_pending, "  running=", n_running,
+           "  done=", n_done, "  error=", n_error,
+           if (n_other > 0) paste0("  other=", n_other) else "",
+           "\n\n")
+
+        # Chunk table
         hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
                        "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
         .l(hdr, "\n")
@@ -356,9 +516,12 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
             .l(paste(log_lines, collapse = "\n"), "\n")
           }
         }
-      }
 
-      all_done <- (done + err) >= total && total > 0
+        all_done <- (n_done + n_error) >= total && total > 0
+      } else {
+        .l("  (waiting for SLURM job data...)\n")
+        all_done <- n_index >= total && total > 0
+      }
     } else {
       # Non-SLURM: simple progress display
       if (!is.null(st)) {
