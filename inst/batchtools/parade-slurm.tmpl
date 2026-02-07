@@ -16,8 +16,15 @@
 
 set -euo pipefail
 
+## Module handling:
+##   modules = c("StdEnv/2023", "gcc/12.3", "r/4.4.0")  -> purge + load each
+##   modules = NULL (default)                             -> inherit environment
+<% if (!is.null(resources$modules)) { %>
 module purge || true
-module load R || true
+<% for (mod in resources$modules) { %>
+module load <%= mod %>
+<% } %>
+<% } %>
 
 export PARADE_SCRATCH=${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/parade-$SLURM_JOB_ID
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
