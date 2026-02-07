@@ -124,6 +124,14 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
   )
   handle$.fl_data <- NULL
   handle$.chunks_data <- NULL
+
+  # Write pipeline meta-log header (opt-out via options(parade.log_path = NULL))
+  log_path <- getOption("parade.log_path", "parade.log")
+  if (!is.null(log_path) && nzchar(log_path)) {
+    tryCatch(.pipeline_log_header(handle, log_path),
+             error = function(e) NULL)  # never fail submit due to logging
+  }
+
   handle
 }
 
@@ -406,6 +414,22 @@ deferred_cancel <- function(d, which = c("running","all")) {
 #' }
 deferred_collect <- function(d, how = c("auto","index","results")) {
   stopifnot(inherits(d, "parade_deferred")); how <- match.arg(how); if (identical(how, "auto")) how <- d$mode
+
+  # Pipeline meta-log: write errors + summary on exit (opt-out via options)
+  log_path <- getOption("parade.log_path", "parade.log")
+  if (!is.null(log_path) && nzchar(log_path)) {
+    on.exit(tryCatch({
+      errors <- deferred_errors(d)
+      if (nrow(errors) > 0) .pipeline_log_errors(errors[seq_len(min(nrow(errors), 20L)), , drop = FALSE], log_path)
+      if (nrow(errors) > 20L) {
+        .log_append(log_path, sprintf(
+          "[...] %d more errors (%d/%d shown). Run deferred_errors(d) for full list.",
+          nrow(errors) - 20L, 20L, nrow(errors)))
+      }
+      .pipeline_log_summary(d, log_path)
+    }, error = function(e) NULL), add = TRUE)
+  }
+
   if (identical(d$backend, "crew")) {
     if (!requireNamespace("crew", quietly = TRUE)) stop("crew not available.")
     controller <- d$crew_controller
