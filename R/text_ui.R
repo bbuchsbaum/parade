@@ -126,6 +126,84 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   length(list.files(dir_resolved, pattern = "^index-\\d+\\.rds$"))
 }
 
+# Sort SLURM metrics by interest: FAILED/CANCELLED/TIMEOUT first, then
+# RUNNING, then PENDING, then COMPLETED/UNKNOWN.
+.deferred_sort_metrics <- function(metrics) {
+  if (length(metrics) == 0L) return(metrics)
+  state_priority <- function(st) {
+    switch(st,
+      "FAILED" = 1L, "CANCELLED" = 1L, "TIMEOUT" = 1L,
+      "RUNNING" = 2L, "PENDING" = 3L,
+      "COMPLETED" = 4L, 5L)
+  }
+  prios <- vapply(metrics, function(m) state_priority(m$state %||% "UNKNOWN"), integer(1))
+  metrics[order(prios, vapply(metrics, function(m) m$chunk %||% 0L, numeric(1)))]
+}
+
+# Cache for index file error scanning (immutable once written)
+.deferred_index_error_cache <- new.env(parent = emptyenv())
+
+# Scan completed index RDS files for rows with .ok == FALSE.
+# Returns list(n_errors, n_chunks, errors = character(), truncated = integer)
+.read_index_errors <- function(index_dir, max_errors = 5L) {
+  dir_resolved <- resolve_path(index_dir, create = FALSE)
+  if (!dir.exists(dir_resolved)) {
+    return(list(n_errors = 0L, n_chunks = 0L, errors = character(), truncated = 0L))
+  }
+  files <- list.files(dir_resolved, pattern = "^index-\\d+\\.rds$", full.names = TRUE)
+  if (length(files) == 0L) {
+    return(list(n_errors = 0L, n_chunks = 0L, errors = character(), truncated = 0L))
+  }
+
+  all_errors <- character()
+  n_errors <- 0L
+  n_chunks <- 0L
+
+  for (f in files) {
+    cache_key <- normalizePath(f, mustWork = FALSE)
+    cached <- .deferred_index_error_cache[[cache_key]]
+    if (!is.null(cached)) {
+      n_errors <- n_errors + cached$n
+      if (cached$n > 0L) n_chunks <- n_chunks + 1L
+      all_errors <- c(all_errors, cached$msgs)
+      next
+    }
+
+    res <- tryCatch(readRDS(f), error = function(e) NULL)
+    if (is.null(res) || !is.data.frame(res) || nrow(res) == 0L || !".diag" %in% names(res)) {
+      .deferred_index_error_cache[[cache_key]] <- list(n = 0L, msgs = character())
+      next
+    }
+
+    chunk_num <- sub("^index-(\\d+)\\.rds$", "\\1", basename(f))
+    chunk_errors <- character()
+    for (ri in seq_len(nrow(res))) {
+      diag <- res$.diag[[ri]]
+      if (is.null(diag)) next
+      for (dd in diag) {
+        if (!isTRUE(dd$ok) && !isTRUE(dd$skipped)) {
+          msg <- dd$error %||% dd$message %||% "unknown error"
+          if (is.character(msg) && length(msg) == 1L) {
+            chunk_errors <- c(chunk_errors,
+              sprintf("Chunk %s, row %d: Stage '%s' failed: %s",
+                      chunk_num, ri, dd$stage %||% "?", msg))
+          }
+        }
+      }
+    }
+
+    .deferred_index_error_cache[[cache_key]] <- list(n = length(chunk_errors), msgs = chunk_errors)
+    n_errors <- n_errors + length(chunk_errors)
+    if (length(chunk_errors) > 0L) n_chunks <- n_chunks + 1L
+    all_errors <- c(all_errors, chunk_errors)
+  }
+
+  truncated <- max(0L, length(all_errors) - max_errors)
+  if (length(all_errors) > max_errors) all_errors <- all_errors[seq_len(max_errors)]
+
+  list(n_errors = n_errors, n_chunks = n_chunks, errors = all_errors, truncated = truncated)
+}
+
 .deferred_total_chunks <- function(d) {
   if (!is.null(d$jobs) && length(d$jobs) > 0) return(length(d$jobs))
   if (!is.null(d$chunks_path) && file.exists(d$chunks_path)) {
@@ -214,7 +292,7 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   # Query squeue for all jobs by name in one call
   # Format: JobName|JobID|State|TimeUsed|NumCPUs|NodeList
   names_arg <- paste(job_names, collapse = ",")
-  out <- .run_cmd("squeue", c("--name", names_arg, "-h", "-o", "%j|%i|%T|%M|%C|%R|%N"))
+  out <- .run_cmd("squeue", c("--name", names_arg, "-h", "-o", shQuote("%j|%i|%T|%M|%C|%R|%N")))
   st <- attr(out, "status") %||% 0L
   if (length(out) == 0L || st != 0L) return(list())
 
@@ -461,6 +539,8 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
 #' @param nlog Number of log lines to show (SLURM only, default 20)
 #' @param clear Clear screen between updates (default TRUE)
 #' @param once Single-shot mode: display once and return (default FALSE)
+#' @param max_rows Maximum chunk rows to display (default 20). Remaining chunks
+#'   are summarised in a single line.
 #' @return The input deferred object (invisibly)
 #' @export
 #' @examples
@@ -473,7 +553,7 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
 #' d <- submit(fl)
 #' deferred_top(d, refresh = 1, once = TRUE)
 #' }
-deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) {
+deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE, max_rows = 20L) {
   stopifnot(inherits(d, "parade_deferred"))
 
   spin <- c("-", "\\", "|", "/")
@@ -546,12 +626,25 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
 
     all_done <- FALSE
 
+    # --- Error surfacing (both SLURM and non-SLURM) ---
+    idx_errors <- tryCatch(.read_index_errors(d$index_dir), error = function(e) NULL)
+    if (!is.null(idx_errors) && idx_errors$n_errors > 0L) {
+      .l("Errors (", idx_errors$n_errors, " rows failed in ",
+         idx_errors$n_chunks, " chunks):\n")
+      for (em in idx_errors$errors) .l("  ", em, "\n")
+      if (idx_errors$truncated > 0L) .l("  ... and ", idx_errors$truncated, " more\n")
+      .l("\n")
+    }
+
     if (is_slurm) {
       if (!is.null(metrics) && length(metrics) > 0) {
         .l("  pending=", n_pending, "  running=", n_running,
            "  done=", n_done, "  error=", n_error,
            if (n_other > 0) paste0("  other=", n_other) else "",
            "\n\n")
+
+        # Sort metrics by interest (failed first, then running, pending, completed)
+        sorted_metrics <- .deferred_sort_metrics(metrics)
 
         # Chunk table
         chunk_labels <- .deferred_chunk_labels(d)
@@ -567,7 +660,8 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
         .l(strrep("-", nchar(hdr)), "\n")
         first_running_chunk <- NULL
         first_running_batch <- NULL
-        for (m in metrics) {
+        display_metrics <- if (length(sorted_metrics) > max_rows) sorted_metrics[seq_len(max_rows)] else sorted_metrics
+        for (m in display_metrics) {
           cpu_str <- if (is.na(m$cpu_pct)) "   NA" else sprintf("%5.1f", m$cpu_pct)
           rss_str <- .parade_fmt_bytes(m$max_rss)
           el_str <- .fmt_hms(m$elapsed)
@@ -588,6 +682,16 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
           }
         }
 
+        # Truncation summary
+        n_hidden <- length(sorted_metrics) - length(display_metrics)
+        if (n_hidden > 0L) {
+          hidden_states <- vapply(sorted_metrics[seq(length(display_metrics) + 1L, length(sorted_metrics))],
+                                  function(m) m$state %||% "UNKNOWN", character(1))
+          ht <- table(hidden_states)
+          summary_parts <- paste(as.integer(ht), names(ht), sep = " ")
+          .l("  ... and ", n_hidden, " more (", paste(summary_parts, collapse = ", "), ")\n")
+        }
+
         # Log tail from first running chunk
         if (!is.null(first_running_chunk)) {
           log_lines <- .deferred_log_tail(d, first_running_chunk, first_running_batch, nlog)
@@ -595,6 +699,25 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
             .l("\n-- log tail (chunk ", first_running_chunk,
                ", SLURM ", first_running_batch %||% "?", ") --\n")
             .l(paste(log_lines, collapse = "\n"), "\n")
+          }
+        }
+
+        # Show log tail for FAILED chunks without index files (at most 2)
+        failed_no_index <- character()
+        dir_resolved <- tryCatch(resolve_path(d$index_dir, create = FALSE), error = function(e) "")
+        for (m in sorted_metrics) {
+          if (length(failed_no_index) >= 2L) break
+          if (m$state %in% c("FAILED", "CANCELLED", "TIMEOUT")) {
+            idx_file <- file.path(dir_resolved, sprintf("index-%04d.rds", as.integer(m$chunk)))
+            if (!file.exists(idx_file)) {
+              log_lines <- .deferred_log_tail(d, m$chunk, m$batch_id, nlog = 10)
+              if (!is.null(log_lines) && length(log_lines) > 0) {
+                .l("\n-- log tail (FAILED chunk ", m$chunk,
+                   ", SLURM ", m$batch_id %||% "?", ", no index file) --\n")
+                .l(paste(log_lines, collapse = "\n"), "\n")
+                failed_no_index <- c(failed_no_index, as.character(m$chunk))
+              }
+            }
           }
         }
 

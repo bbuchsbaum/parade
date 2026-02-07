@@ -576,3 +576,176 @@ test_that(".deferred_log_tail returns NULL for missing log", {
   lines <- parade:::.deferred_log_tail(d, chunk_id = 99, batch_id = "12345", nlog = 10)
   expect_null(lines)
 })
+
+# .deferred_sort_metrics tests ---------------------------------------------
+
+test_that(".deferred_sort_metrics sorts by priority: FAILED first, then RUNNING, PENDING, COMPLETED", {
+  metrics <- list(
+    list(chunk = 1, state = "COMPLETED", cpu_pct = NA_real_, max_rss = NA_real_, elapsed = 10, node = "n1"),
+    list(chunk = 2, state = "RUNNING",   cpu_pct = 50, max_rss = NA_real_, elapsed = 5, node = "n2"),
+    list(chunk = 3, state = "FAILED",    cpu_pct = NA_real_, max_rss = NA_real_, elapsed = 3, node = "n3"),
+    list(chunk = 4, state = "PENDING",   cpu_pct = NA_real_, max_rss = NA_real_, elapsed = NA_real_, node = "?"),
+    list(chunk = 5, state = "CANCELLED", cpu_pct = NA_real_, max_rss = NA_real_, elapsed = 2, node = "n4")
+  )
+  sorted <- parade:::.deferred_sort_metrics(metrics)
+  states <- vapply(sorted, function(m) m$state, character(1))
+  # FAILED and CANCELLED first (priority 1), then RUNNING (2), PENDING (3), COMPLETED (4)
+  expect_equal(states, c("FAILED", "CANCELLED", "RUNNING", "PENDING", "COMPLETED"))
+})
+
+test_that(".deferred_sort_metrics returns empty list for empty input", {
+  expect_length(parade:::.deferred_sort_metrics(list()), 0)
+})
+
+test_that(".deferred_sort_metrics preserves chunk order within same priority", {
+  metrics <- list(
+    list(chunk = 10, state = "RUNNING", cpu_pct = NA_real_, max_rss = NA_real_, elapsed = 1, node = "n1"),
+    list(chunk = 3,  state = "RUNNING", cpu_pct = NA_real_, max_rss = NA_real_, elapsed = 2, node = "n2"),
+    list(chunk = 7,  state = "RUNNING", cpu_pct = NA_real_, max_rss = NA_real_, elapsed = 3, node = "n3")
+  )
+  sorted <- parade:::.deferred_sort_metrics(metrics)
+  chunks <- vapply(sorted, function(m) m$chunk, numeric(1))
+  expect_equal(chunks, c(3, 7, 10))
+})
+
+# Table truncation tests ---------------------------------------------------
+
+test_that("deferred_top truncates chunk table with max_rows", {
+  # Create a fake SLURM deferred with many chunks
+  tmp_idx <- tempfile("idx_trunc_")
+  dir.create(tmp_idx, recursive = TRUE)
+  on.exit(unlink(tmp_idx, recursive = TRUE))
+
+  # Create 5 index files
+  for (i in 1:5) saveRDS(data.frame(y = i), file.path(tmp_idx, sprintf("index-%04d.rds", i)))
+
+  # Create chunks_path with 30 chunks
+  tmp_chunks <- tempfile("chunks_")
+  saveRDS(as.list(1:30), tmp_chunks)
+  on.exit(unlink(tmp_chunks), add = TRUE)
+
+  d <- list(
+    backend = "slurm",
+    run_id = "trunc_test",
+    mode = "index",
+    by = NULL,
+    submitted_at = as.character(Sys.time()),
+    registry_dir = tempdir(),
+    index_dir = tmp_idx,
+    jobs = NULL,
+    chunks_path = tmp_chunks
+  )
+  class(d) <- "parade_deferred"
+
+  # Build 30 fake metrics
+  fake_metrics <- lapply(1:30, function(i) {
+    list(chunk = i, batch_id = as.character(1000 + i),
+         state = if (i <= 5) "COMPLETED" else if (i <= 8) "RUNNING" else "PENDING",
+         cpu_pct = NA_real_, max_rss = NA_real_, elapsed = NA_real_, node = "?")
+  })
+
+  local({
+    assignInNamespace(".deferred_slurm_metrics", function(d) fake_metrics, "parade")
+    assignInNamespace(".deferred_chunk_labels", function(d) NULL, "parade")
+
+    output <- capture.output({
+      result <- parade:::deferred_top(d, once = TRUE, clear = FALSE, max_rows = 5L)
+    })
+
+    # Should show "... and N more" line
+    expect_true(any(grepl("\\.\\.\\. and \\d+ more", output)))
+    # Should show truncation summary with state counts
+    expect_true(any(grepl("PENDING|RUNNING|COMPLETED", output[grepl("\\.\\.\\. and", output)])))
+  })
+})
+
+# .read_index_errors tests -------------------------------------------------
+
+test_that(".read_index_errors finds errors in index files", {
+  tmp_idx <- tempfile("idx_err_")
+  dir.create(tmp_idx, recursive = TRUE)
+  on.exit(unlink(tmp_idx, recursive = TRUE))
+
+  # Create an index file with some failed rows
+  res <- data.frame(x = 1:3, stringsAsFactors = FALSE)
+  res$.diag <- list(
+    list(list(ok = TRUE, stage = "s1")),
+    list(list(ok = FALSE, stage = "s1", error = "system is singular")),
+    list(list(ok = TRUE, stage = "s1"), list(ok = FALSE, stage = "s2", error = "subscript out of bounds"))
+  )
+  saveRDS(res, file.path(tmp_idx, "index-0001.rds"))
+
+  # Create a clean index file
+  res2 <- data.frame(x = 4:5, stringsAsFactors = FALSE)
+  res2$.diag <- list(
+    list(list(ok = TRUE, stage = "s1")),
+    list(list(ok = TRUE, stage = "s1"))
+  )
+  saveRDS(res2, file.path(tmp_idx, "index-0002.rds"))
+
+  # Clear the cache to avoid stale data
+  rm(list = ls(envir = parade:::.deferred_index_error_cache), envir = parade:::.deferred_index_error_cache)
+
+  result <- parade:::.read_index_errors(tmp_idx, max_errors = 10L)
+  expect_equal(result$n_errors, 2L)
+  expect_equal(result$n_chunks, 1L)  # only chunk 1 had errors
+  expect_length(result$errors, 2L)
+  expect_true(any(grepl("system is singular", result$errors)))
+  expect_true(any(grepl("subscript out of bounds", result$errors)))
+  expect_equal(result$truncated, 0L)
+})
+
+test_that(".read_index_errors truncates when exceeding max_errors", {
+  tmp_idx <- tempfile("idx_err2_")
+  dir.create(tmp_idx, recursive = TRUE)
+  on.exit(unlink(tmp_idx, recursive = TRUE))
+
+  # Create index file with 5 errors
+  res <- data.frame(x = 1:5, stringsAsFactors = FALSE)
+  res$.diag <- lapply(1:5, function(i) list(list(ok = FALSE, stage = "s1", error = paste("error", i))))
+  saveRDS(res, file.path(tmp_idx, "index-0001.rds"))
+
+  rm(list = ls(envir = parade:::.deferred_index_error_cache), envir = parade:::.deferred_index_error_cache)
+
+  result <- parade:::.read_index_errors(tmp_idx, max_errors = 2L)
+  expect_equal(result$n_errors, 5L)
+  expect_length(result$errors, 2L)
+  expect_equal(result$truncated, 3L)
+})
+
+test_that(".read_index_errors returns zeros for empty/missing dir", {
+  result <- parade:::.read_index_errors("/nonexistent/path/xyz123")
+  expect_equal(result$n_errors, 0L)
+  expect_equal(result$n_chunks, 0L)
+  expect_length(result$errors, 0L)
+})
+
+test_that(".read_index_errors caches results per file", {
+  tmp_idx <- tempfile("idx_cache_")
+  dir.create(tmp_idx, recursive = TRUE)
+  on.exit(unlink(tmp_idx, recursive = TRUE))
+
+  res <- data.frame(x = 1, stringsAsFactors = FALSE)
+  res$.diag <- list(list(list(ok = FALSE, stage = "s1", error = "err")))
+  f <- file.path(tmp_idx, "index-0001.rds")
+  saveRDS(res, f)
+
+  rm(list = ls(envir = parade:::.deferred_index_error_cache), envir = parade:::.deferred_index_error_cache)
+
+  # First call reads the file
+  r1 <- parade:::.read_index_errors(tmp_idx)
+  expect_equal(r1$n_errors, 1L)
+
+  # Verify cache entry exists
+  cache_key <- normalizePath(f, mustWork = FALSE)
+  expect_true(exists(cache_key, envir = parade:::.deferred_index_error_cache))
+
+  # Second call uses cache (even if file is deleted)
+  unlink(f)
+  r2 <- parade:::.read_index_errors(tmp_idx)
+  # File is gone so list.files won't find it — result should be 0
+
+  # Actually the cache is keyed by file path, but list.files won't return
+  # the deleted file, so the cache won't be consulted. That's fine.
+  expect_equal(r2$n_errors, 0L)
+})

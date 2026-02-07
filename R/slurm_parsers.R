@@ -132,7 +132,7 @@
 #' @return Parsed squeue output
 #' @keywords internal
 .slurm_squeue_info_v2 <- function(job_id, exec = .slurm_exec) {
-  out <- exec("squeue", c("-j", as.character(job_id), "-h", "-o", "%T|%M|%l|%C|%D|%R|%N"))
+  out <- exec("squeue", c("-j", as.character(job_id), "-h", "-o", shQuote("%T|%M|%l|%C|%D|%R|%N")))
   .parse_squeue_output(out)
 }
 

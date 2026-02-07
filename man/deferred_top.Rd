@@ -4,7 +4,14 @@
 \alias{deferred_top}
 \title{Live TUI monitor for deferred jobs}
 \usage{
-deferred_top(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE)
+deferred_top(
+  d,
+  refresh = 3,
+  nlog = 20,
+  clear = TRUE,
+  once = FALSE,
+  max_rows = 20L
+)
 }
 \arguments{
 \item{d}{A \code{parade_deferred} object (from \code{\link[=submit]{submit()}})}
@@ -16,6 +23,9 @@ deferred_top(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE)
 \item{clear}{Clear screen between updates (default TRUE)}
 
 \item{once}{Single-shot mode: display once and return (default FALSE)}
+
+\item{max_rows}{Maximum chunk rows to display (default 20). Remaining chunks
+are summarised in a single line.}
 }
 \value{
 The input deferred object (invisibly)

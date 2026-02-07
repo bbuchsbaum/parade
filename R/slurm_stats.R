@@ -8,7 +8,7 @@
 
 .slurm_squeue_info <- function(job_id) {
   # Use squeue with custom format
-  out <- .run_cmd("squeue", c("-j", as.character(job_id), "-h", "-o", "%T|%M|%l|%C|%D|%R|%N"))
+  out <- .run_cmd("squeue", c("-j", as.character(job_id), "-h", "-o", shQuote("%T|%M|%l|%C|%D|%R|%N")))
   # If command failed or output malformed, return unknowns
   st <- attr(out, "status") %||% 0L
   if (length(out) == 0L || st != 0L || !grepl("|", out[[1]], fixed = TRUE)) {

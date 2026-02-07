@@ -250,8 +250,25 @@ deferred_status <- function(d, detail = FALSE) {
   stopifnot(inherits(d, "parade_deferred"))
   if (identical(d$backend, "slurm")) {
     if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
-    reg <- batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
-    if (isTRUE(detail)) tibble::as_tibble(batchtools::getJobTable(reg)) else { st <- batchtools::getStatus(reg); tibble::tibble(pending = st$pending, started = st$started, running = st$running, done = st$done, error = st$error) }
+    na_status <- tibble::tibble(pending = NA_integer_, started = NA_integer_,
+                                running = NA_integer_, done = NA_integer_, error = NA_integer_)
+    reg <- tryCatch(
+      suppressMessages(suppressWarnings(
+        batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
+      )),
+      error = function(e) NULL
+    )
+    if (is.null(reg)) return(na_status)
+    if (isTRUE(detail)) {
+      jt <- tryCatch(suppressMessages(tibble::as_tibble(batchtools::getJobTable(reg))),
+                      error = function(e) NULL)
+      if (is.null(jt)) return(na_status)
+      return(jt)
+    }
+    st <- tryCatch(suppressMessages(batchtools::getStatus(reg)), error = function(e) NULL)
+    if (is.null(st)) return(na_status)
+    tibble::tibble(pending = st$pending, started = st$started,
+                   running = st$running, done = st$done, error = st$error)
   } else if (identical(d$backend, "crew")) {
     if (!requireNamespace("crew", quietly = TRUE)) stop("crew not available.")
     controller <- d$crew_controller
