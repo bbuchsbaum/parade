@@ -13,6 +13,7 @@ script_stage(
   engine = c("source", "system"),
   interpreter = NULL,
   prefix = TRUE,
+  skip_when = NULL,
   ...
 )
 }
@@ -43,6 +44,12 @@ or \code{"system"} (uses \code{\link[base:system2]{base::system2()}}).}
 If \code{NULL}, guessed from the script file extension.}
 
 \item{prefix}{Whether to prefix output columns with stage ID (default \code{TRUE}).}
+
+\item{skip_when}{Optional function (or formula) that receives the row's
+variables (grid columns, upstream outputs, constants). If it returns
+\code{TRUE}, the stage is skipped for that row and output columns are filled
+with \code{NA}. Useful for avoiding redundant work when the same outputs
+are shared across multiple grid rows.}
 
 \item{...}{Additional constant arguments passed through to the stage.}
 }

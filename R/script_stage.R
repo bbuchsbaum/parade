@@ -220,6 +220,11 @@ script_returns <- function(...) {
 #' @param interpreter For `engine = "system"`, the interpreter command.
 #'   If `NULL`, guessed from the script file extension.
 #' @param prefix Whether to prefix output columns with stage ID (default `TRUE`).
+#' @param skip_when Optional function (or formula) that receives the row's
+#'   variables (grid columns, upstream outputs, constants). If it returns
+#'   `TRUE`, the stage is skipped for that row and output columns are filled
+#'   with `NA`. Useful for avoiding redundant work when the same outputs
+#'   are shared across multiple grid rows.
 #' @param ... Additional constant arguments passed through to the stage.
 #' @return The input flow with the new script stage appended.
 #' @export
@@ -261,7 +266,8 @@ script_stage <- function(fl, id, script, produces,
                          needs = character(),
                          engine = c("source", "system"),
                          interpreter = NULL,
-                         prefix = TRUE, ...) {
+                         prefix = TRUE,
+                         skip_when = NULL, ...) {
   stopifnot(inherits(fl, "parade_flow"))
   stopifnot(is.character(script), length(script) == 1L)
   stopifnot(is.character(produces), length(produces) >= 1L)
@@ -423,7 +429,7 @@ script_stage <- function(fl, id, script, produces,
   formals(wrapper) <- new_formals
 
   fl <- stage(fl, id = id, f = wrapper, needs = .needs, schema = sch,
-              prefix = prefix, ...)
+              prefix = prefix, skip_when = skip_when, ...)
   # Attach script metadata so print.parade_flow can show it
   fl$stages[[length(fl$stages)]]$script_meta <- list(
     script = script,
