@@ -16,10 +16,10 @@
 
 set -euo pipefail
 
-## Module handling:
-##   modules = c("StdEnv/2023", "gcc/12.3", "r/4.4.0")  -> purge + load each
-##   modules = NULL (default)                             -> inherit environment
-<% if (!is.null(resources$modules)) { %>
+## Module handling (auto-detected from submitting session by default):
+##   modules = c("StdEnv/2023", "r/4.4.0")  -> purge + load each
+##   modules = character(0)                  -> no module manipulation
+<% if (length(resources$modules) > 0) { %>
 module purge || true
 <% for (mod in resources$modules) { %>
 module load <%= mod %>

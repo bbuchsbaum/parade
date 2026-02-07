@@ -216,7 +216,19 @@ list_submit_backends <- function() {
     ),
     reg = reg
   )
-  batchtools::submitJobs(resources = dist$slurm$resources, reg = reg)
+  resources <- dist$slurm$resources
+  # Auto-detect loaded modules from the current session so compute nodes
+
+  # get the same environment (R, compilers, MPI, etc.) that was active at
+  # submit time.  Users can override with an explicit modules vector, or
+  # suppress with modules = character(0).
+  if (!("modules" %in% names(resources))) {
+    loaded <- Sys.getenv("LOADEDMODULES", "")
+    if (nzchar(loaded)) {
+      resources$modules <- strsplit(loaded, ":")[[1]]
+    }
+  }
+  batchtools::submitJobs(resources = resources, reg = reg)
   jt <- batchtools::getJobTable(reg = reg)
   handle$jobs <- jt$job.id
   handle
