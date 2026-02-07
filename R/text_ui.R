@@ -117,3 +117,261 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   }
   invisible(jobs)
 }
+
+# Deferred TUI helpers -----------------------------------------------------
+
+.count_index_files <- function(index_dir) {
+  dir_resolved <- resolve_path(index_dir, create = FALSE)
+  if (!dir.exists(dir_resolved)) return(0L)
+  length(list.files(dir_resolved, pattern = "^index-\\d+\\.rds$"))
+}
+
+.deferred_total_chunks <- function(d) {
+  if (!is.null(d$jobs) && length(d$jobs) > 0) return(length(d$jobs))
+  if (!is.null(d$chunks_path) && file.exists(d$chunks_path)) {
+    chunks <- readRDS(d$chunks_path)
+    return(length(chunks))
+  }
+  NA_integer_
+}
+
+.deferred_slurm_metrics <- function(d) {
+  if (!identical(d$backend, "slurm")) return(NULL)
+  if (!requireNamespace("batchtools", quietly = TRUE)) return(NULL)
+
+  reg <- tryCatch(
+    batchtools::loadRegistry(d$registry_dir, writeable = FALSE),
+    error = function(e) NULL
+  )
+  if (is.null(reg)) return(NULL)
+
+  jt <- tryCatch(batchtools::getJobTable(reg), error = function(e) NULL)
+  if (is.null(jt) || nrow(jt) == 0L) return(NULL)
+
+  # Cache completed job metrics to avoid re-querying SLURM
+  if (is.null(.deferred_slurm_cache)) {
+    assign(".deferred_slurm_cache", new.env(parent = emptyenv()), envir = parent.env(environment()))
+  }
+
+  results <- vector("list", nrow(jt))
+  for (idx in seq_len(nrow(jt))) {
+    row <- jt[idx, , drop = FALSE]
+    chunk_id <- row$job.id
+    batch_id <- row$batch.id
+
+    # Use cached result for completed jobs
+    cache_key <- paste0(d$run_id, "-", chunk_id)
+    cached <- .deferred_slurm_cache[[cache_key]]
+    if (!is.null(cached) && cached$state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT")) {
+      results[[idx]] <- cached
+      next
+    }
+
+    if (is.na(batch_id) || !nzchar(as.character(batch_id))) {
+      results[[idx]] <- list(
+        chunk = chunk_id, batch_id = NA_character_, state = "UNKNOWN",
+        cpu_pct = NA_real_, max_rss = NA_real_, elapsed = NA_real_, node = "?"
+      )
+      next
+    }
+
+    bid <- as.character(batch_id)
+    sq <- .slurm_squeue_info(bid)
+    state <- sq$state %||% "UNKNOWN"
+
+    # Only query sstat for running jobs (it fails for pending/completed)
+    ss <- NULL
+    sa <- NULL
+    if (state == "RUNNING") {
+      ss <- .slurm_sstat_info(bid)
+    }
+    if (state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "UNKNOWN")) {
+      sa <- .slurm_sacct_info(bid)
+      if (!is.null(sa)) state <- sa$State %||% state
+    }
+
+    alloc_cpus <- sa$AllocCPUS %||% sq$cpus %||% NA_real_
+    elapsed <- if (!is.null(ss$Elapsed)) ss$Elapsed else (sa$ElapsedRaw %||% sq$time %||% NA_real_)
+    cpu_used <- if (!is.null(ss$CPUUtilized)) ss$CPUUtilized else (sa$TotalCPU %||% NA_real_)
+    cpu_pct <- NA_real_
+    if (!is.na(elapsed) && !is.na(alloc_cpus) && alloc_cpus > 0 && !is.na(cpu_used)) {
+      cpu_pct <- min(100, 100 * cpu_used / (elapsed * alloc_cpus))
+    }
+    max_rss <- ss$MaxRSS %||% sa$MaxRSS %||% NA_real_
+    node <- sq$nodelist %||% "?"
+
+    entry <- list(
+      chunk = chunk_id, batch_id = bid, state = state,
+      cpu_pct = cpu_pct, max_rss = max_rss, elapsed = elapsed, node = node
+    )
+
+    # Cache completed entries
+    if (state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT")) {
+      .deferred_slurm_cache[[cache_key]] <- entry
+    }
+    results[[idx]] <- entry
+  }
+  results
+}
+
+# Module-level cache env for SLURM metrics (completed jobs don't change)
+.deferred_slurm_cache <- new.env(parent = emptyenv())
+
+.deferred_log_tail <- function(d, chunk_id, batch_id, nlog = 20) {
+  if (is.null(d$registry_dir) || !dir.exists(d$registry_dir)) return(NULL)
+  log_path <- file.path(d$registry_dir, "logs", paste0(chunk_id, ".log"))
+  if (!file.exists(log_path)) {
+    # Try globbing for matching files
+    logs_dir <- file.path(d$registry_dir, "logs")
+    if (!dir.exists(logs_dir)) return(NULL)
+    candidates <- list.files(logs_dir, pattern = paste0("^", chunk_id, "\\b"), full.names = TRUE)
+    if (length(candidates) == 0L) return(NULL)
+    log_path <- candidates[[1]]
+  }
+  lines <- tryCatch(readLines(log_path, warn = FALSE), error = function(e) NULL)
+  if (is.null(lines) || length(lines) == 0L) return(NULL)
+  if (length(lines) > nlog) lines <- tail(lines, nlog)
+  lines
+}
+
+#' Live TUI monitor for deferred jobs
+#'
+#' Displays a live-updating terminal dashboard for a `parade_deferred` object.
+#' Adapts to the backend: SLURM gets a rich per-chunk table with metrics and
+#' log tailing; local/crew/mirai get a progress bar with resolved/unresolved counts.
+#'
+#' Progress is tracked via index file counting (`index-NNNN.rds` in `d$index_dir`),
+#' which works across all backends.
+#'
+#' @param d A `parade_deferred` object (from [submit()])
+#' @param refresh Seconds between display updates (default 3)
+#' @param nlog Number of log lines to show (SLURM only, default 20)
+#' @param clear Clear screen between updates (default TRUE)
+#' @param once Single-shot mode: display once and return (default FALSE)
+#' @return The input deferred object (invisibly)
+#' @export
+#' @examples
+#' \donttest{
+#' grid <- data.frame(x = 1:6, g = rep(1:3, 2))
+#' fl <- flow(grid) |>
+#'   stage("s", function(x) { Sys.sleep(1); list(y = x^2) },
+#'          schema = returns(y = dbl())) |>
+#'   distribute(dist_local(by = "g"))
+#' d <- submit(fl)
+#' deferred_top(d, refresh = 1, once = TRUE)
+#' }
+deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) {
+  stopifnot(inherits(d, "parade_deferred"))
+
+  spin <- c("-", "\\", "|", "/")
+  i <- 0L
+  started <- as.POSIXct(d$submitted_at %||% as.character(Sys.time()))
+  on.exit(cat("\n"), add = TRUE)
+
+  is_slurm <- identical(d$backend, "slurm")
+
+  repeat {
+    i <- i + 1L
+    frame <- spin[(i - 1L) %% length(spin) + 1L]
+
+    # Fetch status
+    st <- tryCatch(deferred_status(d), error = function(e) NULL)
+    n_index <- .count_index_files(d$index_dir)
+    total <- .deferred_total_chunks(d)
+    if (is.na(total)) total <- n_index  # best guess
+
+    elapsed_sec <- as.numeric(difftime(Sys.time(), started, units = "secs"))
+
+    # Clear screen
+    if (isTRUE(clear) && interactive() && !isTRUE(once)) cat("\033[2J\033[H")
+
+    # --- Header ---
+    cat("parade::deferred_top  ", frame, "\n\n", sep = "")
+    cat("Run: ", d$run_id %||% "?", "  Backend: ", d$backend %||% "?",
+        "  Submitted: ", d$submitted_at %||% "?", "\n", sep = "")
+    cat("Elapsed: ", .fmt_hms(elapsed_sec),
+        if (!is.null(d$by) && length(d$by)) paste0("  By: ", paste(d$by, collapse = ", ")) else "",
+        "  Mode: ", d$mode %||% "?", "\n\n", sep = "")
+
+    # --- Progress bar ---
+    pct <- if (total > 0) round(100 * n_index / total) else 0
+    bar <- .bar(pct)
+    cat("Progress [", bar, "]  ", sprintf("%3d%%", pct),
+        "  (", n_index, "/", total, " chunks)\n", sep = "")
+
+    # --- Backend-specific status ---
+    if (is_slurm && !is.null(st)) {
+      pending <- st$pending %||% 0
+      running <- st$running %||% 0
+      done <- st$done %||% 0
+      err <- st$error %||% 0
+      cat("  pending=", pending, "  running=", running,
+          "  done=", done, "  error=", err, "\n\n", sep = "")
+
+      # Chunk table
+      metrics <- tryCatch(.deferred_slurm_metrics(d), error = function(e) NULL)
+      if (!is.null(metrics) && length(metrics) > 0) {
+        header <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
+                          "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
+        cat(header, "\n")
+        cat(strrep("-", nchar(header)), "\n")
+        first_running_chunk <- NULL
+        first_running_batch <- NULL
+        for (m in metrics) {
+          cpu_str <- if (is.na(m$cpu_pct)) "   NA" else sprintf("%5.1f", m$cpu_pct)
+          rss_str <- .parade_fmt_bytes(m$max_rss)
+          el_str <- .fmt_hms(m$elapsed)
+          cat(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
+                      m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+                      cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
+          if (is.null(first_running_chunk) && identical(m$state, "RUNNING")) {
+            first_running_chunk <- m$chunk
+            first_running_batch <- m$batch_id
+          }
+        }
+
+        # Log tail from first running chunk
+        if (!is.null(first_running_chunk)) {
+          log_lines <- .deferred_log_tail(d, first_running_chunk, first_running_batch, nlog)
+          if (!is.null(log_lines) && length(log_lines) > 0) {
+            cat("\n-- log tail (chunk ", first_running_chunk,
+                ", SLURM ", first_running_batch %||% "?", ") --\n", sep = "")
+            cat(paste(log_lines, collapse = "\n"), "\n", sep = "")
+          }
+        }
+      }
+
+      # Check completion
+      all_done <- (done + err) >= total && total > 0
+      if (all_done || isTRUE(once)) {
+        if (all_done) cat("\n(All chunks completed)\n")
+        break
+      }
+    } else {
+      # Non-SLURM: simple progress display
+      if (!is.null(st)) {
+        total_st <- st$total %||% total
+        resolved <- st$resolved %||% n_index
+        unresolved <- st$unresolved %||% (total_st - resolved)
+        cat("  total=", total_st, "  resolved=", resolved,
+            "  unresolved=", unresolved, "\n", sep = "")
+
+        all_done <- (unresolved == 0 && resolved > 0) || (n_index >= total && total > 0)
+      } else {
+        all_done <- n_index >= total && total > 0
+      }
+      if (all_done || isTRUE(once)) {
+        if (all_done) cat("\n(All chunks completed)\n")
+        break
+      }
+    }
+
+    if (!isTRUE(once)) {
+      cat("\n(Ctrl-C to exit)\n")
+    }
+
+    Sys.sleep(refresh)
+  }
+
+  invisible(d)
+}

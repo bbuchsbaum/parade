@@ -454,3 +454,125 @@ test_that("jobs_top with log tail from RUNNING job", {
     expect_identical(result, list(mock_job1, mock_job2))
   })
 })
+
+# deferred_top tests -------------------------------------------------------
+
+test_that("deferred_top errors on non-deferred input", {
+  expect_error(parade:::deferred_top(list()), "parade_deferred")
+  expect_error(parade:::deferred_top(42), "parade_deferred")
+})
+
+test_that(".count_index_files counts index files correctly", {
+  tmp <- tempfile("idx_test_")
+  dir.create(tmp, recursive = TRUE)
+  on.exit(unlink(tmp, recursive = TRUE))
+
+  # No files yet
+  expect_equal(parade:::.count_index_files(tmp), 0L)
+
+  # Create some index files and a non-index file
+
+  saveRDS(NULL, file.path(tmp, "index-0001.rds"))
+  saveRDS(NULL, file.path(tmp, "index-0002.rds"))
+  saveRDS(NULL, file.path(tmp, "index-0003.rds"))
+  saveRDS(NULL, file.path(tmp, "other-file.rds"))
+
+  expect_equal(parade:::.count_index_files(tmp), 3L)
+})
+
+test_that(".count_index_files returns 0 for non-existent dir", {
+  expect_equal(parade:::.count_index_files("/nonexistent/path/abc123"), 0L)
+})
+
+test_that(".deferred_total_chunks uses jobs field when available", {
+  d <- list(jobs = list("a", "b", "c"), chunks_path = NULL)
+  class(d) <- "parade_deferred"
+  expect_equal(parade:::.deferred_total_chunks(d), 3L)
+})
+
+test_that(".deferred_total_chunks falls back to chunks_path", {
+  tmp <- tempfile("chunks_")
+  chunks <- list(1:2, 3:4, 5:6, 7:8)
+  saveRDS(chunks, tmp)
+  on.exit(unlink(tmp))
+
+  d <- list(jobs = NULL, chunks_path = tmp)
+  class(d) <- "parade_deferred"
+  expect_equal(parade:::.deferred_total_chunks(d), 4L)
+})
+
+test_that(".deferred_total_chunks returns NA when nothing available", {
+  d <- list(jobs = NULL, chunks_path = "/nonexistent/chunks.rds")
+  class(d) <- "parade_deferred"
+  expect_true(is.na(parade:::.deferred_total_chunks(d)))
+})
+
+test_that("deferred_top once mode shows header and progress for local backend", {
+  # Create a fake deferred that looks completed
+  tmp_idx <- tempfile("idx_")
+  dir.create(tmp_idx, recursive = TRUE)
+  on.exit(unlink(tmp_idx, recursive = TRUE))
+
+  saveRDS(data.frame(y = 1), file.path(tmp_idx, "index-0001.rds"))
+  saveRDS(data.frame(y = 4), file.path(tmp_idx, "index-0002.rds"))
+
+  d <- list(
+    backend = "local",
+    run_id = "test1234",
+    mode = "index",
+    by = c("g"),
+    submitted_at = as.character(Sys.time()),
+    registry_dir = tempdir(),
+    index_dir = tmp_idx,
+    jobs = list(TRUE, TRUE),  # 2 "futures"
+    chunks_path = NULL
+  )
+  class(d) <- "parade_deferred"
+
+  # Mock deferred_status to return all resolved
+  local({
+    mock_status <- function(d, detail = FALSE) {
+      tibble::tibble(total = 2L, resolved = 2L, unresolved = 0L)
+    }
+    assignInNamespace("deferred_status", mock_status, "parade")
+
+    output <- capture.output({
+      result <- parade:::deferred_top(d, once = TRUE, clear = FALSE)
+    })
+
+    # Verify header elements
+    expect_true(any(grepl("parade::deferred_top", output)))
+    expect_true(any(grepl("test1234", output)))
+    expect_true(any(grepl("local", output)))
+    expect_true(any(grepl("index", output)))
+    # Verify progress
+    expect_true(any(grepl("Progress", output)))
+    expect_true(any(grepl("2/2", output)))
+    # Verify status counts
+    expect_true(any(grepl("resolved=2", output)))
+    expect_true(any(grepl("All chunks completed", output)))
+    # Returns invisibly
+    expect_true(inherits(result, "parade_deferred"))
+  })
+})
+
+test_that(".deferred_log_tail reads log files", {
+  tmp_reg <- tempfile("reg_")
+  logs_dir <- file.path(tmp_reg, "logs")
+  dir.create(logs_dir, recursive = TRUE)
+  on.exit(unlink(tmp_reg, recursive = TRUE))
+
+  writeLines(paste("line", 1:30), file.path(logs_dir, "1.log"))
+
+  d <- list(registry_dir = tmp_reg)
+
+  lines <- parade:::.deferred_log_tail(d, chunk_id = 1, batch_id = "12345", nlog = 10)
+  expect_length(lines, 10)
+  expect_equal(lines[10], "line 30")
+})
+
+test_that(".deferred_log_tail returns NULL for missing log", {
+  d <- list(registry_dir = "/nonexistent/reg")
+  lines <- parade:::.deferred_log_tail(d, chunk_id = 99, batch_id = "12345", nlog = 10)
+  expect_null(lines)
+})
