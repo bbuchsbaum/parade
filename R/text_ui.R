@@ -140,12 +140,17 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   if (!requireNamespace("batchtools", quietly = TRUE)) return(NULL)
 
   reg <- tryCatch(
-    batchtools::loadRegistry(d$registry_dir, writeable = FALSE),
+    suppressMessages(suppressWarnings(
+      batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
+    )),
     error = function(e) NULL
   )
   if (is.null(reg)) return(NULL)
 
-  jt <- tryCatch(batchtools::getJobTable(reg), error = function(e) NULL)
+  jt <- tryCatch(
+    suppressMessages(batchtools::getJobTable(reg)),
+    error = function(e) NULL
+  )
   if (is.null(jt) || nrow(jt) == 0L) return(NULL)
 
   # Cache completed job metrics to avoid re-querying SLURM
@@ -274,56 +279,68 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
     i <- i + 1L
     frame <- spin[(i - 1L) %% length(spin) + 1L]
 
-    # Fetch status
-    st <- tryCatch(deferred_status(d), error = function(e) NULL)
+    # --- Fetch all data (suppressing batchtools/library messages) ---
+    st <- tryCatch(
+      suppressMessages(suppressWarnings(deferred_status(d))),
+      error = function(e) NULL
+    )
     n_index <- .count_index_files(d$index_dir)
     total <- .deferred_total_chunks(d)
     if (is.na(total)) total <- n_index  # best guess
 
+    metrics <- NULL
+    if (is_slurm) {
+      metrics <- tryCatch(
+        suppressMessages(.deferred_slurm_metrics(d)),
+        error = function(e) NULL
+      )
+    }
+
     elapsed_sec <- as.numeric(difftime(Sys.time(), started, units = "secs"))
 
-    # Clear screen
-    if (isTRUE(clear) && interactive() && !isTRUE(once)) cat("\033[2J\033[H")
+    # --- Build output buffer (so clear + print is atomic) ---
+    buf <- character()
+    .l <- function(...) buf <<- c(buf, paste0(...))
 
-    # --- Header ---
-    cat("parade::deferred_top  ", frame, "\n\n", sep = "")
-    cat("Run: ", d$run_id %||% "?", "  Backend: ", d$backend %||% "?",
-        "  Submitted: ", d$submitted_at %||% "?", "\n", sep = "")
-    cat("Elapsed: ", .fmt_hms(elapsed_sec),
-        if (!is.null(d$by) && length(d$by)) paste0("  By: ", paste(d$by, collapse = ", ")) else "",
-        "  Mode: ", d$mode %||% "?", "\n\n", sep = "")
+    .l("parade::deferred_top  ", frame, "\n")
+    .l("Run: ", d$run_id %||% "?", "  Backend: ", d$backend %||% "?",
+       "  Submitted: ", d$submitted_at %||% "?", "\n")
+    .l("Elapsed: ", .fmt_hms(elapsed_sec),
+       if (!is.null(d$by) && length(d$by)) paste0("  By: ", paste(d$by, collapse = ", ")) else "",
+       "  Mode: ", d$mode %||% "?", "\n\n")
 
-    # --- Progress bar ---
+    # Progress bar
     pct <- if (total > 0) round(100 * n_index / total) else 0
     bar <- .bar(pct)
-    cat("Progress [", bar, "]  ", sprintf("%3d%%", pct),
-        "  (", n_index, "/", total, " chunks)\n", sep = "")
+    .l("Progress [", bar, "]  ", sprintf("%3d%%", pct),
+       "  (", n_index, "/", total, " chunks)\n")
 
-    # --- Backend-specific status ---
+    all_done <- FALSE
+
+    # Backend-specific status
     if (is_slurm && !is.null(st)) {
       pending <- st$pending %||% 0
       running <- st$running %||% 0
       done <- st$done %||% 0
       err <- st$error %||% 0
-      cat("  pending=", pending, "  running=", running,
-          "  done=", done, "  error=", err, "\n\n", sep = "")
+      .l("  pending=", pending, "  running=", running,
+         "  done=", done, "  error=", err, "\n\n")
 
       # Chunk table
-      metrics <- tryCatch(.deferred_slurm_metrics(d), error = function(e) NULL)
       if (!is.null(metrics) && length(metrics) > 0) {
-        header <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
-                          "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
-        cat(header, "\n")
-        cat(strrep("-", nchar(header)), "\n")
+        hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
+                       "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
+        .l(hdr, "\n")
+        .l(strrep("-", nchar(hdr)), "\n")
         first_running_chunk <- NULL
         first_running_batch <- NULL
         for (m in metrics) {
           cpu_str <- if (is.na(m$cpu_pct)) "   NA" else sprintf("%5.1f", m$cpu_pct)
           rss_str <- .parade_fmt_bytes(m$max_rss)
           el_str <- .fmt_hms(m$elapsed)
-          cat(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
-                      m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
-                      cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
+          .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
+                     m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+                     cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
           if (is.null(first_running_chunk) && identical(m$state, "RUNNING")) {
             first_running_chunk <- m$chunk
             first_running_batch <- m$batch_id
@@ -334,41 +351,36 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE) 
         if (!is.null(first_running_chunk)) {
           log_lines <- .deferred_log_tail(d, first_running_chunk, first_running_batch, nlog)
           if (!is.null(log_lines) && length(log_lines) > 0) {
-            cat("\n-- log tail (chunk ", first_running_chunk,
-                ", SLURM ", first_running_batch %||% "?", ") --\n", sep = "")
-            cat(paste(log_lines, collapse = "\n"), "\n", sep = "")
+            .l("\n-- log tail (chunk ", first_running_chunk,
+               ", SLURM ", first_running_batch %||% "?", ") --\n")
+            .l(paste(log_lines, collapse = "\n"), "\n")
           }
         }
       }
 
-      # Check completion
       all_done <- (done + err) >= total && total > 0
-      if (all_done || isTRUE(once)) {
-        if (all_done) cat("\n(All chunks completed)\n")
-        break
-      }
     } else {
       # Non-SLURM: simple progress display
       if (!is.null(st)) {
         total_st <- st$total %||% total
         resolved <- st$resolved %||% n_index
         unresolved <- st$unresolved %||% (total_st - resolved)
-        cat("  total=", total_st, "  resolved=", resolved,
-            "  unresolved=", unresolved, "\n", sep = "")
-
+        .l("  total=", total_st, "  resolved=", resolved,
+           "  unresolved=", unresolved, "\n")
         all_done <- (unresolved == 0 && resolved > 0) || (n_index >= total && total > 0)
       } else {
         all_done <- n_index >= total && total > 0
       }
-      if (all_done || isTRUE(once)) {
-        if (all_done) cat("\n(All chunks completed)\n")
-        break
-      }
     }
 
-    if (!isTRUE(once)) {
-      cat("\n(Ctrl-C to exit)\n")
-    }
+    if (all_done) .l("\n(All chunks completed)\n")
+    if (!all_done && !isTRUE(once)) .l("\n(Ctrl-C to exit)\n")
+
+    # --- Clear screen then flush buffer atomically ---
+    if (isTRUE(clear) && interactive() && !isTRUE(once)) cat("\033[2J\033[H")
+    cat(buf, sep = "")
+
+    if (all_done || isTRUE(once)) break
 
     Sys.sleep(refresh)
   }
