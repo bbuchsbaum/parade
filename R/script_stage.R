@@ -230,6 +230,12 @@ script_returns <- function(...) {
 #'   When they do, the script is skipped and valid [file_ref()] tibbles are
 #'   returned (with `written = FALSE, existed = TRUE`). Requires template mode
 #'   (produces with glue placeholders); using it with manifest mode will error.
+#' @param use_manifest Logical (defaults to `skip_if_exists`). When `TRUE`,
+#'   enables a completion manifest that records `{params} -> {output_paths}`
+#'   after each successful execution. On subsequent runs the manifest is
+#'   consulted first, which allows skipping even when the `produces` template
+#'   has changed (e.g., after adding a new grid parameter).
+#'   See [completion_manifest()], [manifest_adopt()], [manifest_clear()].
 #' @param ... Additional constant arguments passed through to the stage.
 #'
 #' @section Caching with `skip_if_exists`:
@@ -290,7 +296,8 @@ script_stage <- function(fl, id, script, produces,
                          interpreter = NULL,
                          prefix = TRUE,
                          skip_when = NULL,
-                         skip_if_exists = FALSE, ...) {
+                         skip_if_exists = FALSE,
+                         use_manifest = skip_if_exists, ...) {
   stopifnot(inherits(fl, "parade_flow"))
   stopifnot(is.character(script), length(script) == 1L)
   stopifnot(is.character(produces), length(produces) >= 1L)
@@ -347,6 +354,8 @@ script_stage <- function(fl, id, script, produces,
   .template_mode  <- is_template
   .output_names   <- output_names
   .skip_if_exists <- skip_if_exists
+  .use_manifest   <- use_manifest
+  .stage_id       <- id
 
   # --- Determine wrapper formals ------------------------------------------
   grid_cols <- names(fl$grid)
@@ -386,13 +395,64 @@ script_stage <- function(fl, id, script, produces,
         as.character(glue::glue_data(row, tmpl))
       }, character(1))
 
-      # Early return if all outputs already exist
-      if (isTRUE(.skip_if_exists) && all(file.exists(paths))) {
-        out <- list()
-        for (nm in names(paths)) {
-          out[[nm]] <- .make_file_ref_cached(paths[[nm]])
+      # --- Three-tier skip check -----------------------------------------------
+      if (isTRUE(.skip_if_exists)) {
+        clean_params <- .manifest_clean_params(row)
+
+        # Tier 1: Manifest exact match — hash params, look up, verify files
+        if (isTRUE(.use_manifest)) {
+          manifest_rec <- tryCatch(
+            .manifest_lookup(.stage_id, clean_params),
+            error = function(e) NULL
+          )
+          if (!is.null(manifest_rec)) {
+            # Use paths from the manifest (handles template changes)
+            mpaths <- unlist(manifest_rec$output_paths, use.names = TRUE)
+            out <- list()
+            for (nm in names(mpaths)) {
+              out[[nm]] <- .make_file_ref_cached(mpaths[[nm]])
+            }
+            return(out)
+          }
         }
-        return(out)
+
+        # Tier 2: file.exists on resolved template paths (original behavior)
+        if (all(file.exists(paths))) {
+          # Also record to manifest for future runs
+          if (isTRUE(.use_manifest)) {
+            tryCatch(
+              .manifest_record(.stage_id, clean_params, paths, script = .script),
+              error = function(e) NULL
+            )
+          }
+          out <- list()
+          for (nm in names(paths)) {
+            out[[nm]] <- .make_file_ref_cached(paths[[nm]])
+          }
+          return(out)
+        }
+
+        # Advisory: subset hint (once per stage per session)
+        if (isTRUE(.use_manifest)) {
+          hint_key <- paste0("parade.manifest_hint_shown.", .stage_id)
+          if (is.null(getOption(hint_key))) {
+            subset_matches <- tryCatch(
+              .manifest_lookup_subset(.stage_id, clean_params),
+              error = function(e) list()
+            )
+            if (length(subset_matches) > 0L) {
+              missing_cols <- setdiff(names(clean_params),
+                                      unlist(subset_matches[[1L]]$param_cols))
+              message(
+                "Found prior outputs for stage '", .stage_id,
+                "' with fewer params. Run manifest_adopt('", .stage_id,
+                "', list(", paste(missing_cols, collapse = ", "),
+                " = ...)) to reuse them."
+              )
+              options(setNames(list(TRUE), hint_key))
+            }
+          }
+        }
       }
 
       for (p in paths) dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE)
@@ -474,6 +534,15 @@ script_stage <- function(fl, id, script, produces,
       }
       out[[nm]] <- .make_file_ref(p)
     }
+
+    # Record to completion manifest after successful execution
+    if (isTRUE(.use_manifest) && .template_mode) {
+      tryCatch({
+        clean_params <- .manifest_clean_params(row)
+        .manifest_record(.stage_id, clean_params, paths, script = .script)
+      }, error = function(e) NULL)
+    }
+
     out
   }
 

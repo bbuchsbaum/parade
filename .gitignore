@@ -12,4 +12,6 @@ docs
 *.tar.gz
 .Rd2pdf*
 tests/testthat/registry:/
+tests/testthat/.parade/
+.claude/
 parade.log

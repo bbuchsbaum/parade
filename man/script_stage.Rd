@@ -15,6 +15,7 @@ script_stage(
   prefix = TRUE,
   skip_when = NULL,
   skip_if_exists = FALSE,
+  use_manifest = skip_if_exists,
   ...
 )
 }
@@ -57,6 +58,13 @@ are shared across multiple grid rows.}
 When they do, the script is skipped and valid \code{\link[=file_ref]{file_ref()}} tibbles are
 returned (with \verb{written = FALSE, existed = TRUE}). Requires template mode
 (produces with glue placeholders); using it with manifest mode will error.}
+
+\item{use_manifest}{Logical (defaults to \code{skip_if_exists}). When \code{TRUE},
+enables a completion manifest that records \code{{params} -> {output_paths}}
+after each successful execution. On subsequent runs the manifest is
+consulted first, which allows skipping even when the \code{produces} template
+has changed (e.g., after adding a new grid parameter).
+See \code{\link[=completion_manifest]{completion_manifest()}}, \code{\link[=manifest_adopt]{manifest_adopt()}}, \code{\link[=manifest_clear]{manifest_clear()}}.}
 
 \item{...}{Additional constant arguments passed through to the stage.}
 }
