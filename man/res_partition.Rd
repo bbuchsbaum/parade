@@ -17,3 +17,6 @@ Updated profile
 \description{
 Alias for partition()
 }
+\examples{
+res_partition(profile(), "gpu")
+}

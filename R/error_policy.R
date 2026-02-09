@@ -346,21 +346,27 @@ apply_error_policy <- function(result, job, policy) {
 }
 
 #' Get collected errors from a policy
-#' 
+#'
 #' @param policy Error policy object
 #' @return List of collected errors
-#' 
+#' @examples
+#' policy <- on_error("continue", collect_errors = TRUE)
+#' get_errors(policy)
 #' @export
 get_errors <- function(policy) {
   attr(policy, "collected_errors") %||% list()
 }
 
 #' Print method for error policies
-#' 
+#'
 #' @param x Error policy object
 #' @param ... Additional arguments (unused)
 #' @return Invisible x
-#' 
+#'
+#' @examples
+#' policy <- on_error("continue", collect_errors = TRUE)
+#' print(policy)
+#'
 #' @export
 print.parade_error_policy <- function(x, ...) {
   cat("Parade Error Policy\n")

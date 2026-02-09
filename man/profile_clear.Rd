@@ -12,3 +12,8 @@ Invisible NULL
 \description{
 Clear all registered profiles
 }
+\examples{
+\dontrun{
+profile_clear()
+}
+}

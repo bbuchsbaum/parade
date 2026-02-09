@@ -17,3 +17,6 @@ Updated profile
 \description{
 Alias for mem()
 }
+\examples{
+res_mem(profile(), "8G")
+}

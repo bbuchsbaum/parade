@@ -151,6 +151,10 @@ artifact_catalog <- function(dir = "artifacts://",
 #' @param ignore_case Whether to ignore case.
 #' @param ... Passed to [artifact_catalog] when `catalog` is NULL.
 #' @return Filtered tibble.
+#' @examples
+#' \dontrun{
+#' artifact_catalog_search("model", type = "rds")
+#' }
 #' @export
 artifact_catalog_search <- function(catalog = NULL,
                                     query,

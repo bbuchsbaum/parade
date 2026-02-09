@@ -24,6 +24,9 @@ slurm_map_packed(
   is_script = FALSE
 )
 }
+\value{
+A deferred result handle for the packed SLURM job.
+}
 \description{
 Execute slurm_map in packed mode (multiple tasks per node)
 }

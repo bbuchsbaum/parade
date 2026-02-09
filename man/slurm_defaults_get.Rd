@@ -9,6 +9,12 @@ slurm_defaults_get(profile = "default")
 \arguments{
 \item{profile}{character name; 'default' by default}
 }
+\value{
+A named list of SLURM default settings for the requested profile.
+}
 \description{
 Get defaults for SLURM (merged from options() and config)
+}
+\examples{
+slurm_defaults_get()
 }

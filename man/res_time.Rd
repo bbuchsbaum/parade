@@ -17,3 +17,6 @@ Updated profile
 \description{
 Use \code{res_time()} in pipelines to avoid masking \code{stats::time()} when \code{parade} is attached.
 }
+\examples{
+res_time(profile(), "2:00:00")
+}

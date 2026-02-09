@@ -5,6 +5,11 @@
 #' @param x A `parade_jobset` or parade job object
 #' @param ... Additional arguments passed to method implementations
 #' @return The jobset/job (invisibly)
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' await(jobs, timeout = 600)
+#' }
 #' @export
 await <- function(x, ...) {
   UseMethod("await")

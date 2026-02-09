@@ -17,3 +17,8 @@ Invisible x
 \description{
 Print method for flow control policies
 }
+\examples{
+fc <- in_waves_of(10)
+print(fc)
+
+}

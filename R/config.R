@@ -81,6 +81,9 @@ parade_config_write <- function(cfg, path = NULL) {
 
 #' Get defaults for SLURM (merged from options() and config)
 #' @param profile character name; 'default' by default
+#' @return A named list of SLURM default settings for the requested profile.
+#' @examples
+#' slurm_defaults_get()
 #' @export
 slurm_defaults_get <- function(profile = "default") {
   cfg <- parade_config_read()
@@ -96,6 +99,11 @@ slurm_defaults_get <- function(profile = "default") {
 #' @param .list optional named list
 #' @param profile profile name; defaults to 'default'
 #' @param persist write to config file if TRUE
+#' @return The previous defaults (invisibly).
+#' @examples
+#' \dontrun{
+#' slurm_defaults_set(time = "2:00:00", mem = "8G")
+#' }
 #' @export
 slurm_defaults_set <- function(..., .list = NULL, profile = "default", persist = FALSE) {
   add <- utils::modifyList(list(...), .list %||% list())

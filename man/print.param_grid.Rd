@@ -17,3 +17,8 @@ Invisible x
 \description{
 Print method for parameter grids
 }
+\examples{
+pg <- param_grid(x = 1:3, y = c("a", "b"))
+print(pg)
+
+}

@@ -262,21 +262,27 @@ flow_control <- function(...) {
 }
 
 #' Check if object is a flow control policy
-#' 
+#'
 #' @param x Object to check
 #' @return Logical indicating if x is a flow control policy
-#' 
+#' @examples
+#' is_flow_control(in_waves_of(10))
+#' is_flow_control(42)
 #' @export
 is_flow_control <- function(x) {
   inherits(x, "parade_flow_control")
 }
 
 #' Print method for flow control policies
-#' 
+#'
 #' @param x Flow control policy
 #' @param ... Additional arguments (unused)
 #' @return Invisible x
-#' 
+#'
+#' @examples
+#' fc <- in_waves_of(10)
+#' print(fc)
+#'
 #' @export
 print.parade_flow_control <- function(x, ...) {
   if (inherits(x, "parade_wave_policy")) {

@@ -15,3 +15,7 @@ Logical indicating if x is a flow control policy
 \description{
 Check if object is a flow control policy
 }
+\examples{
+is_flow_control(in_waves_of(10))
+is_flow_control(42)
+}

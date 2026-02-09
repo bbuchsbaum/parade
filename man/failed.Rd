@@ -13,6 +13,16 @@ failed(x, stage = NULL, ...)
 
 \item{...}{Additional arguments (ignored)}
 }
+\value{
+A \code{parade_jobset} containing only the failed jobs.
+}
 \description{
 Select failed jobs
+}
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+await(jobs)
+bad <- failed(jobs)
+}
 }

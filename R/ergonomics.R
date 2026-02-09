@@ -8,6 +8,8 @@
 #' @param seed_furrr Set `furrr`'s deterministic RNG (TRUE/FALSE).
 #' @param progress Default logical for progress bars (progressr).
 #' @return A named list of current options (invisibly).
+#' @examples
+#' parade_options()
 #' @export
 parade_options <- function(error = NULL, scheduling = NULL, seed_furrr = NULL, progress = NULL) {
   opts <- getOption("parade.opts", list(error = "propagate", scheduling = 1, seed_furrr = TRUE, progress = interactive()))
@@ -36,6 +38,11 @@ with_parade_options <- function(..., code) {
 #' @param x A [flow()].
 #' @param ... Additional arguments passed to methods (unused).
 #' @return A tibble summarizing stages.
+#' @examples
+#' grid <- data.frame(x = 1:3)
+#' fl <- flow(grid) |>
+#'   stage("sq", function(x) x^2, schema = returns(result = dbl()))
+#' explain(fl)
 #' @export
 explain.parade_flow <- function(x, ...) {
   stopifnot(inherits(x, "parade_flow"))
@@ -52,6 +59,12 @@ explain.parade_flow <- function(x, ...) {
 #' Dry-run a flow: show plan and counts without executing
 #' @param x A [flow()] object
 #' @param ... Additional arguments (unused)
+#' @return A summary of what the flow would execute (invisibly).
+#' @examples
+#' grid <- data.frame(x = 1:3)
+#' fl <- flow(grid) |>
+#'   stage("sq", function(x) x^2, schema = returns(result = dbl()))
+#' dry_run(fl)
 #' @export
 dry_run.parade_flow <- function(x, ...) {
   stopifnot(inherits(x, "parade_flow"))
@@ -86,6 +99,14 @@ dry_run.parade_flow <- function(x, ...) {
 
 #' Preflight checks for a flow
 #' @param fl A [flow()].
+#' @return The flow object (invisibly), after printing preflight diagnostics.
+#' @examples
+#' \donttest{
+#' grid <- data.frame(x = 1:3)
+#' fl <- flow(grid) |>
+#'   stage("sq", function(x) x^2, schema = returns(result = dbl()))
+#' preflight(fl)
+#' }
 #' @export
 preflight <- function(fl) {
   stopifnot(inherits(fl, "parade_flow"))

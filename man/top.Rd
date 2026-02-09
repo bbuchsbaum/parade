@@ -27,3 +27,9 @@ NULL (invisibly)
 \description{
 Launch interactive monitor for jobset
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) Sys.sleep(60))
+top(jobs)
+}
+}

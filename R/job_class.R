@@ -1,13 +1,20 @@
 # Unified job class hierarchy --------------------------------------------
 
 #' Print method for parade job objects
-#' 
+#'
 #' @description
 #' Common interface for printing all parade job types (script, function, local)
-#' 
+#'
 #' @param x A parade_job object
 #' @param ... Additional arguments (unused)
 #' @return Invisibly returns the job object
+#'
+#' @examples
+#' \dontrun{
+#' job <- submit_slurm("my_script.R", resources = list(time = "1:00:00"))
+#' print(job)
+#' }
+#'
 #' @method print parade_job
 #' @export
 print.parade_job <- function(x, ...) {
@@ -30,10 +37,17 @@ print.parade_job <- function(x, ...) {
 }
 
 #' Print method for local jobs
-#' 
+#'
 #' @param x A parade_local_job object
 #' @param ... Additional arguments (unused)
 #' @return Invisibly returns the job object
+#'
+#' @examples
+#' \dontrun{
+#' job <- submit_slurm("my_script.R", engine = "local")
+#' print(job)
+#' }
+#'
 #' @method print parade_local_job
 #' @export
 print.parade_local_job <- function(x, ...) {
@@ -49,8 +63,14 @@ print.parade_local_job <- function(x, ...) {
 }
 
 #' Check if a job is done
-#' 
+#'
 #' @param x A parade job object (parade_job, parade_script_job, or parade_local_job)
+#' @return Logical scalar; TRUE if the job has completed.
+#' @examples
+#' \dontrun{
+#' job <- submit_slurm(my_fun)
+#' is_done(job)
+#' }
 #' @export
 is_done <- function(x) {
   UseMethod("is_done")
@@ -81,9 +101,14 @@ is_done.parade_job <- function(x) {
 }
 
 #' Get job status
-#' 
+#'
 #' @param x A parade job object (parade_job, parade_script_job, or parade_local_job)
 #' @return A tibble containing job status information
+#' @examples
+#' \dontrun{
+#' job <- submit_slurm(my_fun)
+#' job_status(job)
+#' }
 #' @export
 job_status <- function(x) {
   UseMethod("job_status")
@@ -132,6 +157,13 @@ job_status.parade_script_job <- function(x) {
 
 #' Collect results from a job
 #' @param x A parade job object (parade_local_job or parade_script_job)
+#' @return The result value from the completed job.
+#' @examples
+#' \dontrun{
+#' job <- submit_slurm(my_fun)
+#' await(job)
+#' result <- collect_result(job)
+#' }
 #' @export
 collect_result <- function(x) {
   UseMethod("collect_result")

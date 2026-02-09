@@ -11,6 +11,16 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+The jobset object (invisibly), as per \code{\link[=print]{print()}} convention.
+}
 \description{
 Print method for parade_jobset
+}
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+print(jobs)
+}
+
 }

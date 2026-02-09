@@ -12,3 +12,6 @@ Character vector of backend names.
 \description{
 List available submit backends
 }
+\examples{
+list_submit_backends()
+}

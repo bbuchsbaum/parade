@@ -20,3 +20,8 @@ Set partition for a resource profile
 \note{
 Use res_partition() to avoid naming collisions in user code.
 }
+\examples{
+\dontrun{
+partition(job)
+}
+}

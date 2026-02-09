@@ -167,13 +167,14 @@ test_that("path_patterns provides useful patterns", {
 })
 
 test_that("path object methods work", {
-  skip("path object requires paths to be initialized")
-  
-  # Would test:
-  # - path$artifacts()
-  # - path$data()
-  # - path$registry()
-  # - path$expand()
+  # Set up temporary paths environment
+  test_dir <- withr::local_tempdir()
+  withr::local_envvar(PARADE_ROOT = test_dir)
+
+  paths <- paths_init(quiet = TRUE)
+
+  expect_true(!is.null(paths))
+  expect_true(is.list(paths) || is.environment(paths))
 })
 
 test_that("registry_clean filters correctly", {

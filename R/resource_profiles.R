@@ -162,11 +162,15 @@ gpus.parade_profile <- function(profile, value, type = NULL) {
 }
 
 #' Set partition for a resource profile
-#' 
+#'
 #' @param profile A resource profile object
 #' @param value Partition name
 #' @return Updated profile object
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' partition(job)
+#' }
 #' @note Use res_partition() to avoid naming collisions in user code.
 #' @export
 partition <- function(profile, value) {
@@ -180,12 +184,16 @@ partition.parade_profile <- function(profile, value) {
 }
 
 #' Set account for a resource profile
-#' 
+#'
 #' @param profile A resource profile object
 #' @param value Account name
 #' @return Updated profile object
-#' 
+#'
 #' @note Use res_account() to avoid naming collisions in user code.
+#' @examples
+#' \dontrun{
+#' account(job)
+#' }
 #' @export
 account <- function(profile, value) {
   UseMethod("account")
@@ -199,6 +207,8 @@ account <- function(profile, value) {
 #'
 #' @inheritParams time
 #' @return Updated profile
+#' @examples
+#' res_time(profile(), "2:00:00")
 #' @export
 res_time <- function(profile, value) {
   UseMethod("res_time")
@@ -214,6 +224,8 @@ res_time.parade_profile <- function(profile, value) {
 #'
 #' @inheritParams mem
 #' @return Updated profile
+#' @examples
+#' res_mem(profile(), "8G")
 #' @export
 res_mem <- function(profile, value) mem(profile, value)
 
@@ -221,6 +233,8 @@ res_mem <- function(profile, value) mem(profile, value)
 #'
 #' @inheritParams cpus
 #' @return Updated profile
+#' @examples
+#' res_cpus(profile(), 4)
 #' @export
 res_cpus <- function(profile, value) cpus(profile, value)
 
@@ -228,6 +242,8 @@ res_cpus <- function(profile, value) cpus(profile, value)
 #'
 #' @inheritParams partition
 #' @return Updated profile
+#' @examples
+#' res_partition(profile(), "gpu")
 #' @export
 res_partition <- function(profile, value) partition(profile, value)
 
@@ -235,6 +251,8 @@ res_partition <- function(profile, value) partition(profile, value)
 #'
 #' @inheritParams account
 #' @return Updated profile
+#' @examples
+#' res_account(profile(), "my-lab-account")
 #' @export
 res_account <- function(profile, value) account(profile, value)
 
@@ -245,22 +263,34 @@ account.parade_profile <- function(profile, value) {
 }
 
 #' Convert profile to list for slurm_resources()
-#' 
+#'
 #' @param x A resource profile object
 #' @param ... Additional arguments (unused)
 #' @return List of resources
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' prof <- profile_get("standard")
+#' as.list(prof)
+#' }
+#'
 #' @export
 as.list.parade_profile <- function(x, ...) {
   x$resources
 }
 
 #' Print method for resource profiles
-#' 
+#'
 #' @param x A resource profile object
 #' @param ... Additional arguments (unused)
 #' @return Invisible x
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' prof <- profile_get("standard")
+#' print(prof)
+#' }
+#'
 #' @export
 print.parade_profile <- function(x, ...) {
   cat("Parade Resource Profile")
@@ -413,10 +443,14 @@ profile_get <- function(name) {
 }
 
 #' Remove a registered resource profile
-#' 
+#'
 #' @param name Name of the profile to remove
 #' @return Invisible TRUE if removed, FALSE if not found
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' profile_remove("old-profile")
+#' }
 #' @export
 profile_remove <- function(name) {
   if (exists(name, envir = .profile_registry)) {
@@ -428,9 +462,13 @@ profile_remove <- function(name) {
 }
 
 #' Clear all registered profiles
-#' 
+#'
 #' @return Invisible NULL
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' profile_clear()
+#' }
 #' @export
 profile_clear <- function() {
   rm(list = ls(envir = .profile_registry), envir = .profile_registry)
@@ -495,14 +533,16 @@ profile_init_defaults <- function(overwrite = FALSE) {
 }
 
 #' Resolve resource specification from various inputs
-#' 
+#'
 #' @description
 #' Internal function to resolve resources from profile names, profile objects,
 #' or resource lists. Handles string shortcuts like "gpu", "highmem", etc.
-#' 
+#'
 #' @param resources Resource specification (string, profile, or list)
 #' @return List of resources for slurm_resources()
-#' 
+#'
+#' @examples
+#' resolve_resources(list(time = "2:00:00", mem = "8G"))
 #' @keywords internal
 #' @export
 resolve_resources <- function(resources = NULL) {

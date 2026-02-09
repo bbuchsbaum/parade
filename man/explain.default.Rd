@@ -23,6 +23,14 @@
 
 \item{.engine}{Execution engine ("slurm" or "local")}
 }
+\value{
+A character string explanation, printed to the console (invisibly).
+}
 \description{
 Explain a job submission (default)
+}
+\examples{
+\dontrun{
+explain(my_function, x = 1:10, .resources = list(time = "1:00:00"))
+}
 }

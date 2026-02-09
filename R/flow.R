@@ -38,6 +38,13 @@ pipeline <- function(grid, seed_col = NULL, error = c("propagate","keep","omit",
 #' @param x A `parade_flow` object
 #' @param ... Additional arguments (ignored)
 #' @return The input object (invisibly)
+#'
+#' @examples
+#' grid <- data.frame(x = 1:3)
+#' fl <- flow(grid) |>
+#'   stage("sq", function(x) x^2, schema = returns(result = dbl()))
+#' print(fl)
+#'
 #' @export
 print.parade_flow <- function(x, ...) {
   cat("<parade_flow>\n")

@@ -9,6 +9,17 @@ preflight(fl)
 \arguments{
 \item{fl}{A \code{\link[=flow]{flow()}}.}
 }
+\value{
+The flow object (invisibly), after printing preflight diagnostics.
+}
 \description{
 Preflight checks for a flow
+}
+\examples{
+\donttest{
+grid <- data.frame(x = 1:3)
+fl <- flow(grid) |>
+  stage("sq", function(x) x^2, schema = returns(result = dbl()))
+preflight(fl)
+}
 }

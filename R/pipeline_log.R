@@ -204,6 +204,7 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
 }
 
 #' Build crash/missing-index errors from SLURM metrics
+#' @return A tibble of error rows with columns chunk_id, row, stage, error_msg, source, context.
 #' @keywords internal
 .slurm_crash_errors <- function(metrics, index_dir, chunk_labels, total) {
   dir_resolved <- tryCatch(resolve_path(index_dir, create = FALSE), error = function(e) "")
@@ -256,6 +257,7 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
 }
 
 #' Write the run header line to the log
+#' @return NULL, called for side effect of writing the header.
 #' @keywords internal
 .pipeline_log_header <- function(d, path) {
   run_id   <- d$run_id %||% "?"
@@ -278,6 +280,7 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
 }
 
 #' Append error lines to the log
+#' @return NULL, called for side effect of appending error lines to the log.
 #' @keywords internal
 .pipeline_log_errors <- function(errors_tbl, path) {
   lines <- vapply(seq_len(nrow(errors_tbl)), function(i) {
@@ -296,6 +299,7 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
 }
 
 #' Append the DONE summary line to the log
+#' @return NULL, called for side effect of writing the summary.
 #' @keywords internal
 .pipeline_log_summary <- function(d, path) {
   total <- .deferred_total_chunks(d)
@@ -324,6 +328,7 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
 }
 
 #' Compute dedup signature for an error
+#' @return Character string hash of the error signature.
 #' @keywords internal
 .error_signature <- function(chunk_id, stage, row, msg) {
   digest::digest(list(
@@ -335,6 +340,7 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
 }
 
 #' Check if a deferred pipeline is done
+#' @return Logical scalar; TRUE if all chunks are done.
 #' @keywords internal
 .pipeline_is_done <- function(d) {
   if (identical(d$backend, "slurm")) {
@@ -361,6 +367,7 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
 }
 
 #' Append lines to a log file
+#' @return NULL, called for side effect of writing to the log file.
 #' @keywords internal
 .log_append <- function(path, lines) {
   con <- file(path, open = "a", encoding = "UTF-8")

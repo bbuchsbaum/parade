@@ -541,12 +541,12 @@ script_stage <- function(fl, id, script, produces,
 #' \code{path} column, as produced by \code{.make_file_ref()} and
 #' \code{.make_file_ref_cached()}.
 #'
-#' @param val Any R value.
+#' @param x Any R value.
 #' @return Logical scalar.
 #' @keywords internal
-.is_file_ref <- function(val) {
-  is.list(val) && length(val) == 1L && is.data.frame(val[[1L]]) &&
-    "path" %in% names(val[[1L]]) && nrow(val[[1L]]) == 1L
+.is_file_ref <- function(x) {
+  is.list(x) && length(x) == 1L && is.data.frame(x[[1L]]) &&
+    "path" %in% names(x[[1L]]) && nrow(x[[1L]]) == 1L
 }
 
 #' Flatten file_ref values in an environment list

@@ -24,6 +24,10 @@
 #'   - `target_jobs`: recommended `.target_jobs`
 #'   - `chunk_size`: recommended `.chunk_size` (if you want to pin it)
 #'   - `resources`: resource list you can pass as `.resources`
+#' @examples
+#' \dontrun{
+#' slurm_cluster_plan(n_tasks = 100, nodes = 4, cpus_per_node = 16)
+#' }
 #' @export
 slurm_cluster_plan <- function(n_tasks,
                                nodes,
@@ -89,6 +93,11 @@ slurm_cluster_plan <- function(n_tasks,
 #'   full-node defaults).
 #' @inheritParams slurm_map
 #' @return A `parade_jobset`.
+#' @examples
+#' \dontrun{
+#' results <- slurm_map_cluster(1:10, function(x) x^2,
+#'   nodes = 2, cpus_per_node = 16)
+#' }
 #' @export
 slurm_map_cluster <- function(.x, .f, ...,
                               nodes,

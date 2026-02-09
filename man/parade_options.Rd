@@ -26,3 +26,6 @@ A named list of current options (invisibly).
 \description{
 Set once per session to control defaults for \code{collect()} / \code{submit()}.
 }
+\examples{
+parade_options()
+}

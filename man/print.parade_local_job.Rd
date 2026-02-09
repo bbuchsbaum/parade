@@ -17,3 +17,10 @@ Invisibly returns the job object
 \description{
 Print method for local jobs
 }
+\examples{
+\dontrun{
+job <- submit_slurm("my_script.R", engine = "local")
+print(job)
+}
+
+}

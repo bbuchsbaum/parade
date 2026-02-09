@@ -31,3 +31,9 @@ Wait for jobs to complete
 \item \code{await(parade_jobset)}: Wait for all jobs in a jobset to complete
 
 }}
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+await(jobs, timeout = 600)
+}
+}

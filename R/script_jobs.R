@@ -206,6 +206,12 @@ submit_slurm <- function(script,
 #' @param rscript Path to Rscript executable
 #' @param wd Working directory
 #' @return List with ok status and exit code
+#' @examples
+#' \dontrun{
+#' # Internal: called by batchtools to run a script stage
+#' parade_run_script_bt(chunk_id = 1L, script = "analysis.R",
+#'   args = list(), registry_dir = "registry/")
+#' }
 #' @keywords internal
 #' @export
 parade_run_script_bt <- function(i, script, args, env, lib_paths, rscript, wd) {
@@ -222,6 +228,13 @@ parade_run_script_bt <- function(i, script, args, env, lib_paths, rscript, wd) {
 #' @param x A `parade_script_job` object
 #' @param ... Additional arguments (ignored)
 #' @return The input object (invisibly)
+#'
+#' @examples
+#' \dontrun{
+#' job <- submit_slurm("analysis.R", resources = list(time = "1:00:00"))
+#' print(job)
+#' }
+#'
 #' @export
 print.parade_script_job <- function(x, ...) {
   cat("<parade_script_job>\n")

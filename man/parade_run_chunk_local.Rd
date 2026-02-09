@@ -29,8 +29,18 @@ parade_run_chunk_local(
 
 \item{scheduling}{Furrr scheduling parameter}
 }
+\value{
+A list of results from executing the chunk.
+}
 \description{
 Internal helper invoked in local futures to execute a chunk
 of the flow. Not intended for direct user use.
+}
+\examples{
+\dontrun{
+# Internal: called by the local future backend
+parade_run_chunk_local(chunk_id = 1L, flow_rds = "flow.rds",
+  index_dir = "index/", seed_furrr = FALSE)
+}
 }
 \keyword{internal}

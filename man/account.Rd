@@ -20,3 +20,8 @@ Set account for a resource profile
 \note{
 Use res_account() to avoid naming collisions in user code.
 }
+\examples{
+\dontrun{
+account(job)
+}
+}

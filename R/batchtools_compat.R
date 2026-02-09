@@ -8,6 +8,7 @@
 #' registry without the argument and assigning the cluster functions
 #' on the returned registry object.
 #'
+#' @return A batchtools registry object.
 #' @keywords internal
 bt_make_registry <- function(reg_dir, cf) {
   stopifnot(requireNamespace("batchtools", quietly = TRUE))

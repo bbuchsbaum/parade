@@ -69,3 +69,9 @@ A \code{parade_jobset}.
 Convenience wrapper around \code{slurm_map(.packed = TRUE, ...)} that computes a
 reasonable \code{.target_jobs} based on the cluster size.
 }
+\examples{
+\dontrun{
+results <- slurm_map_cluster(1:10, function(x) x^2,
+  nodes = 2, cpus_per_node = 16)
+}
+}

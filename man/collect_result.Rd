@@ -9,6 +9,16 @@ collect_result(x)
 \arguments{
 \item{x}{A parade job object (parade_local_job or parade_script_job)}
 }
+\value{
+The result value from the completed job.
+}
 \description{
 Collect results from a job
+}
+\examples{
+\dontrun{
+job <- submit_slurm(my_fun)
+await(job)
+result <- collect_result(job)
+}
 }

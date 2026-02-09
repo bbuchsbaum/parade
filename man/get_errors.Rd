@@ -15,3 +15,7 @@ List of collected errors
 \description{
 Get collected errors from a policy
 }
+\examples{
+policy <- on_error("continue", collect_errors = TRUE)
+get_errors(policy)
+}

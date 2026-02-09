@@ -6,6 +6,9 @@
 \usage{
 .pipeline_log_header(d, path)
 }
+\value{
+NULL, called for side effect of writing the header.
+}
 \description{
 Write the run header line to the log
 }

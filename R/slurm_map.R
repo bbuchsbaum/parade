@@ -537,6 +537,7 @@ generate_job_name <- function(element, index, name_by, all_elements) {
 # Packed execution mode for slurm_map ----------------------------------------
 
 #' Execute slurm_map in packed mode (multiple tasks per node)
+#' @return A deferred result handle for the packed SLURM job.
 #' @keywords internal
 slurm_map_packed <- function(.x, .f, ...,
                               .args = NULL,
@@ -674,6 +675,7 @@ slurm_map_packed <- function(.x, .f, ...,
 #' Worker function for packed execution
 #'
 #' Processes a chunk of elements in parallel on a single node
+#' @return A function that processes a chunk of elements.
 #' @keywords internal
 packed_worker_function <- function(chunk_elements,
                                    chunk_indices,

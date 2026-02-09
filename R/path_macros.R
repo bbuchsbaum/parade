@@ -292,11 +292,17 @@ path_template <- function(pattern, ...) {
 }
 
 #' Print method for path object
-#' 
+#'
 #' @param x Path object
 #' @param ... Additional arguments (unused)
 #' @return Invisible x
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' p <- path
+#' print(p)
+#' }
+#'
 #' @export
 print.parade_path <- function(x, ...) {
   cat("Parade Path Object\n")
@@ -326,25 +332,27 @@ print.parade_path <- function(x, ...) {
 }
 
 #' Common path patterns
-#' 
+#'
 #' @description
 #' Pre-defined path patterns for common use cases.
-#' 
+#'
+#' @return A named list of path pattern functions.
+#'
 #' @examples
 #' \donttest{
 #' # Timestamped output
 #' path_patterns$timestamped("results", "analysis", "csv")
 #' # -> "results/20240115_143022_analysis.csv"
-#' 
+#'
 #' # Experiment organization
 #' path_patterns$experiment("exp001", "model_v2", 3)
 #' # -> "experiments/exp001/model_v2/run_003"
-#' 
+#'
 #' # User-specific paths
 #' path_patterns$user_workspace("temp", "data.rds")
 #' # -> "workspace/username/temp/data.rds"
 #' }
-#' 
+#'
 #' @export
 path_patterns <- list(
   # Timestamped file

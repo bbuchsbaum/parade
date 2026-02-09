@@ -15,3 +15,6 @@ A \code{parade_pack} object
 \description{
 Alias for pack function
 }
+\examples{
+struct(returns(name = chr(), value = dbl()))
+}

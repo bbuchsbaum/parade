@@ -12,3 +12,8 @@ File reference schema
 \description{
 Alias for file_ref function
 }
+\examples{
+\dontrun{
+artifact("model_fit", value = my_model, type = "rds")
+}
+}

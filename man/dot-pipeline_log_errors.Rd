@@ -6,6 +6,9 @@
 \usage{
 .pipeline_log_errors(errors_tbl, path)
 }
+\value{
+NULL, called for side effect of appending error lines to the log.
+}
 \description{
 Append error lines to the log
 }

@@ -99,6 +99,14 @@ as_jobset.default <- function(x, ...) {
 #'
 #' @param x A parade_jobset object to print
 #' @param ... Additional arguments (unused)
+#' @return The jobset object (invisibly), as per [print()] convention.
+#'
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' print(jobs)
+#' }
+#'
 #' @importFrom utils head
 #' @export
 print.parade_jobset <- function(x, ...) {

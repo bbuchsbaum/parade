@@ -133,15 +133,13 @@ test_that("grid with function filter works", {
 })
 
 test_that("param_grid alternative interface works", {
-  skip("param_grid needs debugging")
-  
   params_list <- list(
     alpha = c(0.1, 1.0),
     beta = c(1, 2, 3)
   )
-  
-  params <- param_grid(params_list)
-  
+
+  params <- do.call(param_grid, params_list)
+
   expect_equal(nrow(params), 2 * 3)
   expect_equal(sort(unique(params$alpha)), c(0.1, 1.0))
   expect_equal(sort(unique(params$beta)), 1:3)

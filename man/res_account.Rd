@@ -17,3 +17,6 @@ Updated profile
 \description{
 Alias for account()
 }
+\examples{
+res_account(profile(), "my-lab-account")
+}

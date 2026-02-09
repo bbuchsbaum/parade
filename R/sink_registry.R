@@ -93,6 +93,7 @@ has_sink_format <- function(name) {
 
 # Register built-in formats on package load
 #' Register built-in sink formats
+#' @return NULL, called for side effect of registering formats.
 #' @keywords internal
 .register_builtin_formats <- function() {
   # RDS - default format

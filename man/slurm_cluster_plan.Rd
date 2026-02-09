@@ -46,3 +46,8 @@ size that yields a reasonable number of SLURM jobs.
 This helper computes a sensible packed configuration for a fixed cluster size
 and a known task count.
 }
+\examples{
+\dontrun{
+slurm_cluster_plan(n_tasks = 100, nodes = 4, cpus_per_node = 16)
+}
+}

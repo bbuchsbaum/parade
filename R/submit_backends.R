@@ -30,6 +30,10 @@
 #'   that returns an updated `handle` with `handle$jobs` populated.
 #' @param overwrite Logical; overwrite an existing backend registration.
 #' @return Invisibly `TRUE`.
+#' @examples
+#' \dontrun{
+#' register_submit_backend("custom", function(handle, dist, ...) { handle })
+#' }
 #' @export
 register_submit_backend <- function(name, submitter, overwrite = FALSE) {
   if (!is.character(name) || length(name) != 1L || !nzchar(name)) {
@@ -50,6 +54,8 @@ register_submit_backend <- function(name, submitter, overwrite = FALSE) {
 #' List available submit backends
 #'
 #' @return Character vector of backend names.
+#' @examples
+#' list_submit_backends()
 #' @export
 list_submit_backends <- function() {
   reg <- .submit_backend_registry()

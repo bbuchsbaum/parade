@@ -6,6 +6,9 @@
 \usage{
 .pipeline_is_done(d)
 }
+\value{
+Logical scalar; TRUE if all chunks are done.
+}
 \description{
 Check if a deferred pipeline is done
 }

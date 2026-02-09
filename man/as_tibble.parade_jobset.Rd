@@ -11,6 +11,16 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+A \code{\link[tibble:tibble]{tibble::tibble()}} with one row per job.
+}
 \description{
 Convert jobset to tibble
+}
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+tibble::as_tibble(jobs)
+}
+
 }

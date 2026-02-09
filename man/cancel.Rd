@@ -17,3 +17,9 @@ The jobset (invisibly)
 \description{
 Cancel all jobs in a jobset
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) Sys.sleep(100))
+cancel(jobs)
+}
+}

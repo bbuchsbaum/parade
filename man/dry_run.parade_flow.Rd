@@ -11,6 +11,15 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+A summary of what the flow would execute (invisibly).
+}
 \description{
 Dry-run a flow: show plan and counts without executing
+}
+\examples{
+grid <- data.frame(x = 1:3)
+fl <- flow(grid) |>
+  stage("sq", function(x) x^2, schema = returns(result = dbl()))
+dry_run(fl)
 }

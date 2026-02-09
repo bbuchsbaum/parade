@@ -9,6 +9,16 @@
 \arguments{
 \item{x}{A parade_jobset object}
 }
+\value{
+Integer; the number of jobs in the set.
+}
 \description{
 Get length of jobset
+}
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+length(jobs)
+}
+
 }

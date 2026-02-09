@@ -17,3 +17,6 @@ A naming function
 \description{
 Creates a naming function that uses a hash of the input for unique job names.
 }
+\examples{
+name_digest("my_job", list(x = 1, y = "a"))
+}

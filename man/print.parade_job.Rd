@@ -17,3 +17,10 @@ Invisibly returns the job object
 \description{
 Common interface for printing all parade job types (script, function, local)
 }
+\examples{
+\dontrun{
+job <- submit_slurm("my_script.R", resources = list(time = "1:00:00"))
+print(job)
+}
+
+}

@@ -33,3 +33,10 @@ Invisible NULL
 Opens log files for jobs in a jobset. Can open logs for all jobs,
 failed jobs only, or specific indices.
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+open_logs(jobs)
+}
+
+}

@@ -11,6 +11,16 @@
 
 \item{i}{Index vector for subsetting}
 }
+\value{
+A \code{parade_jobset} containing the selected jobs.
+}
 \description{
 Extract subset of jobs
+}
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+first_two <- jobs[1:2]
+}
+
 }

@@ -17,3 +17,10 @@ The input object (invisibly)
 \description{
 Print method for parade script jobs
 }
+\examples{
+\dontrun{
+job <- submit_slurm("analysis.R", resources = list(time = "1:00:00"))
+print(job)
+}
+
+}

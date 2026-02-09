@@ -15,3 +15,9 @@ A parade_jobset containing only pending jobs
 \description{
 Select pending jobs
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+still_waiting <- pending(jobs)
+}
+}

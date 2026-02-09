@@ -26,6 +26,14 @@
 
 \item{.engine}{Execution engine ("slurm" or "local")}
 }
+\value{
+A list describing the planned submission (invisibly).
+}
 \description{
 Dry run for job submission (default)
+}
+\examples{
+\dontrun{
+dry_run(my_function, x = 1:10, .resources = list(time = "1:00:00"))
+}
 }

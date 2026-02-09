@@ -21,3 +21,9 @@ Invisible NULL
 \description{
 Fallback log opener for list-like job objects
 }
+\examples{
+\dontrun{
+open_logs(job)
+}
+
+}

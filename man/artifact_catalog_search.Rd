@@ -30,3 +30,8 @@ Filtered tibble.
 Convenience wrapper that filters an existing catalog (or builds one) using a
 substring/regex match over common columns.
 }
+\examples{
+\dontrun{
+artifact_catalog_search("model", type = "rds")
+}
+}

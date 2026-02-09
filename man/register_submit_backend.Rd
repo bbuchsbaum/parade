@@ -23,3 +23,8 @@ Invisibly \code{TRUE}.
 \code{"mirai"}). This function registers a handler so downstream packages can add
 new backends (e.g., a future "slurm pool" implementation).
 }
+\examples{
+\dontrun{
+register_submit_backend("custom", function(handle, dist, ...) { handle })
+}
+}

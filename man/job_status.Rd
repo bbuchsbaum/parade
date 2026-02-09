@@ -15,3 +15,9 @@ A tibble containing job status information
 \description{
 Get job status
 }
+\examples{
+\dontrun{
+job <- submit_slurm(my_fun)
+job_status(job)
+}
+}

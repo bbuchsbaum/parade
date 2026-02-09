@@ -7,7 +7,7 @@
 .is_file_ref(x)
 }
 \arguments{
-\item{val}{Any R value.}
+\item{x}{Any R value.}
 }
 \value{
 Logical scalar.

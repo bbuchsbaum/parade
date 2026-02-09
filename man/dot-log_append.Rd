@@ -6,6 +6,9 @@
 \usage{
 .log_append(path, lines)
 }
+\value{
+NULL, called for side effect of writing to the log file.
+}
 \description{
 Append lines to a log file
 }

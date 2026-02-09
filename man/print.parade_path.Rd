@@ -17,3 +17,10 @@ Invisible x
 \description{
 Print method for path object
 }
+\examples{
+\dontrun{
+p <- path
+print(p)
+}
+
+}

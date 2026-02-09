@@ -17,3 +17,10 @@ List of resources
 \description{
 Convert profile to list for slurm_resources()
 }
+\examples{
+\dontrun{
+prof <- profile_get("standard")
+as.list(prof)
+}
+
+}

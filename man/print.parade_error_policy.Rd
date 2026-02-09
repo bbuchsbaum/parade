@@ -17,3 +17,8 @@ Invisible x
 \description{
 Print method for error policies
 }
+\examples{
+policy <- on_error("continue", collect_errors = TRUE)
+print(policy)
+
+}

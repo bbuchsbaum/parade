@@ -99,16 +99,20 @@ args_call <- function(...) {
 }
 
 #' Auto-detect argument type
-#' 
+#'
 #' Intelligently creates either CLI or call arguments based on context
-#' 
+#'
 #' @note This function is exported as `args()` and will mask `base::args` when
 #' parade is attached. Call `base::args` explicitly if you need the base version
 #' (e.g., `base::args(lm)`).
-#' 
+#'
 #' @param ... Arguments to process
 #' @param .type Force type: "cli", "call", or "auto" (default)
 #' @return Character vector or named list depending on context
+#' @examples
+#' \dontrun{
+#' args(job)
+#' }
 #' @export
 args <- function(..., .type = "auto") {
   if (.type == "cli") return(args_cli(...))

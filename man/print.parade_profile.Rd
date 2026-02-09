@@ -17,3 +17,10 @@ Invisible x
 \description{
 Print method for resource profiles
 }
+\examples{
+\dontrun{
+prof <- profile_get("standard")
+print(prof)
+}
+
+}

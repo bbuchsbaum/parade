@@ -9,6 +9,17 @@
 \arguments{
 \item{...}{parade_jobset objects to combine}
 }
+\value{
+A combined \code{parade_jobset} object.
+}
 \description{
 Combine jobsets
+}
+\examples{
+\dontrun{
+jobs1 <- slurm_map(1:2, function(x) x^2)
+jobs2 <- slurm_map(3:4, function(x) x^2)
+combined <- c(jobs1, jobs2)
+}
+
 }

@@ -6,6 +6,9 @@
 \usage{
 bt_make_registry(reg_dir, cf)
 }
+\value{
+A batchtools registry object.
+}
 \description{
 Some older versions of batchtools do not support the
 \code{cluster.functions} argument in \code{makeRegistry()}. This helper

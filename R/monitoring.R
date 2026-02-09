@@ -59,15 +59,20 @@ open_logs.parade_job <- function(job, which = c("both", "out", "err"),
 }
 
 #' Fallback log opener for list-like job objects
-#' 
+#'
 #' @param job A job object (list-like structure with job metadata)
 #' @param which Which log to open: "both", "out", or "err" (default: "both")
 #' @param viewer Function to use for viewing log files (default: utils::file.edit)
 #' @param ... Additional arguments (unused)
 #' @return Invisible NULL
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' open_logs(job)
+#' }
+#'
 #' @export
-open_logs.default <- function(job, which = c("both", "out", "err"), 
+open_logs.default <- function(job, which = c("both", "out", "err"),
                               viewer = utils::file.edit, ...) {
   which <- match.arg(which)
   
@@ -88,11 +93,11 @@ open_logs.default <- function(job, which = c("both", "out", "err"),
 }
 
 #' Open log files for a jobset
-#' 
+#'
 #' @description
 #' Opens log files for jobs in a jobset. Can open logs for all jobs,
 #' failed jobs only, or specific indices.
-#' 
+#'
 #' @param job A parade_jobset object
 #' @param which Which logs to open: "both", "out", or "err"
 #' @param viewer Function to use for viewing (default: file.edit)
@@ -100,7 +105,13 @@ open_logs.default <- function(job, which = c("both", "out", "err"),
 #' @param max_files Maximum number of log files to open (default: 10)
 #' @param ... Additional arguments (unused)
 #' @return Invisible NULL
-#' 
+#'
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' open_logs(jobs)
+#' }
+#'
 #' @importFrom utils head
 #' @export
 open_logs.parade_jobset <- function(job, which = c("both", "out", "err"),
@@ -181,9 +192,14 @@ explain <- function(x, ...) UseMethod("explain")
 #' @param ... Arguments that would be passed to the function
 #' @param .resources Resource specification for job execution
 #' @param .packages Packages to load for the job
-#' @param .engine Execution engine ("slurm" or "local") 
+#' @param .engine Execution engine ("slurm" or "local")
+#' @return A character string explanation, printed to the console (invisibly).
+#' @examples
+#' \dontrun{
+#' explain(my_function, x = 1:10, .resources = list(time = "1:00:00"))
+#' }
 #' @export
-explain.default <- function(x, ..., .resources = NULL, .packages = character(), 
+explain.default <- function(x, ..., .resources = NULL, .packages = character(),
                             .engine = c("slurm", "local")) {
   .engine <- match.arg(.engine)
   
@@ -310,11 +326,16 @@ dry_run <- function(x, ...) UseMethod("dry_run")
 #' @param x Function or script to dry run
 #' @param ... Arguments that would be passed to the function
 #' @param .name Job name (if NULL, auto-generated)
-#' @param .resources Resource specification for job execution  
+#' @param .resources Resource specification for job execution
 #' @param .write_result Where results would be written
 #' @param .engine Execution engine ("slurm" or "local")
+#' @return A list describing the planned submission (invisibly).
+#' @examples
+#' \dontrun{
+#' dry_run(my_function, x = 1:10, .resources = list(time = "1:00:00"))
+#' }
 #' @export
-dry_run.default <- function(x, ..., .name = NULL, .resources = NULL, 
+dry_run.default <- function(x, ..., .name = NULL, .resources = NULL,
                             .write_result = NULL, .engine = "slurm") {
   
   cat("=== Dry Run Mode ===\n")

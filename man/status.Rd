@@ -17,3 +17,9 @@ A tibble with job status information
 \description{
 Get status of all jobs in a jobset
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+status(jobs)
+}
+}

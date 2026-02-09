@@ -36,4 +36,11 @@ Invisibly returns a list when \code{mode = "index"}, otherwise a tibble
 Internal helper invoked on SLURM workers to execute a chunk
 of the flow. Not intended for direct user use.
 }
+\examples{
+\dontrun{
+# Internal: called by the batchtools backend
+parade_run_chunk_bt(chunk_id = 1L, flow_rds = "flow.rds",
+  index_dir = "index/", seed_furrr = FALSE)
+}
+}
 \keyword{internal}

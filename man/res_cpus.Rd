@@ -17,3 +17,6 @@ Updated profile
 \description{
 Alias for cpus()
 }
+\examples{
+res_cpus(profile(), 4)
+}

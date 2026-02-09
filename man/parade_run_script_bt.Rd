@@ -27,4 +27,11 @@ List with ok status and exit code
 \description{
 Run script in batchtools context
 }
+\examples{
+\dontrun{
+# Internal: called by batchtools to run a script stage
+parade_run_script_bt(chunk_id = 1L, script = "analysis.R",
+  args = list(), registry_dir = "registry/")
+}
+}
 \keyword{internal}

@@ -15,3 +15,8 @@ Invisible TRUE if removed, FALSE if not found
 \description{
 Remove a registered resource profile
 }
+\examples{
+\dontrun{
+profile_remove("old-profile")
+}
+}

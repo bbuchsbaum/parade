@@ -256,11 +256,15 @@ combine_grids <- function(..., .id = ".source") {
 }
 
 #' Print method for parameter grids
-#' 
+#'
 #' @param x Parameter grid
 #' @param ... Additional arguments passed to print
 #' @return Invisible x
-#' 
+#'
+#' @examples
+#' pg <- param_grid(x = 1:3, y = c("a", "b"))
+#' print(pg)
+#'
 #' @export
 print.param_grid <- function(x, ...) {
   n <- nrow(x)

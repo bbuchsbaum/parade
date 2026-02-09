@@ -6,6 +6,9 @@
 \usage{
 .register_builtin_formats()
 }
+\value{
+NULL, called for side effect of registering formats.
+}
 \description{
 Register built-in sink formats
 }

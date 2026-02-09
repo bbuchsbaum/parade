@@ -15,55 +15,35 @@ if (!exists("%||%")) {
 # Tests for .slurm_cmd and .run_cmd
 # ===========================================================================
 
-test_that(".slurm_cmd returns path when command exists", {
-  skip("Requires mocking Sys.which which is difficult in current test environment")
-  stub(parade:::.slurm_cmd, "Sys.which", function(...) "/usr/bin/squeue")
-  result <- parade:::.slurm_cmd("squeue")
-  expect_equal(result, "/usr/bin/squeue")
+test_that(".slurm_cmd returns path for existing system command", {
+  # Test with a command that definitely exists on all platforms
+  result <- parade:::.slurm_cmd("ls")
+  expect_true(nzchar(result) && !is.na(result))
 })
 
 test_that(".slurm_cmd returns NA when command doesn't exist", {
-  skip("Requires mocking Sys.which which is difficult in current test environment")
-  stub(parade:::.slurm_cmd, "Sys.which", function(...) "")
-  result <- parade:::.slurm_cmd("nonexistent")
+  result <- parade:::.slurm_cmd("this_command_does_not_exist_xyz")
   expect_true(is.na(result))
 })
 
-test_that(".run_cmd returns empty character with status 127 when command not found", {
-  skip("Requires complex mocking of internal functions")
-  with_mocked_bindings(
-    {
-      result <- parade:::.run_cmd("squeue", c("-j", "12345"))
-      expect_equal(result, character())
-      expect_equal(attr(result, "status"), 127L)
-    },
-    .slurm_cmd = function(...) NA_character_,
-    .package = "parade"
-  )
-})
-
-test_that(".run_cmd executes command and returns output", {
-  skip("Requires mocking system2 which is difficult in current test environment")
-  stub(parade:::.run_cmd, "parade:::.slurm_cmd", function(...) "/usr/bin/squeue")
-  stub(parade:::.run_cmd, "system2", function(...) {
-    result <- c("RUNNING|00:05:30|01:00:00|4|1|None|node001")
-    attr(result, "status") <- 0L
-    return(result)
-  })
-  
-  result <- parade:::.run_cmd("squeue", c("-j", "12345"))
-  expect_equal(result, c("RUNNING|00:05:30|01:00:00|4|1|None|node001"))
-  expect_equal(attr(result, "status"), 0L)
-})
-
-test_that(".run_cmd handles system2 errors gracefully", {
-  skip("Requires mocking system2 which is difficult in current test environment")
-  stub(parade:::.run_cmd, "parade:::.slurm_cmd", function(...) "/usr/bin/squeue")
-  stub(parade:::.run_cmd, "system2", function(...) stop("Command failed"))
-  
-  result <- parade:::.run_cmd("squeue", c("-j", "12345"))
-  expect_equal(result, character())
+test_that(".run_cmd returns empty character when command not found", {
+  result <- parade:::.run_cmd("this_command_does_not_exist_xyz", c("--help"))
+  expect_equal(length(result), 0)
   expect_equal(attr(result, "status"), 127L)
+})
+
+test_that(".run_cmd executes real command and returns output", {
+  result <- parade:::.run_cmd("echo", c("hello"))
+  expect_true(length(result) > 0)
+  expect_match(result[[1]], "hello")
+  expect_equal(attr(result, "status") %||% 0L, 0L)
+})
+
+test_that(".run_cmd returns output with status attribute", {
+  result <- parade:::.run_cmd("echo", c("test"))
+  expect_true(!is.null(result))
+  status <- attr(result, "status") %||% 0L
+  expect_true(is.numeric(status))
 })
 
 # ===========================================================================

@@ -17,3 +17,10 @@ The input object (invisibly)
 \description{
 Print method for parade flows
 }
+\examples{
+grid <- data.frame(x = 1:3)
+fl <- flow(grid) |>
+  stage("sq", function(x) x^2, schema = returns(result = dbl()))
+print(fl)
+
+}

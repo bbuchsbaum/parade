@@ -10,6 +10,9 @@ An object of class \code{list} of length 5.
 \usage{
 path_patterns
 }
+\value{
+A named list of path pattern functions.
+}
 \description{
 Pre-defined path patterns for common use cases.
 }

@@ -16,4 +16,7 @@ List of resources for slurm_resources()
 Internal function to resolve resources from profile names, profile objects,
 or resource lists. Handles string shortcuts like "gpu", "highmem", etc.
 }
+\examples{
+resolve_resources(list(time = "2:00:00", mem = "8G"))
+}
 \keyword{internal}

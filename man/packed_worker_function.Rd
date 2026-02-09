@@ -16,6 +16,9 @@ packed_worker_function(
   parallel_backend = c("callr", "auto", "multicore", "multisession")
 )
 }
+\value{
+A function that processes a chunk of elements.
+}
 \description{
 Processes a chunk of elements in parallel on a single node
 }

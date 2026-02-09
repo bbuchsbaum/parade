@@ -6,6 +6,9 @@
 \usage{
 .pipeline_log_summary(d, path)
 }
+\value{
+NULL, called for side effect of writing the summary.
+}
 \description{
 Append the DONE summary line to the log
 }

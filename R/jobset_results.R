@@ -5,6 +5,11 @@
 #' @param x A `parade_jobset` object
 #' @param ... Additional arguments passed to method implementations
 #' @return A tibble with job status information
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' status(jobs)
+#' }
 #' @export
 status <- function(x, ...) {
   UseMethod("status")
@@ -36,6 +41,12 @@ status.parade_jobset <- function(x, ...) {
 #' @param x A `parade_jobset` object
 #' @param ... Additional arguments passed to method implementations
 #' @return List or simplified structure of results
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' await(jobs)
+#' results <- collect(jobs)
+#' }
 #' @export
 collect <- function(x, ...) {
   UseMethod("collect")
@@ -96,6 +107,11 @@ collect.parade_job <- function(x, ...) {
 #' @param x A `parade_jobset` object
 #' @param ... Additional arguments passed to method implementations
 #' @return The jobset (invisibly)
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) Sys.sleep(100))
+#' cancel(jobs)
+#' }
 #' @export
 cancel <- function(x, ...) {
   UseMethod("cancel")
@@ -130,6 +146,13 @@ cancel.parade_job <- function(x, ...) {
 #' @param n Number of lines to show
 #' @param ... Additional arguments
 #' @return Character vector of log lines (invisibly)
+#'
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' tail(jobs, n = 20)
+#' }
+#'
 #' @importFrom utils tail
 #' @export
 tail.parade_jobset <- function(x, n = 50, ...) {
@@ -158,6 +181,11 @@ tail.parade_jobset <- function(x, n = 50, ...) {
 #' @param x A parade_jobset or parade_job object
 #' @param ... Additional arguments passed to methods
 #' @return NULL (invisibly)
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) Sys.sleep(60))
+#' top(jobs)
+#' }
 #' @export
 top <- function(x, ...) {
   UseMethod("top")
@@ -203,6 +231,14 @@ top.parade_job <- function(x, refresh = 2, nlog = 30, ...) {
 #'
 #' @param x A parade_jobset object
 #' @param i Index vector for subsetting
+#' @return A \code{parade_jobset} containing the selected jobs.
+#'
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' first_two <- jobs[1:2]
+#' }
+#'
 #' @export
 `[.parade_jobset` <- function(x, i) {
   structure(
@@ -216,6 +252,15 @@ top.parade_job <- function(x, refresh = 2, nlog = 30, ...) {
 #' Combine jobsets
 #'
 #' @param ... parade_jobset objects to combine
+#' @return A combined \code{parade_jobset} object.
+#'
+#' @examples
+#' \dontrun{
+#' jobs1 <- slurm_map(1:2, function(x) x^2)
+#' jobs2 <- slurm_map(3:4, function(x) x^2)
+#' combined <- c(jobs1, jobs2)
+#' }
+#'
 #' @export
 c.parade_jobset <- function(...) {
   jobs <- NextMethod("c")
@@ -229,6 +274,14 @@ c.parade_jobset <- function(...) {
 #' Get length of jobset
 #'
 #' @param x A parade_jobset object
+#' @return Integer; the number of jobs in the set.
+#'
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' length(jobs)
+#' }
+#'
 #' @export
 length.parade_jobset <- function(x) {
   NextMethod("length")
@@ -238,6 +291,14 @@ length.parade_jobset <- function(x) {
 #'
 #' @param x A parade_jobset object
 #' @param ... Additional arguments (unused)
+#' @return A [tibble::tibble()] with one row per job.
+#'
+#' @examples
+#' \dontrun{
+#' jobs <- slurm_map(1:4, function(x) x^2)
+#' tibble::as_tibble(jobs)
+#' }
+#'
 #' @importFrom tibble as_tibble
 #' @export
 as_tibble.parade_jobset <- function(x, ...) {

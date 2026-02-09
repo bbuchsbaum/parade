@@ -19,3 +19,10 @@ Character vector of log lines (invisibly)
 \description{
 Get tail of logs for jobs
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+tail(jobs, n = 20)
+}
+
+}

@@ -15,3 +15,9 @@ A parade_jobset containing only running jobs
 \description{
 Select running jobs
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+active <- running(jobs)
+}
+}

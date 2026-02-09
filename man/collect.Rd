@@ -22,3 +22,10 @@ List or simplified structure of results
 \description{
 Collect results from all jobs in a jobset
 }
+\examples{
+\dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+await(jobs)
+results <- collect(jobs)
+}
+}

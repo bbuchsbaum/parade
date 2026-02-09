@@ -156,6 +156,12 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
 #' @param seed_furrr Logical; seed handling for furrr
 #' @param scheduling Furrr scheduling parameter
 #' @return Invisibly returns a list when `mode = "index"`, otherwise a tibble
+#' @examples
+#' \dontrun{
+#' # Internal: called by the batchtools backend
+#' parade_run_chunk_bt(chunk_id = 1L, flow_rds = "flow.rds",
+#'   index_dir = "index/", seed_furrr = FALSE)
+#' }
 #' @keywords internal
 #' @export
 parade_run_chunk_bt <- function(i, flow_path, chunks_path, index_dir, mode = "index", seed_furrr = TRUE, scheduling = 1) {
@@ -170,6 +176,13 @@ parade_run_chunk_bt <- function(i, flow_path, chunks_path, index_dir, mode = "in
 #' of the flow. Not intended for direct user use.
 #'
 #' @inheritParams parade_run_chunk_bt
+#' @return A list of results from executing the chunk.
+#' @examples
+#' \dontrun{
+#' # Internal: called by the local future backend
+#' parade_run_chunk_local(chunk_id = 1L, flow_rds = "flow.rds",
+#'   index_dir = "index/", seed_furrr = FALSE)
+#' }
 #' @keywords internal
 #' @export
 parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = "index", seed_furrr = TRUE, scheduling = 1) {

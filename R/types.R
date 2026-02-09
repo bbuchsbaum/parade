@@ -109,6 +109,8 @@ pack <- function(.returns) { stopifnot(inherits(.returns, "tbl_df")); structure(
 #' Alias for pack function
 #' @param .returns Schema specification
 #' @return A `parade_pack` object
+#' @examples
+#' struct(returns(name = chr(), value = dbl()))
 #' @export
 struct <- pack
 #' Create a file reference type specification
@@ -120,6 +122,10 @@ struct <- pack
 file_ref <- function() { pack(schema(path=chr(), bytes=int(), sha256=chr(), written=lgl(), existed=lgl())) }
 #' Alias for file_ref function
 #' @return File reference schema
+#' @examples
+#' \dontrun{
+#' artifact("model_fit", value = my_model, type = "rds")
+#' }
 #' @export
 artifact <- file_ref
 #' Define a validation contract for stage outputs

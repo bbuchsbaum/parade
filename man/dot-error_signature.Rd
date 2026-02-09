@@ -6,6 +6,9 @@
 \usage{
 .error_signature(chunk_id, stage, row, msg)
 }
+\value{
+Character string hash of the error signature.
+}
 \description{
 Compute dedup signature for an error
 }

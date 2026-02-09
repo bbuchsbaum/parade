@@ -15,6 +15,14 @@ slurm_defaults_set(..., .list = NULL, profile = "default", persist = FALSE)
 
 \item{persist}{write to config file if TRUE}
 }
+\value{
+The previous defaults (invisibly).
+}
 \description{
 Set defaults for SLURM (R session and optionally persist to config)
+}
+\examples{
+\dontrun{
+slurm_defaults_set(time = "2:00:00", mem = "8G")
+}
 }

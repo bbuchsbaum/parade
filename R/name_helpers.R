@@ -119,6 +119,8 @@ digest <- function(prefix = "job", length = 8) {
 #'
 #' @inheritParams digest
 #' @return A naming function
+#' @examples
+#' name_digest("my_job", list(x = 1, y = "a"))
 #' @export
 name_digest <- function(prefix = "job", length = 8) {
   digest(prefix = prefix, length = length)
