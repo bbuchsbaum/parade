@@ -1,0 +1,21 @@
+ecosystem: true
+package: parade
+language: R
+role: orchestrate
+tags:
+  - parallel
+  - dataflow
+  - hpc
+  - slurm
+  - future
+entrypoints:
+  - parade::flow
+  - parade::stage
+  - parade::distribute
+  - parade::collect
+  - parade::pipeline
+  - parade::submit_slurm
+  - parade::grid
+  - parade::schema
+release_tag: eco-atlas
+asset: atlas-pack.tgz
