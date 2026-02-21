@@ -170,9 +170,11 @@ test_that("batch_resources() normalizes time parameter", {
   # Already normalized
   result <- batch_resources(time = "1:23:45")
   expect_equal(result$time, "1:23:45")
-  
-  # NA time causes an error (this appears to be a bug - time is normalized before checking .is_missing)
-  expect_error(batch_resources(time = NA, partition = "cpu"), "Cannot parse time value: NA")
+
+  # Missing time values are omitted cleanly
+  result <- batch_resources(time = NA, partition = "cpu")
+  expect_equal(result$partition, "cpu")
+  expect_false("time" %in% names(result))
 })
 
 test_that("batch_resources() handles ncpus to cpus_per_task conversion", {
@@ -241,10 +243,9 @@ test_that("batch_resources() handles empty and zero-length inputs", {
 
 test_that("batch_resources() complex scenarios", {
   # Mix of valid, NULL, and parade::omit() for non-time parameters
-  # Note: time with NA or parade::omit() causes errors due to normalization happening before compaction
   result <- batch_resources(
     partition = "gpu",
-    time = NULL,  # Use NULL (not NA or parade::omit()) to avoid error
+    time = parade::omit(),
     nodes = NULL,
     ntasks = parade::omit(),
     ntasks_per_node = 4,
@@ -267,15 +268,17 @@ test_that("batch_resources() complex scenarios", {
 })
 
 test_that("batch_resources() time parameter error handling", {
-  # parade::omit() on time causes error (bug: normalization happens before compaction)
-  expect_error(batch_resources(time = parade::omit()), "Cannot parse time value: TRUE")
-  
-  # NA on time also causes error
-  expect_error(batch_resources(time = NA_character_), "Cannot parse time value: NA")
-  
-  # NA_real_ is treated as numeric and produces "NA:NA:NA" (doesn't error)
-  result <- batch_resources(time = NA_real_)
-  expect_equal(result$time, "NA:NA:NA")
+  # Missing values omit the flag
+  result <- batch_resources(time = parade::omit(), partition = "cpu")
+  expect_equal(result$partition, "cpu")
+  expect_false("time" %in% names(result))
+
+  result <- batch_resources(time = NA_character_, partition = "cpu")
+  expect_equal(result$partition, "cpu")
+  expect_false("time" %in% names(result))
+
+  # Invalid values still error
+  expect_error(batch_resources(time = "invalid"), "Cannot parse time value")
 })
 
 test_that("slurm_template() returns valid path", {

@@ -203,8 +203,9 @@
 }
 
 #' @keywords internal
-.apply_sink <- function(result, sink, row, stage_id) {
+.apply_sink <- function(result, sink, row, stage_id, meta_ctx = NULL) {
   if (is.null(sink)) return(result)
+  meta_ctx <- meta_ctx %||% list()
   
   # For each field in sink$fields
   for (field in sink$fields) {
@@ -237,7 +238,16 @@
               bytes = bytes,
               written = FALSE,
               existed = TRUE,
-              created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
+              created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC"),
+              creator = meta_ctx$creator %||% .parade_user_name(),
+              code_version = meta_ctx$code_version %||% .parade_code_version(),
+              schema_signature = meta_ctx$schema_signature %||% NA_character_,
+              params_hash = meta_ctx$params_hash %||% row_key,
+              params = meta_ctx$params %||% .parade_params_normalize(row),
+              upstream_run_id = meta_ctx$upstream_run_id %||% NA_character_,
+              run_key = meta_ctx$run_key %||% NA_character_,
+              run_status = meta_ctx$run_status %||% "running",
+              stage_fingerprint = meta_ctx$stage_fingerprint %||% NA_character_
             )
             .write_sidecar(path, meta)
           }
@@ -279,7 +289,16 @@
           bytes = bytes,
           written = TRUE,
           existed = existed_before,
-          created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
+          created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC"),
+          creator = meta_ctx$creator %||% .parade_user_name(),
+          code_version = meta_ctx$code_version %||% .parade_code_version(),
+          schema_signature = meta_ctx$schema_signature %||% NA_character_,
+          params_hash = meta_ctx$params_hash %||% row_key,
+          params = meta_ctx$params %||% .parade_params_normalize(row),
+          upstream_run_id = meta_ctx$upstream_run_id %||% NA_character_,
+          run_key = meta_ctx$run_key %||% NA_character_,
+          run_status = meta_ctx$run_status %||% "running",
+          stage_fingerprint = meta_ctx$stage_fingerprint %||% NA_character_
         )
         .write_sidecar(path, meta)
       }

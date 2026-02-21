@@ -252,7 +252,7 @@ dist_slurm <- function(by = NULL,
       workers_within = workers_within,
       chunks_per_job = as.integer(chunks_per_job),
       target_jobs = target_jobs,
-      slurm = list(template = template, resources = resources)
+      slurm = list(template = template, resources = resources, profile = "default")
     ),
     class = "parade_dist"
   )
@@ -384,8 +384,10 @@ dist_slurm_profile <- function(profile,
   within <- match.arg(within)
   # Resolve resources from flexible inputs (name, profile object, list)
   res <- slurm_resources(resources = profile, profile = if (is.character(profile) && length(profile) == 1L) profile else "default")
-  dist_slurm(by = by, within = within, workers_within = workers_within,
-             template = template, resources = res, chunks_per_job = chunks_per_job, target_jobs = target_jobs)
+  out <- dist_slurm(by = by, within = within, workers_within = workers_within,
+                    template = template, resources = res, chunks_per_job = chunks_per_job, target_jobs = target_jobs)
+  out$slurm$profile <- if (is.character(profile) && length(profile) == 1L && nzchar(profile)) profile else "default"
+  out
 }
 #' Get path to default SLURM template
 #'

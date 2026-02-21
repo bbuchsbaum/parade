@@ -180,19 +180,33 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
     for (ri in seq_len(nrow(res))) {
       diag <- res$.diag[[ri]]
       if (is.null(diag)) next
-      for (dd in diag) {
+      stage_names <- names(diag)
+      for (si in seq_along(diag)) {
+        dd <- diag[[si]]
         if (!isTRUE(dd$ok) && !isTRUE(dd$skipped)) {
-          msg <- dd$error %||% dd$message %||% "unknown error"
-          if (is.character(msg) && length(msg) == 1L) {
-            rows_list[[length(rows_list) + 1L]] <- tibble::tibble(
-              chunk_id  = chunk_num,
-              row       = ri,
-              stage     = dd$stage %||% NA_character_,
-              error_msg = msg,
-              source    = "index",
-              context   = NA_character_
-            )
+          # Extract error message: dd$error may be a condition object or a
+          # plain string depending on how the index was produced.
+          err_val <- dd$error
+          msg <- dd$error_message %||%
+            (if (is.character(err_val)) err_val else NULL) %||%
+            (if (inherits(err_val, "condition")) .parade_condition_message(err_val) else NULL) %||%
+            "unknown error"
+          msg <- as.character(msg)[1L]
+          # Stage name: prefer the named-list key (real flow output), fall
+          # back to dd$stage (manually constructed index files / tests).
+          stage_id <- if (!is.null(stage_names) && nzchar(stage_names[si])) {
+            stage_names[si]
+          } else {
+            dd$stage %||% NA_character_
           }
+          rows_list[[length(rows_list) + 1L]] <- tibble::tibble(
+            chunk_id  = chunk_num,
+            row       = ri,
+            stage     = as.character(stage_id),
+            error_msg = msg,
+            source    = "index",
+            context   = NA_character_
+          )
         }
       }
     }

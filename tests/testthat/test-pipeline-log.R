@@ -84,6 +84,86 @@ test_that(".scan_index_errors_structured handles skipped stages", {
   expect_equal(nrow(result), 0L)
 })
 
+# --- Real .parade_stage_diag format (named list + condition objects) --------
+
+test_that(".scan_index_errors_structured handles real diag format (named list, condition errors)", {
+  tmp <- tempfile("idx_real_")
+  dir.create(tmp, recursive = TRUE)
+  on.exit(unlink(tmp, recursive = TRUE))
+
+  # Build diag the way .eval_row_flow actually does: a named list keyed by
+
+  # stage id, with values from .parade_stage_diag() (error is a condition, not
+  # a string).
+  diag_ok <- parade:::.parade_stage_diag(
+    ok = TRUE, skipped = FALSE, error = NULL,
+    started_at = Sys.time(), host = "node01"
+  )
+  diag_fail <- parade:::.parade_stage_diag(
+    ok = FALSE, skipped = FALSE,
+    error = simpleError("singular matrix"),
+    started_at = Sys.time(), host = "node01"
+  )
+  diag_fail2 <- parade:::.parade_stage_diag(
+    ok = FALSE, skipped = FALSE,
+    error = simpleError("file not found"),
+    started_at = Sys.time(), host = "node01"
+  )
+
+  res <- data.frame(x = 1:3, stringsAsFactors = FALSE)
+  res$.diag <- list(
+    list(preproc = diag_ok),
+    list(preproc = diag_ok, model = diag_fail),
+    list(preproc = diag_ok, stats = diag_fail2)
+  )
+  saveRDS(res, file.path(tmp, "index-0001.rds"))
+
+  result <- parade:::.scan_index_errors_structured(tmp)
+  expect_s3_class(result, "tbl_df")
+  expect_equal(nrow(result), 2L)
+  expect_equal(result$chunk_id, c(1L, 1L))
+  expect_equal(result$row, c(2L, 3L))
+  # Stage names come from the named-list keys, NOT from a 'stage' field
+
+  expect_equal(result$stage, c("model", "stats"))
+  expect_true(grepl("singular matrix", result$error_msg[1]))
+  expect_true(grepl("file not found", result$error_msg[2]))
+  expect_true(all(result$source == "index"))
+})
+
+test_that(".scan_index_errors_structured handles mixed ok/skipped/failed in real format", {
+  tmp <- tempfile("idx_mixed_")
+  dir.create(tmp, recursive = TRUE)
+  on.exit(unlink(tmp, recursive = TRUE))
+
+  diag_ok <- parade:::.parade_stage_diag(
+    ok = TRUE, skipped = FALSE, started_at = Sys.time()
+  )
+  diag_skipped <- parade:::.parade_stage_diag(
+    ok = FALSE, skipped = TRUE,
+    error = simpleError("Cancelled by fail-fast"),
+    started_at = Sys.time(), status = "cancelled"
+  )
+  diag_fail <- parade:::.parade_stage_diag(
+    ok = FALSE, skipped = FALSE,
+    error = simpleError("out of memory"),
+    started_at = Sys.time()
+  )
+
+  res <- data.frame(x = 1, stringsAsFactors = FALSE)
+  res$.diag <- list(
+    list(load = diag_ok, model = diag_fail, report = diag_skipped)
+  )
+  saveRDS(res, file.path(tmp, "index-0005.rds"))
+
+  result <- parade:::.scan_index_errors_structured(tmp)
+  # Only the failed stage should be reported, not the skipped one
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$stage, "model")
+  expect_true(grepl("out of memory", result$error_msg))
+  expect_equal(result$chunk_id, 5L)
+})
+
 # --- .error_signature() ----------------------------------------------------
 
 test_that(".error_signature produces consistent hashes", {
@@ -492,4 +572,118 @@ test_that("full log format matches spec", {
   expect_true(grepl("\\[DONE\\]", lines[3]))
   expect_true(grepl("2/3 ok", lines[3]))
   expect_true(grepl("1 failed", lines[3]))
+})
+
+# --- deferred_collect index-mode SLURM wait logic --------------------------
+
+test_that("deferred_collect waits for SLURM jobs before reading index files", {
+  skip_if_not_installed("batchtools")
+
+  tmp_idx <- tempfile("dc_wait_")
+  dir.create(tmp_idx, recursive = TRUE)
+  tmp_reg <- tempfile("dc_reg_")
+  on.exit({
+    unlink(tmp_idx, recursive = TRUE)
+    unlink(tmp_reg, recursive = TRUE)
+  })
+
+  # Pre-populate index files so collection has something to read
+  res1 <- data.frame(x = 1L, stringsAsFactors = FALSE)
+  res1$.diag <- list(list(s1 = list(ok = TRUE)))
+  res1$.ok <- TRUE
+  saveRDS(res1, file.path(tmp_idx, "index-0001.rds"))
+
+  # Track whether waitForJobs was called
+  wait_called <- FALSE
+  load_called <- FALSE
+
+  d <- list(
+    backend = "slurm",
+    run_id = "wait_test",
+    mode = "index",
+    submitted_at = as.character(Sys.time()),
+    jobs = 1L,
+    chunks_path = NULL,
+    flow_path = NULL,
+    registry_dir = tmp_reg,
+    index_dir = tmp_idx,
+    by = NULL
+  )
+  class(d) <- "parade_deferred"
+
+  # Mock batchtools::loadRegistry and batchtools::waitForJobs
+  mockery::stub(deferred_collect, "batchtools::loadRegistry", function(...) {
+    load_called <<- TRUE
+    "fake-registry"
+  })
+  mockery::stub(deferred_collect, "batchtools::waitForJobs", function(...) {
+    wait_called <<- TRUE
+    TRUE
+  })
+
+  withr::with_options(list(parade.log_path = NULL), {
+    result <- deferred_collect(d)
+  })
+
+  expect_true(load_called, info = "loadRegistry should be called for SLURM backend")
+  expect_true(wait_called, info = "waitForJobs should be called before reading index files")
+  expect_s3_class(result, "tbl_df")
+  expect_equal(nrow(result), 1L)
+})
+
+test_that("deferred_collect index-mode does NOT call waitForJobs for local backend", {
+  tmp_idx <- tempfile("dc_local_")
+  dir.create(tmp_idx, recursive = TRUE)
+  on.exit(unlink(tmp_idx, recursive = TRUE))
+
+  res1 <- data.frame(x = 1L, stringsAsFactors = FALSE)
+  res1$.diag <- list(list(s1 = list(ok = TRUE)))
+  res1$.ok <- TRUE
+  saveRDS(res1, file.path(tmp_idx, "index-0001.rds"))
+
+  d <- list(
+    backend = "local",
+    run_id = "nowait_test",
+    mode = "index",
+    submitted_at = as.character(Sys.time()),
+    jobs = list(),
+    chunks_path = NULL,
+    flow_path = NULL,
+    registry_dir = tempdir(),
+    index_dir = tmp_idx,
+    by = NULL
+  )
+  class(d) <- "parade_deferred"
+
+  withr::with_options(list(parade.log_path = NULL), {
+    result <- deferred_collect(d, how = "index")
+  })
+
+  # Just verify it reads the index without error
+  expect_s3_class(result, "tbl_df")
+  expect_equal(nrow(result), 1L)
+})
+
+# --- SLURM template variable preservation -----------------------------------
+
+test_that("SLURM template preserves PARADE_SCRATCH when already set", {
+  tmpl_path <- system.file("batchtools", "parade-slurm.tmpl", package = "parade")
+  skip_if(!nzchar(tmpl_path), "template not found")
+  tmpl <- readLines(tmpl_path)
+
+  # Find the PARADE_SCRATCH export line
+  scratch_line <- grep("export PARADE_SCRATCH=", tmpl, value = TRUE)
+  expect_length(scratch_line, 1L)
+
+  # The line should use ${PARADE_SCRATCH:-...} to preserve existing value
+  expect_true(
+    grepl("\\$\\{PARADE_SCRATCH:-", scratch_line),
+    info = "Template should use ${PARADE_SCRATCH:-...} to preserve login-node value"
+  )
+
+  # Verify it does NOT unconditionally overwrite (the old broken pattern)
+  expect_false(
+    grepl("^export PARADE_SCRATCH=\\$\\{SLURM_TMPDIR", scratch_line),
+    info = "Template should not unconditionally set PARADE_SCRATCH to node-local"
+  )
 })

@@ -26,7 +26,10 @@ module load <%= mod %>
 <% } %>
 <% } %>
 
-export PARADE_SCRATCH=${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/parade-$SLURM_JOB_ID
+## Preserve user/login-node PARADE_SCRATCH (shared filesystem) so that
+## resolve_path("artifacts://...") resolves consistently on workers.
+## Only set a node-local scratch when the variable is completely unset.
+export PARADE_SCRATCH=${PARADE_SCRATCH:-${SCRATCH:-${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/parade-$SLURM_JOB_ID}}
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 export MKL_NUM_THREADS=${MKL_NUM_THREADS:-$OMP_NUM_THREADS}
 export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-$OMP_NUM_THREADS}

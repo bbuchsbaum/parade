@@ -95,6 +95,10 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
 
   # Avoid serializing external controller objects into the worker-side flow.
   fl_for_worker <- fl
+  fl_for_worker$options$run_id <- run_id
+  fl_for_worker$options$run_key <- fl_for_worker$options$run_key %||% run_id
+  fl_for_worker$options$code_version <- .parade_code_version()
+  fl_for_worker$options$creator <- .parade_user_name()
   if (!is.null(dist) && identical(dist$backend, "crew") && !is.null(fl_for_worker$dist$crew$controller)) {
     fl_for_worker$dist$crew$controller <- NULL
   }
@@ -229,7 +233,15 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
     future::sequential  # fallback
   )
   future::plan(list(inner))
-  rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
+  run_context <- list(
+    run_id = fl$options$run_id %||% NA_character_,
+    run_key = fl$options$run_key %||% NA_character_,
+    run_status = "running",
+    creator = fl$options$creator %||% .parade_user_name(),
+    code_version = fl$options$code_version %||% .parade_code_version(),
+    engine = fl$dist$backend %||% "deferred"
+  )
+  rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order, run_context = run_context, flow_options = fl$options) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
   rows <- purrr::compact(rows); res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
   if (identical(mode, "index")) {
     p <- file.path(index_dir, sprintf("index-%04d.rds", as.integer(job_id)))
@@ -494,13 +506,34 @@ deferred_collect <- function(d, how = c("auto","index","results")) {
     }
     res
   } else if (identical(how, "index")) {
+    # For SLURM, wait for all jobs to finish before reading index files
+    if (identical(d$backend, "slurm")) {
+      if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
+      reg <- tryCatch(
+        suppressMessages(suppressWarnings(
+          batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
+        )),
+        error = function(e) NULL
+      )
+      if (!is.null(reg)) {
+        batchtools::waitForJobs(reg = reg)
+      }
+    }
     dir <- resolve_path(d$index_dir)
     files <- list.files(dir, pattern = "\\.rds$", full.names = TRUE)
     if (!length(files)) return(tibble::tibble())
     lst <- lapply(files, readRDS)
     tibble::as_tibble(vctrs::vec_rbind(!!!lst))
   } else {
-    if (identical(d$backend, "slurm")) { if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available."); reg <- batchtools::loadRegistry(d$registry_dir, writeable = FALSE); lst <- batchtools::reduceResultsList(fun = function(x, y) c(list(x), list(y)), init = list(), reg = reg); lst <- purrr::compact(lst); if (!length(lst)) return(tibble::tibble()); tibble::as_tibble(vctrs::vec_rbind(!!!lst)) }
+    if (identical(d$backend, "slurm")) {
+      if (!requireNamespace("batchtools", quietly = TRUE)) stop("batchtools not available.")
+      reg <- batchtools::loadRegistry(d$registry_dir, writeable = FALSE)
+      batchtools::waitForJobs(reg = reg)
+      lst <- batchtools::reduceResultsList(reg = reg)
+      lst <- purrr::compact(lst)
+      if (!length(lst)) return(tibble::tibble())
+      tibble::as_tibble(vctrs::vec_rbind(!!!lst))
+    }
     else { if (identical(d$mode, "index")) return(deferred_collect(d, "index")); vals <- lapply(d$jobs, future::value); vals <- purrr::compact(vals); if (!length(vals)) return(tibble::tibble()); tibble::as_tibble(vctrs::vec_rbind(!!!vals)) }
   }
 }

@@ -222,7 +222,7 @@ list_submit_backends <- function() {
     ),
     reg = reg
   )
-  resources <- dist$slurm$resources
+  resources <- .parade_submit_slurm_resources(handle$.fl_data, dist)
   # Auto-detect loaded modules from the current session so compute nodes
 
   # get the same environment (R, compilers, MPI, etc.) that was active at

@@ -35,7 +35,11 @@ batch_resources <- function(partition = NULL,
                             modules = NULL,
                             omp_num_threads = NULL) {
   # normalize time
-  if (!is.null(time)) time <- .parade_norm_time(time)
+  if (!is.null(time) && .is_missing(time)) {
+    time <- NULL
+  } else if (!is.null(time)) {
+    time <- .parade_norm_time(time)
+  }
   # alias
   if (!is.null(ncpus) && is.null(cpus_per_task)) cpus_per_task <- ncpus
   # pack - remove NULL, NA, and omit() values
