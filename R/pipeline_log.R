@@ -60,6 +60,42 @@ deferred_errors <- function(d) {
       }
     }
   }
+
+  # Classify errors (adds 'class' column)
+  if (nrow(out) > 0L) {
+    slurm_meta_map <- list()
+    if (identical(d$backend, "slurm")) {
+      metrics <- tryCatch(
+        suppressMessages(.deferred_slurm_metrics(d)),
+        error = function(e) NULL
+      )
+      if (!is.null(metrics)) {
+        for (m in metrics) {
+          cid <- m$chunk %||% NA_integer_
+          bid <- m$batch_id
+          if (!is.na(cid) && !is.null(bid) && !is.na(bid) &&
+              grepl("^\\d+$", as.character(bid))) {
+            sa <- tryCatch(.slurm_sacct_info(bid), error = function(e) NULL)
+            if (!is.null(sa)) slurm_meta_map[[as.character(cid)]] <- sa
+          }
+        }
+      }
+    }
+    out$class <- vapply(seq_len(nrow(out)), function(i) {
+      diag_like <- list(
+        ok = FALSE, skipped = FALSE,
+        error_message = out$error_msg[i],
+        error_class = NA_character_,
+        status = "failed"
+      )
+      sm <- slurm_meta_map[[as.character(out$chunk_id[i])]]
+      cl <- .classify_failure(diag = diag_like, slurm_meta = sm,
+                               source = out$source[i])
+      cl$class
+    }, character(1))
+  } else {
+    out$class <- character(0)
+  }
   out
 }
 
@@ -153,7 +189,8 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
     stage     = character(0),
     error_msg = character(0),
     source    = character(0),
-    context   = character(0)
+    context   = character(0),
+    class     = character(0)
   )
 }
 
@@ -205,7 +242,8 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
             stage     = as.character(stage_id),
             error_msg = msg,
             source    = "index",
-            context   = NA_character_
+            context   = NA_character_,
+            class     = NA_character_
           )
         }
       }
@@ -245,7 +283,8 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
           stage     = NA_character_,
           error_msg = paste0("SLURM ", state, ", no index"),
           source    = "missing",
-          context   = ctx
+          context   = ctx,
+          class     = NA_character_
         )
       }
       # If has_index, the index errors are already captured by .scan_index_errors_structured
@@ -259,7 +298,8 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
           stage     = NA_character_,
           error_msg = "SLURM COMPLETED but no index file (R crash before saveRDS?)",
           source    = "missing",
-          context   = ctx
+          context   = ctx,
+          class     = NA_character_
         )
       }
     }

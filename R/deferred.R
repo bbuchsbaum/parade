@@ -129,6 +129,20 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
   handle$.fl_data <- NULL
   handle$.chunks_data <- NULL
 
+  # Event store: register run and emit run_started
+  .event_emit(run_id, "run_started", severity = "info", source = "submit",
+              backend = dist$backend, n_chunks = length(chunks),
+              stages = vapply(fl$stages, function(s) s$id %||% "?", character(1)))
+  .run_registry_append(
+    run_id = run_id,
+    flow_stages = vapply(fl$stages, function(s) s$id %||% "?", character(1)),
+    backend = dist$backend,
+    n_chunks = length(chunks),
+    grid_cols = names(grid),
+    by_cols = dist$by,
+    status = "running"
+  )
+
   # Write pipeline meta-log header (opt-out via options(parade.log_path = NULL))
   log_path <- getOption("parade.log_path", "parade.log")
   if (!is.null(log_path) && nzchar(log_path)) {
@@ -241,6 +255,9 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
     code_version = fl$options$code_version %||% .parade_code_version(),
     engine = fl$dist$backend %||% "deferred"
   )
+  .event_emit(run_context$run_id, "chunk_started", severity = "info",
+              source = "chunk", chunk_id = as.integer(job_id))
+
   rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order, run_context = run_context, flow_options = fl$options) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
   rows <- purrr::compact(rows); res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
   if (identical(mode, "index")) {
@@ -255,12 +272,18 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
     }, logical(1)))
 
     if (n_errors > 0L) {
+      .event_emit(run_context$run_id, "chunk_failed", severity = "error",
+                  source = "chunk", chunk_id = as.integer(job_id),
+                  n_errors = n_errors, n_rows = nrow(res))
       message(sprintf("[parade] Chunk %s: %d of %d rows had stage errors (index saved to %s)",
                       job_id, n_errors, nrow(res), p))
       stop(sprintf("parade chunk %s: %d/%d rows failed", job_id, n_errors, nrow(res)),
            call. = FALSE)
     }
 
+    .event_emit(run_context$run_id, "chunk_completed", severity = "info",
+                source = "chunk", chunk_id = as.integer(job_id),
+                n_rows = nrow(res))
     invisible(list(ok = TRUE, n = nrow(res), index = p))
   } else { res }
 }
@@ -452,6 +475,11 @@ deferred_collect <- function(d, how = c("auto","index","results")) {
           nrow(errors) - 20L, 20L, nrow(errors)))
       }
       .pipeline_log_summary(d, log_path)
+      # Emit run completion event
+      run_status <- if (nrow(errors) > 0L) "failed" else "completed"
+      .event_emit(d$run_id, paste0("run_", run_status), severity = if (run_status == "failed") "error" else "info",
+                  source = "collect", n_errors = nrow(errors))
+      .run_registry_update_status(d$run_id, run_status)
     }, error = function(e) NULL), add = TRUE)
   }
 

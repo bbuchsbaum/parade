@@ -14,6 +14,18 @@ stage(
   sink = NULL,
   skip_when = NULL,
   hoist_struct = FALSE,
+  inputs = NULL,
+  input_artifacts = NULL,
+  outputs = NULL,
+  io_mode = c("off", "warn", "error"),
+  retries = NULL,
+  retry_backoff = NULL,
+  retry_base = NULL,
+  retry_on = NULL,
+  resources = NULL,
+  cpus = NULL,
+  memory = NULL,
+  time = NULL,
   ...
 )
 }
@@ -35,6 +47,34 @@ stage(
 \item{skip_when}{Optional function to determine when to skip this stage}
 
 \item{hoist_struct}{Whether to hoist nested data structures (logical)}
+
+\item{inputs}{Optional character vector of required input names for this stage.}
+
+\item{input_artifacts}{Optional character vector of \code{inputs} that must be
+artifact/file-reference values.}
+
+\item{outputs}{Optional character vector of declared output names.
+Defaults to schema column names.}
+
+\item{io_mode}{I/O contract behavior: \code{"off"} (default), \code{"warn"}, or \code{"error"}.}
+
+\item{retries}{Optional stage-level retry override (non-negative integer).}
+
+\item{retry_backoff}{Optional stage-level retry backoff override:
+\code{"none"}, \code{"fixed"}, \code{"linear"}, \code{"exponential"}.}
+
+\item{retry_base}{Optional stage-level retry base delay (seconds).}
+
+\item{retry_on}{Optional stage-level retry classifier override.}
+
+\item{resources}{Optional stage-level resource hints as a named list with
+keys \code{cpus}, \code{memory}, \code{time} (aliases: \code{cpus_per_task}, \code{ncpus}, \code{mem}).}
+
+\item{cpus}{Optional stage-level CPUs per task hint.}
+
+\item{memory}{Optional stage-level memory hint.}
+
+\item{time}{Optional stage-level walltime hint.}
 
 \item{...}{Additional constant arguments passed to the stage function}
 }

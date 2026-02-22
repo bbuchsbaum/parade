@@ -6,9 +6,11 @@
 \usage{
 artifact_catalog_search(
   catalog = NULL,
-  query,
+  query = NULL,
   fields = c("path", "stage", "field", "row_key"),
   ignore_case = TRUE,
+  run_status = NULL,
+  params = NULL,
   ...
 )
 }

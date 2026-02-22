@@ -4,7 +4,7 @@
 \alias{dry_run.parade_flow}
 \title{Dry-run a flow: show plan and counts without executing}
 \usage{
-\method{dry_run}{parade_flow}(x, ...)
+\method{dry_run}{parade_flow}(x, limit = NULL, show_rows = 20L, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=flow]{flow()}} object}

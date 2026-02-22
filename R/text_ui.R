@@ -682,15 +682,31 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE, 
         table_metrics <- Filter(function(m) (m$state %||% "UNKNOWN") %in% interesting_states, sorted_metrics)
         n_boring <- length(sorted_metrics) - length(table_metrics)
 
+        # Build classification map for failed chunks (used in state column)
+        class_map <- list()
+        if (n_error > 0L) {
+          for (m in sorted_metrics) {
+            if ((m$state %||% "UNKNOWN") %in% c("FAILED", "CANCELLED", "TIMEOUT")) {
+              bid <- m$batch_id
+              sa <- NULL
+              if (!is.null(bid) && !is.na(bid) && grepl("^\\d+$", as.character(bid))) {
+                sa <- tryCatch(.slurm_sacct_info(bid), error = function(e) NULL)
+              }
+              cl <- .classify_failure(diag = NULL, slurm_meta = sa, source = "missing")
+              class_map[[as.character(m$chunk)]] <- cl$label
+            }
+          }
+        }
+
         if (length(table_metrics) > 0L) {
           # Chunk table
           chunk_labels <- .deferred_chunk_labels(d)
           has_labels <- !is.null(chunk_labels) && length(chunk_labels) > 0
           if (has_labels) {
-            hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s",
+            hdr <- sprintf("%5s  %-10s  %-14s  %5s  %7s  %7s  %-10s  %-s",
                            "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE", "PARAMS")
           } else {
-            hdr <- sprintf("%5s  %-10s  %-10s  %5s  %7s  %7s  %-s",
+            hdr <- sprintf("%5s  %-10s  %-14s  %5s  %7s  %7s  %-s",
                            "CHUNK", "SLURM-ID", "STATE", "CPU%", "MAXRSS", "ELAPSED", "NODE")
           }
           .l(hdr, "\n")
@@ -703,14 +719,20 @@ deferred_top <- function(d, refresh = 3, nlog = 20, clear = TRUE, once = FALSE, 
             rss_str <- .parade_fmt_bytes(m$max_rss)
             el_str <- .fmt_hms(m$elapsed)
             label <- if (has_labels && m$chunk <= length(chunk_labels)) chunk_labels[m$chunk] else ""
+            # Append classification tag for failed chunks
+            state_str <- m$state %||% "UNKNOWN"
+            cls_tag <- class_map[[as.character(m$chunk)]]
+            if (!is.null(cls_tag) && state_str %in% c("FAILED", "CANCELLED", "TIMEOUT")) {
+              state_str <- paste0(state_str, ":", cls_tag)
+            }
             if (has_labels) {
-              .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-10s  %-s\n",
-                         m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+              .l(sprintf("%5d  %-10s  %-14s  %5s  %7s  %7s  %-10s  %-s\n",
+                         m$chunk, m$batch_id %||% "?", substr(state_str, 1, 14),
                          cpu_str, rss_str, el_str,
                          substr(m$node %||% "?", 1, 10), label))
             } else {
-              .l(sprintf("%5d  %-10s  %-10s  %5s  %7s  %7s  %-s\n",
-                         m$chunk, m$batch_id %||% "?", substr(m$state, 1, 10),
+              .l(sprintf("%5d  %-10s  %-14s  %5s  %7s  %7s  %-s\n",
+                         m$chunk, m$batch_id %||% "?", substr(state_str, 1, 14),
                          cpu_str, rss_str, el_str, substr(m$node %||% "?", 1, 24)))
             }
             if (is.null(first_running_chunk) && identical(m$state, "RUNNING")) {

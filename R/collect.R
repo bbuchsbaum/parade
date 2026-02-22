@@ -216,6 +216,9 @@ collect.parade_flow <- function(x,
       stage_err <- attr(tried, "condition") %||% simpleError(as.character(tried))
       do_retry <- attempt <= policy$retries && .parade_retry_should(stage_err, policy$retry_on)
       if (!isTRUE(do_retry)) break
+      .event_emit(run_context$run_id %||% "", "stage_retried", severity = "warn",
+                  source = "stage", stage = id, attempt = attempt,
+                  error = .parade_condition_message(stage_err))
       delay <- .parade_retry_delay(attempt, policy$backoff, policy$base)
       if (isTRUE(delay > 0)) Sys.sleep(delay)
       attempt <- attempt + 1L
@@ -239,6 +242,13 @@ collect.parade_flow <- function(x,
         attempt = attempt,
         retry_count = attempt - 1L
       )
+      .event_emit(run_context$run_id %||% "", "stage_failed", severity = "error",
+                  source = "stage", stage = id, attempt = attempt,
+                  error = .parade_condition_message(stage_err))
+      if (attempt > 1L) {
+        .event_emit(run_context$run_id %||% "", "retry_exhausted", severity = "error",
+                    source = "stage", stage = id, attempts = attempt)
+      }
       message(sprintf("[parade] Stage '%s' failed after %d attempt(s): %s", id, attempt, .parade_condition_message(stage_err)))
       next
     }

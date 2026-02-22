@@ -1,0 +1,508 @@
+---
+title: "Failure diagnosis and pipeline monitoring"
+output: rmarkdown::html_vignette
+vignette: |
+  %\VignetteIndexEntry{11. Failure Diagnosis: wtf(), logs, timelines, and monitoring} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
+---
+
+```{r setup, include=FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+## Overview
+
+When a parade pipeline runs dozens of chunks on SLURM, failures are inevitable: OOM kills arrive silently as signal 9, timeouts leave truncated logs, and R errors scatter across registry directories. Diagnosing what went wrong used to mean manually navigating `parade-registry/script-<hash>/logs/`, guessing whether a failure was OOM or timeout, and having no unified view across the run.
+
+**parade** now provides a cohesive failure diagnosis layer:
+
+- **`wtf()`** -- a single "what went wrong?" entry point that classifies errors, suggests fixes, and locates logs
+- **Error classification** -- automatic categorization into OOM, timeout, R error, crash, infrastructure, dependency, and validation failures
+- **`find_logs()` / `search_logs()`** -- log discovery and cross-pipeline grep
+- **`failure_timeline()`** -- chronological view of when things broke
+- **Event store** -- structured JSONL event log per run
+- **`run_ls()` / `run_info()`** -- pipeline run registry and discovery
+- **`pipeline_top()`** -- enhanced live TUI with event feed and classified errors
+- **`failure_patterns()`** -- cross-run error comparison to spot persistent vs. flaky failures
+
+## Quick start: diagnosing a failed pipeline
+
+The most common scenario: you submitted a pipeline, some chunks failed, and you want to know why.
+
+```r
+library(parade)
+
+# Your pipeline ran and some chunks failed
+grid <- param_grid(subject = sprintf("sub-%02d", 1:48), roi = c("V1", "V2"))
+fl <- flow(grid) |>
+  stage("preproc", preprocess_roi) |>
+  stage("model",   fit_model, schema = returns(result = lst())) |>
+  distribute(dist_slurm(by = "subject", resources = list(mem = "16G", time = "2:00:00")))
+
+d <- submit(fl)
+deferred_await(d, timeout = 7200)
+
+# Something went wrong. One command:
+wtf(d)
+```
+
+This prints a full failure report:
+
+```
+================================================================================
+parade failure report
+Run: a1b2c3d4  Backend: slurm  Submitted: 2026-02-21 14:30
+Stages: preproc -> model
+Elapsed: 2h 15m  Chunks: 48 total, 43 ok, 5 failed
+
+-- Failure Summary ------------------------------------------------------------
+  OOM kill          : 3 chunks (6, 12, 31)
+  R error           : 1 chunk  (17)
+  SLURM timeout     : 1 chunk  (44)
+
+-- Errors (5) -----------------------------------------------------------------
+[OOM     ] chunk  6 (sub-06): Killed by SLURM (MaxRSS 15.2G vs ReqMem 16G)
+[OOM     ] chunk 12 (sub-12): Killed by SLURM (MaxRSS 15.8G vs ReqMem 16G)
+[OOM     ] chunk 31 (sub-31): Killed by SLURM (MaxRSS 14.9G vs ReqMem 16G)
+[ERROR   ] chunk 17 (sub-03) stage 'model': singular matrix
+[TIMEOUT ] chunk 44 (sub-44): Walltime exceeded (2:00:00)
+
+-- Suggestions ----------------------------------------------------------------
+* 3 OOM kill(s): Peak usage was 15.8G against 16G limit.
+  Try: distribute(dist_slurm(resources = list(mem = "24G")))
+* 1 timeout(s): Chunk used full walltime (2:00:00).
+  Try: distribute(dist_slurm(resources = list(time = "4:00:00")))
+* 1 R error(s): check error messages above.
+  Run search_logs(d, 'Error') to find details in logs.
+
+-- Log Locations --------------------------------------------------------------
+Logs: /scratch/user/parade-registry/parade-a1b2c3d4/logs/
+  chunk   6: 6.log (143 lines)
+  chunk  12: 12.log (156 lines)
+  chunk  17: 17.log (98 lines)
+  chunk  31: 31.log (201 lines)
+  chunk  44: 44.log (512 lines)
+================================================================================
+```
+
+`wtf()` does the heavy lifting: it queries SLURM accounting data (`sacct`), reads `.diag` structures from index files, classifies each failure, generates actionable suggestions, and locates the relevant logs.
+
+## Error classification taxonomy
+
+Every failure is classified into one of eight categories:
+
+| Class | Label | Signal | Example |
+|-------|-------|--------|---------|
+| `oom` | OOM | SLURM signal 9, `OUT_OF_MEMORY` state, MaxRSS near ReqMem | Job killed because it used 15.8G against a 16G limit |
+| `timeout` | TIMEOUT | SLURM `TIMEOUT` state | Walltime exceeded |
+| `r_error` | ERROR | `.diag` contains `error_message` and `error_class` | `singular matrix`, `file not found` |
+| `r_crash` | CRASH | SLURM says COMPLETED/FAILED but no index file written | R died (segfault) before `saveRDS` |
+| `slurm_infra` | CANCELLED / NODE_FAIL | Admin cancellation, node failure | `scontrol cancel` by admin |
+| `dependency` | DEP | `.diag` status is `"cancelled"` | Upstream stage failed, downstream skipped |
+| `validation` | VALIDATION | `error_class` starts with `parade_` | Schema or contract violation |
+| `unknown` | UNKNOWN | None of the above matched | Manual investigation needed |
+
+Classification happens automatically inside `wtf()`, `deferred_errors()`, `deferred_top()`, and `pipeline_top()`. You can also call the internal classifier directly if needed:
+
+```r
+# Classify from SLURM sacct data
+sacct <- parade:::.slurm_sacct_info("12345678")
+cl <- parade:::.classify_failure(diag = NULL, slurm_meta = sacct, source = "missing")
+cl$class   # "oom"
+cl$label   # "OOM"
+cl$detail  # "Killed by SLURM (MaxRSS 15.2G vs ReqMem 16G)"
+cl$suggestion  # "Peak usage was 15.2G against 16G limit. Try: ..."
+```
+
+## wtf() methods
+
+`wtf()` is an S3 generic with methods for every parade result type. All methods return a `parade_failure_report` object (invisibly) and print a formatted report.
+
+### After collecting results
+
+If you've already called `deferred_collect()` and have a results data.frame:
+
+```r
+results <- deferred_collect(d)
+wtf(results)
+```
+
+This inspects the `.diag` and `.ok` columns to find and classify failures.
+
+### For script jobs
+
+For standalone SLURM scripts submitted with `submit_slurm()`:
+
+```r
+job <- submit_slurm("analysis.R", resources = list(mem = "32G"))
+script_await(job)
+
+# What went wrong?
+wtf(job)
+```
+
+### For job sets
+
+For multiple script jobs tracked together:
+
+```r
+jobs <- as_jobset(job1, job2, job3)
+wtf(jobs)
+```
+
+### Controlling verbosity
+
+The `verbose` parameter controls output level:
+
+```r
+wtf(d, verbose = 0L)  # Summary counts only (how many OOM, timeout, etc.)
+wtf(d, verbose = 1L)  # + individual error listing
+wtf(d, verbose = 2L)  # + suggestions + log locations (default)
+```
+
+### Working with the report programmatically
+
+The returned `parade_failure_report` is a list you can inspect:
+
+```r
+report <- wtf(d, verbose = 0L)  # suppress printing if you just want the data
+
+report$n_failed       # 5
+report$n_ok           # 43
+report$class_counts   # named vector: oom=3, r_error=1, timeout=1
+report$errors         # list of classified error records
+report$suggestions    # character vector of actionable advice
+report$log_info       # tibble of log file paths and metadata
+```
+
+## Finding and searching logs
+
+### Discovering log files
+
+`find_logs()` locates all log files for a pipeline run:
+
+```r
+logs <- find_logs(d)
+logs
+#> # A tibble: 5 x 6
+#>   chunk_id batch_id state   log_path                       log_size log_lines
+#>      <int> <chr>    <chr>   <chr>                             <int>     <int>
+#> 1        6 8834201  FAILED  /scratch/.../logs/6.log            4521       143
+#> 2       12 8834207  FAILED  /scratch/.../logs/12.log           5102       156
+#> 3       17 8834212  FAILED  /scratch/.../logs/17.log           2987        98
+#> 4       31 8834226  FAILED  /scratch/.../logs/31.log           7234       201
+#> 5       44 8834239  TIMEOUT /scratch/.../logs/44.log          18923       512
+```
+
+By default, only logs from failed chunks are returned. Set `failed_only = FALSE` to include all:
+
+```r
+all_logs <- find_logs(d, failed_only = FALSE)
+```
+
+### Searching across logs
+
+`search_logs()` greps across all pipeline logs for a pattern, with context lines:
+
+```r
+# Find all error messages
+hits <- search_logs(d, "Error|fatal|segfault")
+hits
+#> # A tibble: 12 x 5
+#>   chunk_id log_path                    line_number line_text              is_match
+#>      <int> <chr>                             <int> <chr>                  <lgl>
+#> 1       17 /scratch/.../logs/17.log             42 #> Error in solve(...)  TRUE
+#> 2       17 /scratch/.../logs/17.log             43 #>   singular matrix    FALSE
+#> 3       17 /scratch/.../logs/17.log             44 #> Calls: ... -> solve  FALSE
+
+# Search for memory-related messages
+search_logs(d, "Cannot allocate|bad_alloc|MemoryError", context = 5)
+
+# Find warnings that might hint at the root cause
+search_logs(d, "Warning", failed_only = FALSE, max_matches = 20)
+```
+
+The `context` parameter (default 3) controls how many surrounding lines to show around each match.
+
+## Failure timeline
+
+`failure_timeline()` builds a chronological view of events during a pipeline run. It combines data from three sources: the event store (JSONL), `.diag` timestamps from index files, and SLURM `sacct` timing data.
+
+```r
+tl <- failure_timeline(d)
+tl
+#> +0:12:34  [FAIL] chunk 7, stage 'model': singular matrix  (sub-03)
+#> +0:45:12  [TIMEOUT] chunk 31: SLURM TIMEOUT  (sub-12)
+#> +1:02:00  [FAIL] chunk 17, stage 'model': singular matrix  (sub-17)
+#> +1:30:45  [OOM] chunk 6: Killed by SLURM  (sub-06)
+#> +1:31:02  [OOM] chunk 12: Killed by SLURM  (sub-12)
+#> +2:00:00  [TIMEOUT] chunk 44: SLURM TIMEOUT  (sub-44)
+#> +2:15:00  [DONE] 43/48 ok, 5 failed
+```
+
+The offset column (`+H:MM:SS`) shows time since the pipeline was submitted. This makes it easy to see failure clustering -- for instance, OOM kills arriving together might indicate a shared node running out of memory.
+
+The returned tibble has columns for programmatic use:
+
+```r
+tl$offset     # numeric seconds
+tl$event      # human-readable event description
+tl$chunk_id   # which chunk
+tl$stage      # which stage (if applicable)
+tl$class      # classification: "oom", "timeout", "r_error", etc.
+```
+
+`failure_timeline()` also works on collected results data.frames:
+
+```r
+results <- deferred_collect(d)
+failure_timeline(results)
+```
+
+## Event store
+
+Every pipeline run automatically records structured events in a JSONL file at `artifacts://runs/{run_id}/events.jsonl`. The event store captures:
+
+- `run_started`, `run_completed`, `run_failed` -- pipeline lifecycle
+- `chunk_started`, `chunk_completed`, `chunk_failed` -- chunk execution
+- `stage_failed`, `stage_retried`, `retry_exhausted` -- stage-level detail
+
+Events are written via `.event_emit()`, which is wrapped in `tryCatch()` so it **never** blocks or fails the pipeline. Monitoring is purely advisory.
+
+### Controlling the event store
+
+The event store is enabled by default. To disable it:
+
+```r
+options(parade.event_store = FALSE)
+```
+
+Or for a single run:
+
+```r
+with_parade_options(event_store = FALSE, {
+  d <- submit(fl)
+})
+```
+
+### Reading events
+
+Events are consumed internally by `failure_timeline()`, `pipeline_top()`, and `run_info()`. You can also read them directly:
+
+```r
+# Read all events for a run
+events <- parade:::.event_read("a1b2c3d4")
+
+# Filter by type
+failures <- parade:::.event_read("a1b2c3d4",
+  types = c("chunk_failed", "stage_failed"))
+
+# Last 5 events
+recent <- parade:::.event_read("a1b2c3d4", last_n = 5)
+```
+
+### JSONL format
+
+The event log is human-readable. Each line is a self-contained JSON object:
+
+```json
+{"timestamp":"2026-02-21T14:30:01.234-0500","event_type":"run_started","severity":"info","source":"submit","run_id":"a1b2c3d4","n_chunks":48,"backend":"slurm"}
+{"timestamp":"2026-02-21T14:30:05.678-0500","event_type":"chunk_started","severity":"info","source":"chunk","run_id":"a1b2c3d4","chunk_id":1}
+{"timestamp":"2026-02-21T14:32:15.901-0500","event_type":"chunk_completed","severity":"info","source":"chunk","run_id":"a1b2c3d4","chunk_id":1}
+{"timestamp":"2026-02-21T14:45:30.123-0500","event_type":"chunk_failed","severity":"error","source":"chunk","run_id":"a1b2c3d4","chunk_id":7,"error":"singular matrix","stage":"model"}
+```
+
+The JSONL format is NFS-safe (POSIX atomic appends for lines < 4096 bytes), requires no database dependency, and can be inspected with standard Unix tools:
+
+```bash
+# Count failures
+grep '"chunk_failed"' events.jsonl | wc -l
+
+# Extract error messages
+grep '"chunk_failed"' events.jsonl | jq -r '.error'
+```
+
+## Run registry: discovering past runs
+
+The run registry keeps track of all pipeline runs. Every `submit()` call registers the run automatically.
+
+### Listing runs
+
+```r
+# Recent runs
+run_ls()
+#> # A tibble: 5 x 6
+#>   run_id   submitted_at             status    backend n_chunks stages
+#>   <chr>    <chr>                    <chr>     <chr>      <int> <chr>
+#> 1 a1b2c3d4 2026-02-21T14:30:01     failed    slurm         48 preproc -> model
+#> 2 e5f6g7h8 2026-02-20T09:15:00     completed slurm         24 preproc -> model
+#> 3 i9j0k1l2 2026-02-19T16:45:00     completed local         12 preproc
+#> ...
+
+# Filter by status
+run_ls(status = "failed")
+
+# Show more runs
+run_ls(n = 50)
+```
+
+### Run details
+
+```r
+info <- run_info("a1b2c3d4")
+info$status             # "failed"
+info$n_chunks           # 48
+info$chunks_completed   # 43
+info$chunks_failed      # 5
+info$event_counts       # list(run_started=1, chunk_started=48, chunk_completed=43, ...)
+```
+
+## Pipeline monitoring with pipeline_top()
+
+`pipeline_top()` is an enhanced live monitor that combines the progress tracking of `deferred_top()` with the event feed and classified error summaries.
+
+### Live monitoring during execution
+
+```r
+d <- submit(fl)
+pipeline_top(d = d)
+```
+
+The display refreshes every 3 seconds (configurable) and shows:
+
+```
+parade::pipeline_top  |
+
+Run: a1b2c3d4  Backend: slurm  Submitted: 2026-02-21 14:30
+Elapsed: 0:45:12  By: subject
+Stages: preproc -> model
+
+Progress [==============        ]   58%  (28/48 chunks)
+
+  pending=8  running=12  done=25  error=3
+
+-- Recent Events -----------------------------------------------------------------
+  14:30:01     run_started
+  14:30:05     chunk_started chunk=1
+  ...
+  14:45:30 [!] chunk_failed chunk=7 stage=model: singular matrix
+  14:52:18 [!] chunk_failed chunk=12: Killed by SLURM
+
+-- Active Errors -----------------------------------------------------------------
+  [OOM     ] chunk 12: Killed by SLURM (MaxRSS 15.8G vs ReqMem 16G)
+  [ERROR   ] chunk 7 stage 'model': singular matrix
+
+Resources: max(MaxRSS) = 14.2G  across 12 running chunks
+
+(Ctrl-C to exit)
+```
+
+### Post-hoc viewing
+
+You can also view a completed run's events without a deferred handle:
+
+```r
+pipeline_top(run_id = "a1b2c3d4")
+```
+
+This reads from the event store and displays a static summary.
+
+### Tuning the display
+
+```r
+pipeline_top(d = d,
+  refresh = 1,         # update every second
+  max_events = 20,     # show more events
+  max_errors = 10,     # show more errors
+  clear = FALSE        # don't clear screen (useful for logging)
+)
+```
+
+## Classification tags in deferred_top()
+
+The existing `deferred_top()` monitor now shows classification tags next to failed chunks:
+
+```r
+deferred_top(d)
+```
+
+The state column for failed chunks now reads `FAILED:OOM`, `TIMEOUT:TIMEOUT`, or `FAILED:ERROR` instead of just `FAILED`, giving you immediate visibility into what kind of failure occurred without needing to run `wtf()`.
+
+## Cross-run comparison with failure_patterns()
+
+When you're iterating on a pipeline -- fixing bugs, adjusting resources, resubmitting -- you want to know which errors are persistent, which are new, and which were resolved. `failure_patterns()` compares error fingerprints across multiple runs.
+
+```r
+# Compare errors across three successive runs
+patterns <- failure_patterns(d_run1, d_run2, d_run3)
+patterns
+#> # A tibble: 4 x 7
+#>   fingerprint message             class   first_seen last_seen n_runs pattern
+#>   <chr>       <chr>               <chr>        <int>     <int>  <int> <chr>
+#> 1 a3f2c1d0    singular matrix     r_error          1         3      3 persistent
+#> 2 b4e5f6a7    Cannot allocate ... oom              1         2      2 resolved
+#> 3 c8d9e0f1    file not found      r_error          3         3      1 new
+#> 4 d2a3b4c5    timeout at line ... timeout          1         3      2 flaky
+```
+
+The `pattern` column tells you:
+
+| Pattern | Meaning |
+|---------|---------|
+| `persistent` | Error appeared in every run -- this is a real bug |
+| `new` | Error appeared only in the latest run -- possibly a regression |
+| `resolved` | Error appeared in earlier runs but not the latest -- your fix worked |
+| `flaky` | Error appears intermittently -- could be a race condition or resource contention |
+
+Error fingerprinting uses normalized messages: line numbers, file paths, memory addresses, and timestamps are stripped before hashing, so the same logical error gets the same fingerprint even when runtime details change.
+
+## Putting it all together: a diagnosis workflow
+
+Here's a typical workflow when a pipeline fails on SLURM:
+
+```r
+library(parade)
+
+# 1. Check what ran recently
+run_ls()
+
+# 2. One-command diagnosis
+wtf(d)
+
+# 3. If you need more context: when did things fail?
+failure_timeline(d)
+
+# 4. Dig into specific log files
+logs <- find_logs(d)
+logs  # see which logs exist
+
+# 5. Search across all logs for a specific error
+search_logs(d, "singular|cannot allocate", context = 5)
+
+# 6. After fixing and resubmitting, compare runs
+d2 <- submit(fl_fixed)
+deferred_await(d2)
+failure_patterns(d, d2)  # did the fix work?
+
+# 7. For live monitoring on the next run
+d3 <- submit(fl_fixed_v2)
+pipeline_top(d = d3)
+```
+
+## Next steps
+
+- `vignette("parade-scripts-monitoring")` -- monitoring individual SLURM script jobs with `script_top()` and `jobs_top()`
+- `vignette("parade-slurm-distribution")` -- configuring SLURM resources, chunking strategies, and `dist_slurm()` options
+- `?wtf` -- full parameter reference for the failure report
+- `?deferred_errors` -- the underlying error aggregation that `wtf()` builds on

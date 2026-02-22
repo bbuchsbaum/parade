@@ -4,7 +4,20 @@
 \alias{pipeline}
 \title{Create a parade pipeline (alias for flow)}
 \usage{
-pipeline(grid, seed_col = NULL, error = c("propagate", "keep", "omit", "stop"))
+pipeline(
+  grid,
+  seed_col = NULL,
+  error = c("propagate", "keep", "omit", "stop"),
+  retries = 0L,
+  retry_backoff = c("none", "fixed", "linear", "exponential"),
+  retry_base = 0,
+  retry_on = NULL,
+  cancel = c("deps", "all", "none"),
+  resources = NULL,
+  cpus = NULL,
+  memory = NULL,
+  time = NULL
+)
 }
 \arguments{
 \item{grid}{A data frame or tibble containing parameter combinations}
@@ -12,6 +25,24 @@ pipeline(grid, seed_col = NULL, error = c("propagate", "keep", "omit", "stop"))
 \item{seed_col}{Optional column name for reproducible random seeds}
 
 \item{error}{Error handling policy: "propagate", "keep", "omit", or "stop"}
+
+\item{retries}{Flow-level retry attempts per stage.}
+
+\item{retry_backoff}{Retry backoff strategy.}
+
+\item{retry_base}{Retry base delay in seconds.}
+
+\item{retry_on}{Optional retry classifier.}
+
+\item{cancel}{Cancellation propagation mode for \code{error = "propagate"}.}
+
+\item{resources}{Optional flow-level resource defaults.}
+
+\item{cpus}{Optional flow-level default CPUs per task.}
+
+\item{memory}{Optional flow-level default memory.}
+
+\item{time}{Optional flow-level default walltime.}
 }
 \value{
 A \code{parade_flow} object

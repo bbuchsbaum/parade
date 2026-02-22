@@ -21,14 +21,39 @@
   list(state = parts[1], time = .parade_parse_hms(parts[2]), timelimit = .parade_parse_hms(parts[3]), cpus = suppressWarnings(as.numeric(parts[4])), nodes = suppressWarnings(as.numeric(parts[5])), reason = parts[6], nodelist = parts[7])
 }
 .slurm_sacct_info <- function(job_id) {
-  out <- .run_cmd("sacct", c("-j", as.character(job_id), "-n", "-p", "-X", "-o", "JobID,State,ElapsedRaw,TotalCPU,AllocCPUS,ReqMem,MaxRSS,MaxVMSize"))
+  out <- .run_cmd("sacct", c("-j", as.character(job_id), "-n", "-p", "-X", "-o", "JobID,State,ElapsedRaw,TotalCPU,AllocCPUS,ReqMem,MaxRSS,MaxVMSize,ExitCode,DerivedExitCode,Comment"))
   if (length(out) == 0L) return(NULL)
   rows <- strsplit(out, "|", fixed = TRUE)
   best <- NULL
   for (r in rows) { if (length(r) < 8) next; jid <- r[[1]]; if (grepl(paste0("^", job_id, "(\\.batch)?$"), jid)) { best <- r; break } }
   if (is.null(best) && length(rows) > 0) best <- rows[[1]]
   if (is.null(best) || length(best) < 8) return(NULL)  # No valid data
-  list(JobID=best[[1]], State=best[[2]], ElapsedRaw=suppressWarnings(as.numeric(best[[3]])), TotalCPU=.parade_parse_hms(best[[4]]), AllocCPUS=suppressWarnings(as.numeric(best[[5]])), ReqMem=best[[6]], MaxRSS=.parade_parse_mem(best[[7]]), MaxVMSize=.parade_parse_mem(best[[8]]))
+  exit_code_raw <- if (length(best) >= 9) best[[9]] else NA_character_
+  derived_exit  <- if (length(best) >= 10) best[[10]] else NA_character_
+  comment       <- if (length(best) >= 11) best[[11]] else NA_character_
+  # Parse ExitCode format "exit:signal" (e.g., "0:9" = OOM kill via signal 9)
+  exit_parsed <- .parse_slurm_exit_code(exit_code_raw)
+  list(JobID=best[[1]], State=best[[2]], ElapsedRaw=suppressWarnings(as.numeric(best[[3]])), TotalCPU=.parade_parse_hms(best[[4]]), AllocCPUS=suppressWarnings(as.numeric(best[[5]])), ReqMem=best[[6]], MaxRSS=.parade_parse_mem(best[[7]]), MaxVMSize=.parade_parse_mem(best[[8]]),
+       ExitCode=exit_code_raw, ExitStatus=exit_parsed$exit, ExitSignal=exit_parsed$signal,
+       DerivedExitCode=derived_exit, Comment=comment)
+}
+
+#' Parse SLURM exit code format "exit:signal"
+#' @param x Character string like "0:9" or "1:0"
+#' @return List with `exit` (integer) and `signal` (integer)
+#' @keywords internal
+.parse_slurm_exit_code <- function(x) {
+  if (is.null(x) || is.na(x) || !nzchar(x)) {
+    return(list(exit = NA_integer_, signal = NA_integer_))
+  }
+  parts <- strsplit(trimws(x), ":", fixed = TRUE)[[1]]
+  if (length(parts) < 2) {
+    return(list(exit = suppressWarnings(as.integer(parts[1])), signal = NA_integer_))
+  }
+  list(
+    exit = suppressWarnings(as.integer(parts[1])),
+    signal = suppressWarnings(as.integer(parts[2]))
+  )
 }
 .slurm_sstat_info <- function(job_id) {
   steps <- c(paste0(job_id, ".batch"), as.character(job_id))

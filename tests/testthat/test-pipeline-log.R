@@ -8,7 +8,7 @@ test_that(".empty_errors_tbl returns correct structure", {
   tbl <- parade:::.empty_errors_tbl()
   expect_s3_class(tbl, "tbl_df")
   expect_equal(nrow(tbl), 0L)
-  expect_equal(names(tbl), c("chunk_id", "row", "stage", "error_msg", "source", "context"))
+  expect_equal(names(tbl), c("chunk_id", "row", "stage", "error_msg", "source", "context", "class"))
 })
 
 # --- .scan_index_errors_structured() ----------------------------------------

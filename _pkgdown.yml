@@ -40,3 +40,5 @@ articles:
   - parade-artifacts
 - title: Scripts & Monitoring
   contents: parade-scripts-monitoring
+- title: Failure Diagnosis
+  contents: parade-failure-diagnosis

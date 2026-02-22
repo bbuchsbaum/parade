@@ -4,7 +4,20 @@
 \alias{flow}
 \title{Create a parade flow for declarative data processing}
 \usage{
-flow(grid, seed_col = NULL, error = c("propagate", "keep", "omit", "stop"))
+flow(
+  grid,
+  seed_col = NULL,
+  error = c("propagate", "keep", "omit", "stop"),
+  retries = 0L,
+  retry_backoff = c("none", "fixed", "linear", "exponential"),
+  retry_base = 0,
+  retry_on = NULL,
+  cancel = c("deps", "all", "none"),
+  resources = NULL,
+  cpus = NULL,
+  memory = NULL,
+  time = NULL
+)
 }
 \arguments{
 \item{grid}{A data frame or tibble containing parameter combinations}
@@ -12,6 +25,29 @@ flow(grid, seed_col = NULL, error = c("propagate", "keep", "omit", "stop"))
 \item{seed_col}{Optional column name for reproducible random seeds}
 
 \item{error}{Error handling policy: "propagate" (default), "keep", "omit", or "stop"}
+
+\item{retries}{Flow-level retry attempts per stage (default \code{0}).}
+
+\item{retry_backoff}{Backoff strategy for retries:
+\code{"none"}, \code{"fixed"}, \code{"linear"}, \code{"exponential"}.}
+
+\item{retry_base}{Base delay in seconds for retry backoff.}
+
+\item{retry_on}{Optional retry classifier. \code{NULL} retries all errors; a
+character vector retries matching condition classes; a function receives the
+condition and should return \code{TRUE}/\code{FALSE}.}
+
+\item{cancel}{Cancellation propagation mode used when \code{error = "propagate"}:
+\code{"deps"} (default), \code{"all"}, or \code{"none"}.}
+
+\item{resources}{Optional flow-level resource defaults as a named list with
+keys \code{cpus}, \code{memory}, \code{time} (aliases: \code{cpus_per_task}, \code{ncpus}, \code{mem}).}
+
+\item{cpus}{Optional flow-level default CPUs per task.}
+
+\item{memory}{Optional flow-level default memory (e.g. \code{"8G"}).}
+
+\item{time}{Optional flow-level default walltime (e.g. \code{"2:00:00"}).}
 }
 \value{
 A \code{parade_flow} object containing the grid, stages, and options
