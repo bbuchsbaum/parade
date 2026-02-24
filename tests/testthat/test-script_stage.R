@@ -686,6 +686,29 @@ test_that("get_file_ref returns full metadata when file_refs available", {
   expect_equal(result[[1]]$path, path)
 })
 
+test_that("source engine falls back to isolated run for progress handlers conflict", {
+  skip_if_not_installed("progressr")
+
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "uses_global_handlers.R")
+  writeLines(c(
+    "library(progressr)",
+    "handlers(global = TRUE)",
+    "saveRDS(x * 2, output_path)"
+  ), script_path)
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("s1",
+      script = script_path,
+      produces = file.path(tmp, "out_{x}.rds")
+    )
+
+  res <- collect(fl, engine = "sequential", .progress = TRUE)
+  expect_equal(readRDS(res$s1.output[[1]]$path), 2)
+  expect_equal(readRDS(res$s1.output[[2]]$path), 4)
+})
+
 test_that("get_file_ref errors when key not found", {
   withr::local_options(parade.args.file_refs = list())
   expect_error(get_file_ref("nonexistent"), "No file_ref found")

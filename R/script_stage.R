@@ -485,7 +485,17 @@ script_stage <- function(fl, id, script, produces,
       options(parade.args = env)
 
       src_env <- list2env(env, parent = globalenv())
-      source(.script, local = src_env)
+      src_err <- tryCatch({
+        source(.script, local = src_env)
+        NULL
+      }, error = identity)
+      if (inherits(src_err, "error")) {
+        if (.is_handlers_on_stack_error(src_err)) {
+          .run_source_script_isolated(.script, env, file_refs)
+        } else {
+          stop(src_err)
+        }
+      }
     } else {
       cli_args <- character()
       for (nm in names(row)) {
@@ -635,6 +645,75 @@ script_stage <- function(fl, id, script, produces,
     }
   }
   env
+}
+
+#' Detect progressr global handler stack conflicts
+#'
+#' @param err Condition object from source() execution.
+#' @return Logical scalar indicating whether this is the specific conflict
+#'   triggered by calling handlers(global = TRUE) with active handlers.
+#' @keywords internal
+.is_handlers_on_stack_error <- function(err) {
+  if (is.null(err)) return(FALSE)
+  msg <- conditionMessage(err)
+  grepl("should not be called with handlers on the stack", msg, fixed = TRUE)
+}
+
+#' Run source-engine script in a clean R session
+#'
+#' Fallback path for scripts that call \code{progressr::handlers(global = TRUE)}
+#' while the caller has active condition handlers.
+#'
+#' @param script Path to script file.
+#' @param env Named list of script variables (already flattened for get_arg()).
+#' @param file_refs Original file_ref metadata for get_file_ref().
+#' @return Invisibly \code{NULL}; errors if the subprocess exits non-zero.
+#' @keywords internal
+.run_source_script_isolated <- function(script, env, file_refs) {
+  env_path <- tempfile("parade_source_env_", fileext = ".rds")
+  refs_path <- tempfile("parade_source_refs_", fileext = ".rds")
+  script_path <- normalizePath(script, mustWork = TRUE)
+  runner_path <- tempfile("parade_source_runner_", fileext = ".R")
+  stderr_path <- tempfile("parade_source_stderr_", fileext = ".log")
+  on.exit(unlink(c(env_path, refs_path, runner_path, stderr_path), force = TRUE), add = TRUE)
+
+  saveRDS(env, env_path)
+  saveRDS(file_refs, refs_path)
+
+  writeLines(c(
+    "args <- commandArgs(trailingOnly = TRUE)",
+    "env <- readRDS(args[[1]])",
+    "file_refs <- readRDS(args[[2]])",
+    "script <- args[[3]]",
+    "options(parade.args = env)",
+    "options(parade.args.file_refs = file_refs)",
+    "src_env <- list2env(env, parent = globalenv())",
+    "source(script, local = src_env)"
+  ), runner_path)
+
+  status <- system2(
+    command = file.path(R.home("bin"), "Rscript"),
+    args = c("--vanilla", runner_path, env_path, refs_path, script_path),
+    stdout = "",
+    stderr = stderr_path,
+    wait = TRUE
+  )
+  if (is.null(status)) status <- 0L
+  if (status != 0L) {
+    err_lines <- if (file.exists(stderr_path) && file.size(stderr_path) > 0) {
+      readLines(stderr_path, warn = FALSE)
+    } else {
+      character()
+    }
+    err_txt <- if (length(err_lines) > 0L) paste(utils::tail(err_lines, 20L), collapse = "\n") else ""
+    if (!nzchar(err_txt)) {
+      stop(sprintf("Script '%s' exited with status %d", script_path, status), call. = FALSE)
+    }
+    stop(sprintf("Script '%s' exited with status %d:\n%s", script_path, status, err_txt),
+         call. = FALSE)
+  }
+
+  invisible(NULL)
 }
 
 #' Retrieve full file_ref metadata for an upstream output
