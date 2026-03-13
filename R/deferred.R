@@ -20,6 +20,88 @@
   value
 }
 
+.parade_stage_submit_prunable <- function(st) {
+  meta <- st$script_meta
+  is.list(meta) &&
+    isTRUE(meta$template_mode) &&
+    isTRUE(meta$skip_if_exists) &&
+    is.character(meta$produces) &&
+    length(meta$produces) > 0L
+}
+
+.parade_stage_cached_paths <- function(st, row) {
+  meta <- st$script_meta
+  if (!.parade_stage_submit_prunable(st)) return(NULL)
+
+  clean_params <- .manifest_clean_params(row)
+  if (isTRUE(meta$use_manifest)) {
+    manifest_rec <- tryCatch(
+      .manifest_lookup(st$id, clean_params),
+      error = function(e) NULL
+    )
+    if (!is.null(manifest_rec)) {
+      return(unlist(manifest_rec$output_paths, use.names = TRUE))
+    }
+  }
+
+  paths <- tryCatch(
+    vapply(meta$produces, function(tmpl) {
+      as.character(glue::glue_data(row, tmpl))
+    }, character(1)),
+    error = function(e) NULL
+  )
+  if (is.null(paths) || !all(file.exists(paths))) return(NULL)
+
+  if (isTRUE(meta$use_manifest)) {
+    tryCatch(
+      .manifest_record(st$id, clean_params, paths, script = meta$script),
+      error = function(e) NULL
+    )
+  }
+  paths
+}
+
+.parade_group_submit_prunable <- function(fl, rows) {
+  if (!length(fl$stages)) return(FALSE)
+  if (!all(vapply(fl$stages, .parade_stage_submit_prunable, logical(1)))) {
+    return(FALSE)
+  }
+
+  grid <- fl$grid
+  for (row_idx in rows) {
+    row <- as.list(grid[row_idx, , drop = FALSE])
+    for (st in fl$stages) {
+      if (is.null(.parade_stage_cached_paths(st, row))) {
+        return(FALSE)
+      }
+    }
+  }
+  TRUE
+}
+
+.parade_submit_prune_groups <- function(fl, groups, mode = "index") {
+  if (!identical(mode, "index") || !length(groups) || !length(fl$stages)) {
+    return(list(pruned = list(), pending = groups))
+  }
+
+  pruned <- list()
+  pending <- list()
+  for (i in seq_along(groups)) {
+    group_rows <- groups[[i]]
+    if (.parade_group_submit_prunable(fl, group_rows)) {
+      pruned[[length(pruned) + 1L]] <- group_rows
+    } else {
+      pending[[length(pending) + 1L]] <- group_rows
+    }
+  }
+  list(pruned = pruned, pending = pending)
+}
+
+.parade_submit_chunk_ids <- function(handle, chunks) {
+  ids <- handle$pending_chunk_ids
+  if (is.null(ids)) seq_along(chunks) else as.integer(ids)
+}
+
 #' Submit a flow for deferred execution
 #'
 #' Submits a parade flow for asynchronous execution, either locally using
@@ -61,16 +143,36 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     groups <- split(seq_len(nrow(grid)), grp_id)
   }
   n_groups <- length(groups)
+  prune_plan <- .parade_submit_prune_groups(fl, groups, mode = mode)
+  pruned_groups <- prune_plan$pruned %||% list()
+  pending_groups <- prune_plan$pending %||% groups
+  n_pending_groups <- length(pending_groups)
   if (!is.null(dist$target_jobs)) {
     target_jobs <- as.integer(dist$target_jobs)
     if (length(target_jobs) != 1L || is.na(target_jobs) || target_jobs < 1L) {
       stop("submit(): dist$target_jobs must be a positive integer.", call. = FALSE)
     }
-    chunks_per_job <- max(1L, ceiling(n_groups / target_jobs))
+    chunks_per_job <- if (n_pending_groups == 0L) 1L else max(1L, ceiling(n_pending_groups / target_jobs))
   } else {
     chunks_per_job <- max(1L, dist$chunks_per_job %||% 1L)
   }
-  chunks <- split(groups, ceiling(seq_along(groups) / chunks_per_job))
+  pruned_chunks <- if (length(pruned_groups)) {
+    split(pruned_groups, ceiling(seq_along(pruned_groups) / chunks_per_job))
+  } else {
+    list()
+  }
+  pending_chunks <- if (length(pending_groups)) {
+    split(pending_groups, ceiling(seq_along(pending_groups) / chunks_per_job))
+  } else {
+    list()
+  }
+  chunks <- c(pruned_chunks, pending_chunks)
+  pruned_chunk_ids <- if (length(pruned_chunks)) seq_along(pruned_chunks) else integer()
+  pending_chunk_ids <- if (length(pending_chunks)) {
+    seq.int(length(pruned_chunks) + 1L, length(chunks))
+  } else {
+    integer()
+  }
   run_id <- run_id %||% substr(digest::digest(list(Sys.time(), nrow(grid), names(grid))), 1, 8)
   registry_dir <- registry_dir %||% paste0("registry://", paste0("parade-", run_id))
   # Resolve path without creating the directory — backends handle creation
@@ -105,7 +207,25 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
 
   index_dir <- if (is.null(index_dir)) file.path("artifacts://runs", run_id, "index") else index_dir
   index_dir_resolved <- resolve_path(index_dir); dir.create(index_dir_resolved, recursive = TRUE, showWarnings = FALSE)
-  handle <- list(backend = dist$backend, by = dist$by, mode = mode, run_id = run_id, registry_dir = normalizePath(registry_dir_real, mustWork = FALSE), flow_path = normalizePath(flow_path, mustWork = FALSE), chunks_path = normalizePath(chunks_path, mustWork = FALSE), index_dir = index_dir, submitted_at = as.character(Sys.time()), jobs = NULL, .fl_data = fl_for_worker, .chunks_data = chunks); class(handle) <- "parade_deferred"
+  handle <- list(
+    backend = dist$backend,
+    by = dist$by,
+    mode = mode,
+    run_id = run_id,
+    registry_dir = normalizePath(registry_dir_real, mustWork = FALSE),
+    flow_path = normalizePath(flow_path, mustWork = FALSE),
+    chunks_path = normalizePath(chunks_path, mustWork = FALSE),
+    index_dir = index_dir,
+    submitted_at = as.character(Sys.time()),
+    jobs = NULL,
+    pending_chunk_ids = as.integer(pending_chunk_ids),
+    pruned_chunk_ids = as.integer(pruned_chunk_ids),
+    pruned_jobs = as.integer(length(pruned_chunk_ids)),
+    .fl_data = fl_for_worker,
+    .chunks_data = chunks
+  )
+  class(handle) <- "parade_deferred"
+
   submitter <- .get_submit_backend(dist$backend)
   if (is.null(submitter)) {
     stop(
@@ -117,19 +237,39 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
       call. = FALSE
     )
   }
-  handle <- submitter(
-    handle = handle,
-    dist = dist,
-    chunks = chunks,
-    index_dir_resolved = index_dir_resolved,
-    mode = mode,
-    seed_furrr = seed_furrr,
-    scheduling = scheduling
-  )
+  if (length(pruned_chunk_ids)) {
+    for (chunk_id in pruned_chunk_ids) {
+      .parade_execute_chunk(
+        fl = fl_for_worker,
+        idx_vec = chunks[[chunk_id]],
+        index_dir = index_dir_resolved,
+        job_id = chunk_id,
+        mode = mode,
+        seed_furrr = seed_furrr,
+        scheduling = scheduling
+      )
+    }
+  }
+
+  if (length(pending_chunk_ids) == 0L) {
+    dir.create(handle$registry_dir, recursive = TRUE, showWarnings = FALSE)
+    .save_registry_files(handle)
+    handle$jobs <- list()
+    handle$submitted_jobs <- 0L
+  } else {
+    handle <- submitter(
+      handle = handle,
+      dist = dist,
+      chunks = chunks,
+      index_dir_resolved = index_dir_resolved,
+      mode = mode,
+      seed_furrr = seed_furrr,
+      scheduling = scheduling
+    )
+  }
   handle$.fl_data <- NULL
   handle$.chunks_data <- NULL
 
-  # Event store: register run and emit run_started
   .event_emit(run_id, "run_started", severity = "info", source = "submit",
               backend = dist$backend, n_chunks = length(chunks),
               stages = vapply(fl$stages, function(s) s$id %||% "?", character(1)))
@@ -475,7 +615,6 @@ deferred_collect <- function(d, how = c("auto","index","results")) {
           nrow(errors) - 20L, 20L, nrow(errors)))
       }
       .pipeline_log_summary(d, log_path)
-      # Emit run completion event
       run_status <- if (nrow(errors) > 0L) "failed" else "completed"
       .event_emit(d$run_id, paste0("run_", run_status), severity = if (run_status == "failed") "error" else "info",
                   source = "collect", n_errors = nrow(errors))

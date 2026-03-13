@@ -941,6 +941,7 @@ test_that("deferred_collect() for SLURM with results (mocked)", {
       expect_equal(nrow(collected), 4)
     },
     loadRegistry = function(...) list(),
+    waitForJobs = function(...) invisible(NULL),
     reduceResultsList = function(...) list(result1, result2),
     .package = "batchtools"
   )

@@ -155,6 +155,7 @@ list_submit_backends <- function() {
     stop("submit(): dist_crew requires the 'crew' package.", call. = FALSE)
   }
   .save_registry_files(handle)
+  chunk_ids <- .parade_submit_chunk_ids(handle, chunks)
 
   controller <- dist$crew$controller
   controller <- if (is.function(controller)) controller() else controller
@@ -166,8 +167,9 @@ list_submit_backends <- function() {
   # Start controller if not already started.
   .crew_start(controller)
 
-  task_names <- sprintf("parade-%s-%04d", handle$run_id, seq_along(chunks))
-  for (i in seq_along(chunks)) {
+  task_names <- sprintf("parade-%s-%04d", handle$run_id, chunk_ids)
+  for (idx in seq_along(chunk_ids)) {
+    chunk_id <- chunk_ids[[idx]]
     cmd <- substitute(
       parade::parade_run_chunk_local(
         i = i,
@@ -179,7 +181,7 @@ list_submit_backends <- function() {
         scheduling = scheduling
       ),
       list(
-        i = i,
+        i = chunk_id,
         flow_path = handle$flow_path,
         chunks_path = handle$chunks_path,
         index_dir = index_dir_resolved,
@@ -189,10 +191,11 @@ list_submit_backends <- function() {
       )
     )
 
-    .crew_push(controller, name = task_names[[i]], command = cmd, packages = "parade")
+    .crew_push(controller, name = task_names[[idx]], command = cmd, packages = "parade")
   }
 
   handle$jobs <- task_names
+  handle$submitted_jobs <- length(task_names)
   handle$crew_controller <- controller
   handle$crew_persist <- isTRUE(dist$crew$persist)
   handle$crew_stop_on_exit <- isTRUE(dist$crew$stop_on_exit)
@@ -203,6 +206,7 @@ list_submit_backends <- function() {
   if (!requireNamespace("future.batchtools", quietly = TRUE) || !requireNamespace("batchtools", quietly = TRUE)) {
     stop("submit(): dist_slurm requires 'future.batchtools' and 'batchtools'.", call. = FALSE)
   }
+  chunk_ids <- .parade_submit_chunk_ids(handle, chunks)
   tmpl <- resolve_path(dist$slurm$template, create = FALSE)
   cf <- batchtools::makeClusterFunctionsSlurm(tmpl)
   # batchtools::makeRegistry() creates the directory; save flow/chunks after.
@@ -211,7 +215,7 @@ list_submit_backends <- function() {
 
   batchtools::batchMap(
     fun = parade_run_chunk_bt,
-    i = seq_along(chunks),
+    i = chunk_ids,
     more.args = list(
       flow_path = handle$flow_path,
       chunks_path = handle$chunks_path,
@@ -237,6 +241,7 @@ list_submit_backends <- function() {
   batchtools::submitJobs(resources = resources, reg = reg)
   jt <- batchtools::getJobTable(reg = reg)
   handle$jobs <- jt$job.id
+  handle$submitted_jobs <- length(handle$jobs)
   handle
 }
 
@@ -245,6 +250,7 @@ list_submit_backends <- function() {
     stop("submit(): dist_mirai requires 'mirai' and 'future.mirai'.", call. = FALSE)
   }
   .save_registry_files(handle)
+  chunk_ids <- .parade_submit_chunk_ids(handle, chunks)
 
   # Initialize mirai daemons based on configuration
   if (!is.null(dist$n)) {
@@ -283,11 +289,12 @@ list_submit_backends <- function() {
 
   future::plan(list(inner))
 
-  fs <- vector("list", length(chunks))
-  for (i in seq_along(chunks)) {
-    fs[[i]] <- future::future(
+  fs <- vector("list", length(chunk_ids))
+  for (idx in seq_along(chunk_ids)) {
+    chunk_id <- chunk_ids[[idx]]
+    fs[[idx]] <- future::future(
       parade_run_chunk_local(
-        i = i,
+        i = chunk_id,
         flow_path = handle$flow_path,
         chunks_path = handle$chunks_path,
         index_dir = index_dir_resolved,
@@ -299,11 +306,13 @@ list_submit_backends <- function() {
     )
   }
   handle$jobs <- fs
+  handle$submitted_jobs <- length(fs)
   handle
 }
 
 .submit_backend_local <- function(handle, dist, chunks, index_dir_resolved, mode, seed_furrr, scheduling) {
   .save_registry_files(handle)
+  chunk_ids <- .parade_submit_chunk_ids(handle, chunks)
   op <- future::plan()
   on.exit(future::plan(op), add = TRUE)
 
@@ -322,11 +331,12 @@ list_submit_backends <- function() {
 
   future::plan(list(inner))
 
-  fs <- vector("list", length(chunks))
-  for (i in seq_along(chunks)) {
-    fs[[i]] <- future::future(
+  fs <- vector("list", length(chunk_ids))
+  for (idx in seq_along(chunk_ids)) {
+    chunk_id <- chunk_ids[[idx]]
+    fs[[idx]] <- future::future(
       parade_run_chunk_local(
-        i = i,
+        i = chunk_id,
         flow_path = handle$flow_path,
         chunks_path = handle$chunks_path,
         index_dir = index_dir_resolved,
@@ -338,5 +348,6 @@ list_submit_backends <- function() {
     )
   }
   handle$jobs <- fs
+  handle$submitted_jobs <- length(fs)
   handle
 }

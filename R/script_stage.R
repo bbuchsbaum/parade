@@ -567,7 +567,10 @@ script_stage <- function(fl, id, script, produces,
   fl$stages[[length(fl$stages)]]$script_meta <- list(
     script = script,
     produces = .produces,
-    engine = engine
+    engine = engine,
+    template_mode = isTRUE(.template_mode),
+    skip_if_exists = isTRUE(.skip_if_exists),
+    use_manifest = isTRUE(.use_manifest)
   )
   fl
 }
