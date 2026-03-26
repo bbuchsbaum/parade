@@ -402,7 +402,11 @@ script_stage <- function(fl, id, script, produces,
         # Tier 1: Manifest exact match — hash params, look up, verify files
         if (isTRUE(.use_manifest)) {
           manifest_rec <- tryCatch(
-            .manifest_lookup(.stage_id, clean_params),
+            .manifest_lookup(
+              .stage_id,
+              clean_params,
+              produces_names = .output_names
+            ),
             error = function(e) NULL
           )
           if (!is.null(manifest_rec)) {

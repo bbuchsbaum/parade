@@ -76,6 +76,19 @@
   records
 }
 
+#' Normalize output names for manifest comparisons
+#'
+#' @param x Character vector, list, or NULL.
+#' @return Sorted character vector of output names.
+#' @keywords internal
+.manifest_output_names <- function(x) {
+  if (is.null(x)) return(character())
+  vals <- unlist(x, use.names = FALSE)
+  vals <- as.character(vals)
+  vals <- vals[nzchar(vals)]
+  sort(unique(vals))
+}
+
 #' Look up an exact-match manifest entry
 #'
 #' Hashes the provided params and searches for a matching record.
@@ -83,15 +96,25 @@
 #'
 #' @param stage_id Character stage identifier.
 #' @param params Named list of grid parameters (already cleaned and sorted).
+#' @param produces_names Optional character vector of current output names.
 #' @param config_dir Config directory.
 #' @return The matching record (a list) or \code{NULL}.
 #' @keywords internal
-.manifest_lookup <- function(stage_id, params, config_dir = NULL) {
+.manifest_lookup <- function(stage_id, params, produces_names = NULL, config_dir = NULL) {
   records <- .manifest_read(stage_id, config_dir)
   if (length(records) == 0L) return(NULL)
   target_hash <- digest::digest(params, algo = "sha1")
+  expected_names <- .manifest_output_names(produces_names)
   for (rec in rev(records)) {
     if (identical(rec$param_hash, target_hash)) {
+      if (length(expected_names) > 0L) {
+        recorded_names <- if (!is.null(rec$output_names)) {
+          .manifest_output_names(rec$output_names)
+        } else {
+          sort(names(rec$output_paths) %||% character())
+        }
+        if (!identical(recorded_names, expected_names)) next
+      }
       # Verify all output files still exist
       out_paths <- unlist(rec$output_paths, use.names = TRUE)
       if (all(file.exists(out_paths))) {
@@ -165,6 +188,7 @@
     param_cols  = sort(names(params)),
     params      = params,
     param_hash  = digest::digest(params, algo = "sha1"),
+    output_names = .manifest_output_names(names(output_paths)),
     output_paths = as.list(output_paths),
     completed_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     script       = script

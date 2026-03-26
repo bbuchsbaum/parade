@@ -36,7 +36,11 @@
   clean_params <- .manifest_clean_params(row)
   if (isTRUE(meta$use_manifest)) {
     manifest_rec <- tryCatch(
-      .manifest_lookup(st$id, clean_params),
+      .manifest_lookup(
+        st$id,
+        clean_params,
+        produces_names = names(meta$produces)
+      ),
       error = function(e) NULL
     )
     if (!is.null(manifest_rec)) {

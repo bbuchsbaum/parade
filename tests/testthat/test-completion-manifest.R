@@ -78,6 +78,23 @@ test_that(".manifest_lookup exact match succeeds", {
   expect_equal(found$output_paths$output, out)
 })
 
+test_that(".manifest_lookup rejects entries whose output names no longer match", {
+  tmp <- withr::local_tempdir()
+  out <- file.path(tmp, "perf.rds")
+  saveRDS(1, out)
+
+  params <- list(a = 1L)
+  parade:::.manifest_record("s1", params, c(perf = out), config_dir = tmp)
+
+  found <- parade:::.manifest_lookup(
+    "s1",
+    params,
+    produces_names = c("perf", "conn"),
+    config_dir = tmp
+  )
+  expect_null(found)
+})
+
 test_that(".manifest_lookup returns NULL on miss", {
   tmp <- withr::local_tempdir()
   out <- file.path(tmp, "result.rds")
@@ -348,6 +365,49 @@ test_that("manifest skip works even after template path change", {
   expect_false(ref2$written)
   expect_true(ref2$existed)
   expect_equal(ref2$path, orig_path)
+})
+
+test_that("manifest skip does not reuse stale entry after produces expands", {
+  tmp <- withr::local_tempdir()
+  withr::local_options(parade.paths = list(
+    project = tmp, config = tmp, scratch = tmp,
+    artifacts = tmp, registry = tmp, data = tmp, cache = tmp
+  ))
+
+  script_path <- file.path(tmp, "write_outputs.R")
+  writeLines(c(
+    "saveRDS(list(x = x), perf_path)",
+    "if (exists('conn_path')) saveRDS(list(conn = x), conn_path)"
+  ), script_path)
+
+  grid <- tibble(x = 1L)
+  fl1 <- flow(grid) |>
+    script_stage("s1",
+      script = script_path,
+      produces = c(perf = file.path(tmp, "perf_{x}.rds")),
+      skip_if_exists = TRUE
+    )
+
+  res1 <- collect(fl1, engine = "sequential")
+  expect_true(file.exists(res1$s1.perf[[1]]$path))
+
+  fl2 <- flow(grid) |>
+    script_stage("s1",
+      script = script_path,
+      produces = c(
+        perf = file.path(tmp, "perf_{x}.rds"),
+        conn = file.path(tmp, "conn_{x}.rds")
+      ),
+      skip_if_exists = TRUE
+    )
+
+  res2 <- collect(fl2, engine = "sequential")
+  expect_true(res2$s1.conn[[1]]$written)
+  expect_true(file.exists(res2$s1.conn[[1]]$path))
+
+  latest <- tail(parade:::.manifest_read("s1", config_dir = tmp), 1)[[1]]
+  expect_equal(sort(unlist(latest$output_names, use.names = FALSE)),
+               c("conn", "perf"))
 })
 
 test_that("manifest_adopt + run with new grid param skips correctly", {
