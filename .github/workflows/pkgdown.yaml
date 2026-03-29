@@ -36,7 +36,7 @@ jobs:
           # Avoid installing all Suggests (can include non-CRAN/optional deps).
           # Install the minimal toolchain needed to render the site.
           dependencies: '"hard"'
-          extra-packages: any::pkgdown, any::knitr, any::rmarkdown, local::.
+          extra-packages: any::pkgdown, any::knitr, any::rmarkdown, github::bbuchsbaum/albersdown, local::.
           needs: website
 
       - name: Build site
