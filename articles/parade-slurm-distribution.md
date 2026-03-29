@@ -69,9 +69,14 @@ jobs <- slurm_map_cluster(
 results <- jobs |> progress() |> collect()
 ```
 
-For flows, use
+For flows,
 [`dist_slurm_allocation()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_allocation.md)
-to express the allocation shape once:
+is a convenience wrapper around
+[`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md)
+for this common scenario: **“I have N nodes with M cores each — fill
+them up.”** Instead of manually computing `target_jobs`,
+`cpus_per_task`, and `workers_within`, you describe the allocation shape
+and parade derives the rest:
 
 ``` r
 fl <- fl |>
@@ -83,6 +88,36 @@ fl <- fl |>
     target_jobs = 20               # ~10 nodes * oversubscribe 2
   ))
 ```
+
+This is equivalent to writing:
+
+``` r
+fl <- fl |>
+  distribute(dist_slurm(
+    within = "multicore",
+    workers_within = 196,            # all cores on the node
+    target_jobs = 20,                # 20 SLURM jobs
+    resources = list(
+      nodes = 1, ntasks = 1,         # one full node per job
+      cpus_per_task = 196,
+      time = "2h", mem = "64G"
+    )
+  ))
+```
+
+By default `target_jobs = nodes`, so parade creates one SLURM job per
+node and packs groups evenly across them. Setting `target_jobs` higher
+(e.g., `nodes * 2`) oversubscribes: parade creates more jobs than nodes,
+so when fast jobs finish early, waiting jobs backfill immediately —
+reducing tail latency from uneven task durations.
+
+**When to use which helper:**
+
+| You know…                                        | Use                                                                                                 |
+|--------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| Exact per-job resources (CPUs, memory, walltime) | [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md) directly              |
+| “I have N nodes × M cores, fill them”            | [`dist_slurm_allocation()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_allocation.md) |
+| A named site profile (“standard”, “highmem”)     | [`dist_slurm_profile()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_profile.md)       |
 
 **Important limits:** `dist_slurm_*()` uses *static partitioning*
 (chunks are fixed at submit time). If task durations are highly variable

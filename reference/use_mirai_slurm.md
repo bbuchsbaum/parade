@@ -80,16 +80,16 @@ use_mirai_slurm(
 #> $url
 #> function () 
 #> mirai::host_url(tls = TRUE, port = port)
-#> <bytecode: 0x55a6adf00ac8>
-#> <environment: 0x55a6adf01318>
+#> <bytecode: 0x55fd25dfe430>
+#> <environment: 0x55fd25dfae50>
 #> 
 #> $remote
 #> function () 
 #> {
 #>     mirai::cluster_config(command = "sbatch", options = opts_string)
 #> }
-#> <bytecode: 0x55a6adf00828>
-#> <environment: 0x55a6adf01318>
+#> <bytecode: 0x55fd25dfe190>
+#> <environment: 0x55fd25dfae50>
 #> 
 #> $dispatcher
 #> [1] TRUE

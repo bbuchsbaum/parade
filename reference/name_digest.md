@@ -37,6 +37,6 @@ name_digest("my_job", list(x = 1, y = "a"))
 #>         hash
 #>     }
 #> }
-#> <bytecode: 0x55a6bb868610>
-#> <environment: 0x55a6bb869090>
+#> <bytecode: 0x55fd3020a7d0>
+#> <environment: 0x55fd3020b250>
 ```
