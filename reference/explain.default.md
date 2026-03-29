@@ -36,3 +36,15 @@ explain(
 - .engine:
 
   Execution engine ("slurm" or "local")
+
+## Value
+
+A character string explanation, printed to the console (invisibly).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+explain(my_function, x = 1:10, .resources = list(time = "1:00:00"))
+} # }
+```

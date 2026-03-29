@@ -18,3 +18,16 @@ x[i]
 - i:
 
   Index vector for subsetting
+
+## Value
+
+A `parade_jobset` containing the selected jobs.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+first_two <- jobs[1:2]
+} # }
+```

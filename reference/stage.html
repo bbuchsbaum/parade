@@ -51,6 +51,18 @@ outputs, optional dependencies, and configurable data handling options.</p>
 <span>  sink <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  skip_when <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  hoist_struct <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  inputs <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  input_artifacts <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  outputs <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  io_mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"off"</span>, <span class="st">"warn"</span>, <span class="st">"error"</span><span class="op">)</span>,</span>
+<span>  retries <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  retry_backoff <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  retry_base <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  retry_on <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  resources <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cpus <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  memory <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  time <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -93,6 +105,58 @@ outputs, optional dependencies, and configurable data handling options.</p>
 
 <dt id="arg-hoist-struct">hoist_struct<a class="anchor" aria-label="anchor" href="#arg-hoist-struct"></a></dt>
 <dd><p>Whether to hoist nested data structures (logical)</p></dd>
+
+
+<dt id="arg-inputs">inputs<a class="anchor" aria-label="anchor" href="#arg-inputs"></a></dt>
+<dd><p>Optional character vector of required input names for this stage.</p></dd>
+
+
+<dt id="arg-input-artifacts">input_artifacts<a class="anchor" aria-label="anchor" href="#arg-input-artifacts"></a></dt>
+<dd><p>Optional character vector of <code>inputs</code> that must be
+artifact/file-reference values.</p></dd>
+
+
+<dt id="arg-outputs">outputs<a class="anchor" aria-label="anchor" href="#arg-outputs"></a></dt>
+<dd><p>Optional character vector of declared output names.
+Defaults to schema column names.</p></dd>
+
+
+<dt id="arg-io-mode">io_mode<a class="anchor" aria-label="anchor" href="#arg-io-mode"></a></dt>
+<dd><p>I/O contract behavior: <code>"off"</code> (default), <code>"warn"</code>, or <code>"error"</code>.</p></dd>
+
+
+<dt id="arg-retries">retries<a class="anchor" aria-label="anchor" href="#arg-retries"></a></dt>
+<dd><p>Optional stage-level retry override (non-negative integer).</p></dd>
+
+
+<dt id="arg-retry-backoff">retry_backoff<a class="anchor" aria-label="anchor" href="#arg-retry-backoff"></a></dt>
+<dd><p>Optional stage-level retry backoff override:
+<code>"none"</code>, <code>"fixed"</code>, <code>"linear"</code>, <code>"exponential"</code>.</p></dd>
+
+
+<dt id="arg-retry-base">retry_base<a class="anchor" aria-label="anchor" href="#arg-retry-base"></a></dt>
+<dd><p>Optional stage-level retry base delay (seconds).</p></dd>
+
+
+<dt id="arg-retry-on">retry_on<a class="anchor" aria-label="anchor" href="#arg-retry-on"></a></dt>
+<dd><p>Optional stage-level retry classifier override.</p></dd>
+
+
+<dt id="arg-resources">resources<a class="anchor" aria-label="anchor" href="#arg-resources"></a></dt>
+<dd><p>Optional stage-level resource hints as a named list with
+keys <code>cpus</code>, <code>memory</code>, <code>time</code> (aliases: <code>cpus_per_task</code>, <code>ncpus</code>, <code>mem</code>).</p></dd>
+
+
+<dt id="arg-cpus">cpus<a class="anchor" aria-label="anchor" href="#arg-cpus"></a></dt>
+<dd><p>Optional stage-level CPUs per task hint.</p></dd>
+
+
+<dt id="arg-memory">memory<a class="anchor" aria-label="anchor" href="#arg-memory"></a></dt>
+<dd><p>Optional stage-level memory hint.</p></dd>
+
+
+<dt id="arg-time">time<a class="anchor" aria-label="anchor" href="#arg-time"></a></dt>
+<dd><p>Optional stage-level walltime hint.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

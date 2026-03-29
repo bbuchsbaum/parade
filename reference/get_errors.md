@@ -17,3 +17,11 @@ get_errors(policy)
 ## Value
 
 List of collected errors
+
+## Examples
+
+``` r
+policy <- on_error("continue", collect_errors = TRUE)
+get_errors(policy)
+#> list()
+```

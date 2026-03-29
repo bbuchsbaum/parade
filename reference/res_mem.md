@@ -21,3 +21,12 @@ res_mem(profile, value)
 ## Value
 
 Updated profile
+
+## Examples
+
+``` r
+res_mem(profile(), "8G")
+#> Parade Resource Profile
+#> Resources:
+#>   memory: 8G
+```

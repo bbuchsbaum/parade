@@ -21,3 +21,12 @@ res_cpus(profile, value)
 ## Value
 
 Updated profile
+
+## Examples
+
+``` r
+res_cpus(profile(), 4)
+#> Parade Resource Profile
+#> Resources:
+#>   cpus: 4
+```

@@ -50,3 +50,13 @@ parade_run_chunk_bt(
 ## Value
 
 Invisibly returns a list when `mode = "index"`, otherwise a tibble
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+# Internal: called by the batchtools backend
+parade_run_chunk_bt(chunk_id = 1L, flow_rds = "flow.rds",
+  index_dir = "index/", seed_furrr = FALSE)
+} # }
+```

@@ -17,3 +17,11 @@ profile_remove(name)
 ## Value
 
 Invisible TRUE if removed, FALSE if not found
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+profile_remove("old-profile")
+} # }
+```

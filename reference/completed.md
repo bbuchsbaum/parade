@@ -17,3 +17,13 @@ completed(x)
 ## Value
 
 A parade_jobset containing only completed jobs
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+await(jobs)
+done <- completed(jobs)
+} # }
+```

@@ -1,0 +1,63 @@
+# Diagnose pipeline failures
+
+The primary entry point for understanding what went wrong in a parade
+pipeline run. Provides classified errors, actionable suggestions, and
+log locations.
+
+## Usage
+
+``` r
+wtf(x, verbose = 2L, max_errors = 20L, log_lines = 15L, ...)
+```
+
+## Arguments
+
+- x:
+
+  A `parade_deferred` object, collected results data.frame,
+  `parade_script_job`, or `parade_jobset`
+
+- verbose:
+
+  Detail level: 0 (summary only), 1 (errors), 2 (full report with
+  suggestions and logs)
+
+- max_errors:
+
+  Maximum number of individual errors to display
+
+- log_lines:
+
+  Number of log tail lines to show per failed chunk
+
+- ...:
+
+  Additional arguments passed to methods
+
+## Value
+
+A `parade_failure_report` object (invisibly), printed as side effect
+
+## Examples
+
+``` r
+# \donttest{
+grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
+fl <- flow(grid) |>
+  stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
+  distribute(dist_local(by = "group"))
+d <- submit(fl)
+deferred_await(d, timeout = 60)
+wtf(d)
+#> 
+#> ================================================================================ 
+#> parade failure report
+#> Run: 989a7248  Backend: local  Submitted: 2026-03-29 15:53:30.63101
+#> Stages: calc
+#> Elapsed: 0:00:03  Chunks: 2 total, 2 ok, 0 failed
+#> 
+#> No failures detected.
+#> ================================================================================ 
+#> 
+# }
+```

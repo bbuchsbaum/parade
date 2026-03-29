@@ -30,3 +30,11 @@ register_submit_backend(name, submitter, overwrite = FALSE)
 ## Value
 
 Invisibly `TRUE`.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+register_submit_backend("custom", function(handle, dist, ...) { handle })
+} # }
+```

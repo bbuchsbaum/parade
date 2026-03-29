@@ -30,3 +30,11 @@ open_logs(job, which = c("both", "out", "err"), viewer = utils::file.edit, ...)
 ## Value
 
 Invisible NULL
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_logs(job)
+} # }
+```

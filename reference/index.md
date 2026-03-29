@@ -71,6 +71,9 @@
 - [`completed()`](https://bbuchsbaum.github.io/parade/reference/completed.md)
   : Select completed jobs
 
+- [`completion_manifest()`](https://bbuchsbaum.github.io/parade/reference/completion_manifest.md)
+  : Read a stage's completion manifest
+
 - [`contract()`](https://bbuchsbaum.github.io/parade/reference/contract.md)
   : Define a validation contract for stage outputs
 
@@ -92,8 +95,14 @@
 - [`deferred_collect()`](https://bbuchsbaum.github.io/parade/reference/deferred_collect.md)
   : Collect results from deferred execution
 
+- [`deferred_errors()`](https://bbuchsbaum.github.io/parade/reference/deferred_errors.md)
+  : Comprehensive error detection for a deferred pipeline
+
 - [`deferred_status()`](https://bbuchsbaum.github.io/parade/reference/deferred_status.md)
   : Get status of a deferred execution
+
+- [`deferred_top()`](https://bbuchsbaum.github.io/parade/reference/deferred_top.md)
+  : Live TUI monitor for deferred jobs
 
 - [`diagnostics()`](https://bbuchsbaum.github.io/parade/reference/diagnostics.md)
   : Extract diagnostic information from flow results
@@ -149,8 +158,17 @@
 - [`failed(`*`<data.frame>`*`)`](https://bbuchsbaum.github.io/parade/reference/failed.data.frame.md)
   : Extract failed rows from flow results
 
+- [`failure_patterns()`](https://bbuchsbaum.github.io/parade/reference/failure_patterns.md)
+  : Compare failure patterns across runs
+
+- [`failure_timeline()`](https://bbuchsbaum.github.io/parade/reference/failure_timeline.md)
+  : Build a chronological timeline of failures
+
 - [`file_ref()`](https://bbuchsbaum.github.io/parade/reference/file_ref.md)
   : Create a file reference type specification
+
+- [`find_logs()`](https://bbuchsbaum.github.io/parade/reference/find_logs.md)
+  : Find log files for a pipeline run
 
 - [`flow()`](https://bbuchsbaum.github.io/parade/reference/flow.md) :
   Create a parade flow for declarative data processing
@@ -158,11 +176,23 @@
 - [`flow_control()`](https://bbuchsbaum.github.io/parade/reference/flow_control.md)
   : Combine flow control policies
 
+- [`flow_fingerprint()`](https://bbuchsbaum.github.io/parade/reference/flow_fingerprint.md)
+  : Compute a deterministic fingerprint for a flow
+
+- [`flow_plan()`](https://bbuchsbaum.github.io/parade/reference/flow_plan.md)
+  : Build a deterministic execution plan with reason codes
+
+- [`flow_stage_resources()`](https://bbuchsbaum.github.io/parade/reference/flow_stage_resources.md)
+  : Inspect effective stage-level resource resolution
+
 - [`get_arg()`](https://bbuchsbaum.github.io/parade/reference/get_arg.md)
   : Retrieve a command-line argument
 
 - [`get_errors()`](https://bbuchsbaum.github.io/parade/reference/get_errors.md)
   : Get collected errors from a policy
+
+- [`get_file_ref()`](https://bbuchsbaum.github.io/parade/reference/get_file_ref.md)
+  : Retrieve full file_ref metadata for an upstream output
 
 - [`get_sink_format()`](https://bbuchsbaum.github.io/parade/reference/get_sink_format.md)
   : Get a registered sink format
@@ -229,6 +259,12 @@
 
 - [`manifest()`](https://bbuchsbaum.github.io/parade/reference/manifest.md)
   : Create artifact manifest from sidecar files
+
+- [`manifest_adopt()`](https://bbuchsbaum.github.io/parade/reference/manifest_adopt.md)
+  : Migrate manifest entries to include new parameters
+
+- [`manifest_clear()`](https://bbuchsbaum.github.io/parade/reference/manifest_clear.md)
+  : Clear completion manifest for a stage
 
 - [`max_in_flight()`](https://bbuchsbaum.github.io/parade/reference/max_in_flight.md)
   : Limit maximum concurrent jobs
@@ -317,8 +353,14 @@
 - [`parade_init_hpc()`](https://bbuchsbaum.github.io/parade/reference/parade_init_hpc.md)
   : Initialize parade for HPC use
 
+- [`parade_log()`](https://bbuchsbaum.github.io/parade/reference/parade_log.md)
+  : Log a message from within a stage function
+
 - [`parade_options()`](https://bbuchsbaum.github.io/parade/reference/parade_options.md)
   : Global parade options (get/set)
+
+- [`parade_watch()`](https://bbuchsbaum.github.io/parade/reference/parade_watch.md)
+  : Watch a deferred pipeline and log errors incrementally
 
 - [`param_grid()`](https://bbuchsbaum.github.io/parade/reference/param_grid.md)
   : Create a parameter grid for flows
@@ -358,6 +400,9 @@
 
 - [`pipeline()`](https://bbuchsbaum.github.io/parade/reference/pipeline.md)
   : Create a parade pipeline (alias for flow)
+
+- [`pipeline_top()`](https://bbuchsbaum.github.io/parade/reference/pipeline_top.md)
+  : Enhanced pipeline monitor with event feed
 
 - [`pred()`](https://bbuchsbaum.github.io/parade/reference/pred.md) :
   Create a predicate-based type specification
@@ -455,6 +500,21 @@
 - [`returns()`](https://bbuchsbaum.github.io/parade/reference/returns.md)
   : Define expected return schema for a stage function
 
+- [`run_info()`](https://bbuchsbaum.github.io/parade/reference/run_info.md)
+  : Get detailed information about a pipeline run
+
+- [`run_ls()`](https://bbuchsbaum.github.io/parade/reference/run_ls.md)
+  : List recent pipeline runs
+
+- [`run_manifest_export()`](https://bbuchsbaum.github.io/parade/reference/run_manifest_export.md)
+  : Export a run manifest
+
+- [`run_manifest_import()`](https://bbuchsbaum.github.io/parade/reference/run_manifest_import.md)
+  : Import a run manifest
+
+- [`run_summary()`](https://bbuchsbaum.github.io/parade/reference/run_summary.md)
+  : Summarize a parade run
+
 - [`running()`](https://bbuchsbaum.github.io/parade/reference/running.md)
   : Select running jobs
 
@@ -502,6 +562,9 @@
 
 - [`script_top()`](https://bbuchsbaum.github.io/parade/reference/script_top.md)
   : Interactive text monitor for a single SLURM job
+
+- [`search_logs()`](https://bbuchsbaum.github.io/parade/reference/search_logs.md)
+  : Search across pipeline logs
 
 - [`sink_format()`](https://bbuchsbaum.github.io/parade/reference/sink_format.md)
   : Define an inline sink format
@@ -595,3 +658,9 @@
 
 - [`with_parade_options()`](https://bbuchsbaum.github.io/parade/reference/with_parade_options.md)
   : Temporarily set parade options for code execution
+
+- [`write_run_summary()`](https://bbuchsbaum.github.io/parade/reference/write_run_summary.md)
+  : Write a run summary report
+
+- [`wtf()`](https://bbuchsbaum.github.io/parade/reference/wtf.md) :
+  Diagnose pipeline failures

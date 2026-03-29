@@ -21,3 +21,17 @@ failed(x, stage = NULL, ...)
 - ...:
 
   Additional arguments (ignored)
+
+## Value
+
+A `parade_jobset` containing only the failed jobs.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+await(jobs)
+bad <- failed(jobs)
+} # }
+```

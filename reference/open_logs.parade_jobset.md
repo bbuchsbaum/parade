@@ -46,3 +46,12 @@ open_logs(
 ## Value
 
 Invisible NULL
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+open_logs(jobs)
+} # }
+```

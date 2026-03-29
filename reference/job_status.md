@@ -18,3 +18,12 @@ job_status(x)
 ## Value
 
 A tibble containing job status information
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+job <- submit_slurm(my_fun)
+job_status(job)
+} # }
+```

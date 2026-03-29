@@ -21,3 +21,12 @@ status(x, ...)
 ## Value
 
 A tibble with job status information
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+status(jobs)
+} # }
+```

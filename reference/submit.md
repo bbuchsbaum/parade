@@ -14,7 +14,8 @@ submit(
   registry_dir = NULL,
   index_dir = NULL,
   seed_furrr = TRUE,
-  scheduling = 1
+  scheduling = 1,
+  clean = FALSE
 )
 ```
 
@@ -47,6 +48,11 @@ submit(
 - scheduling:
 
   Furrr scheduling parameter
+
+- clean:
+
+  If `TRUE`, remove an existing registry directory before creating a new
+  one. Useful when retrying after a failed submission.
 
 ## Value
 

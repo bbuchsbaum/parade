@@ -7,3 +7,7 @@ Register built-in sink formats
 ``` r
 .register_builtin_formats()
 ```
+
+## Value
+
+NULL, called for side effect of registering formats.

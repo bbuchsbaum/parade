@@ -25,3 +25,11 @@ Updated profile object
 ## Note
 
 Use res_partition() to avoid naming collisions in user code.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+partition(job)
+} # }
+```

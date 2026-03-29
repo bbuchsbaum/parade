@@ -40,3 +40,8 @@ Orientation and a 5-minute first pipeline
 
 - [SLURM script submission and monitoring from
   R](https://bbuchsbaum.github.io/parade/articles/parade-scripts-monitoring.md):
+
+### Failure Diagnosis
+
+- [Failure diagnosis and pipeline
+  monitoring](https://bbuchsbaum.github.io/parade/articles/parade-failure-diagnosis.md):

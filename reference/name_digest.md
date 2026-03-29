@@ -22,3 +22,21 @@ name_digest(prefix = "job", length = 8)
 ## Value
 
 A naming function
+
+## Examples
+
+``` r
+name_digest("my_job", list(x = 1, y = "a"))
+#> function (element, index = NULL) 
+#> {
+#>     hash <- substr(digest::digest(element), 1, length)
+#>     if (nzchar(prefix)) {
+#>         sprintf("%s-%s", prefix, hash)
+#>     }
+#>     else {
+#>         hash
+#>     }
+#> }
+#> <bytecode: 0x55a6bb868610>
+#> <environment: 0x55a6bb869090>
+```

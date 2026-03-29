@@ -52,8 +52,11 @@ A tibble with one row per artifact.
 # \donttest{
 paths_init(quiet = TRUE)
 artifact_catalog()
-#> # A tibble: 0 × 9
-#> # ℹ 9 variables: path <chr>, sidecar <chr>, stage <chr>, field <chr>,
-#> #   row_key <chr>, bytes <dbl>, sha256 <chr>, mtime <dttm>, created_at <chr>
+#> # A tibble: 0 × 18
+#> # ℹ 18 variables: path <chr>, sidecar <chr>, stage <chr>, field <chr>,
+#> #   row_key <chr>, bytes <dbl>, sha256 <chr>, mtime <dttm>, created_at <chr>,
+#> #   creator <chr>, code_version <chr>, schema_signature <chr>,
+#> #   params_hash <chr>, upstream_run_id <chr>, run_key <chr>, run_status <chr>,
+#> #   stage_fingerprint <chr>, params <list>
 # }
 ```

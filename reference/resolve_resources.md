@@ -19,3 +19,15 @@ resolve_resources(resources = NULL)
 ## Value
 
 List of resources for slurm_resources()
+
+## Examples
+
+``` r
+resolve_resources(list(time = "2:00:00", mem = "8G"))
+#> $time
+#> [1] "2:00:00"
+#> 
+#> $mem
+#> [1] "8G"
+#> 
+```

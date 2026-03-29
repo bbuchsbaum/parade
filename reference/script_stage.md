@@ -20,6 +20,9 @@ script_stage(
   engine = c("source", "system"),
   interpreter = NULL,
   prefix = TRUE,
+  skip_when = NULL,
+  skip_if_exists = FALSE,
+  use_manifest = skip_if_exists,
   ...
 )
 ```
@@ -71,6 +74,35 @@ script_stage(
 
   Whether to prefix output columns with stage ID (default `TRUE`).
 
+- skip_when:
+
+  Optional function (or formula) that receives the row's variables (grid
+  columns, upstream outputs, constants). If it returns `TRUE`, the stage
+  is skipped for that row and output columns are filled with `NA`.
+  Useful for avoiding redundant work when the same outputs are shared
+  across multiple grid rows.
+
+- skip_if_exists:
+
+  Logical (default `FALSE`). If `TRUE`, checks whether **all** resolved
+  output files already exist before running the script. When they do,
+  the script is skipped and valid
+  [`file_ref()`](https://bbuchsbaum.github.io/parade/reference/file_ref.md)
+  tibbles are returned (with `written = FALSE, existed = TRUE`).
+  Requires template mode (produces with glue placeholders); using it
+  with manifest mode will error.
+
+- use_manifest:
+
+  Logical (defaults to `skip_if_exists`). When `TRUE`, enables a
+  completion manifest that records `{params} -> {output_paths}` after
+  each successful execution. On subsequent runs the manifest is
+  consulted first, which allows skipping even when the `produces`
+  template has changed (e.g., after adding a new grid parameter). See
+  [`completion_manifest()`](https://bbuchsbaum.github.io/parade/reference/completion_manifest.md),
+  [`manifest_adopt()`](https://bbuchsbaum.github.io/parade/reference/manifest_adopt.md),
+  [`manifest_clear()`](https://bbuchsbaum.github.io/parade/reference/manifest_clear.md).
+
 - ...:
 
   Additional constant arguments passed through to the stage.
@@ -104,6 +136,25 @@ to read parameters. It works transparently with both the `source` and
 
     x   <- get_arg("x")
     out <- get_arg("output_path")
+
+## Caching with `skip_if_exists`
+
+Unlike `skip_when`, which runs **before** template resolution and fills
+outputs with `NA`, `skip_if_exists` runs **inside** the wrapper after
+paths are resolved. This means:
+
+- Downstream stages receive real
+  [`file_ref()`](https://bbuchsbaum.github.io/parade/reference/file_ref.md)
+  tibbles they can read.
+
+- The check uses the actual resolved file paths, so it works correctly
+  when multiple grid rows map to the same output files.
+
+- If **any** declared output is missing, the script runs normally.
+
+`skip_when` and `skip_if_exists` are orthogonal and can be combined:
+`skip_when` is evaluated first; if it doesn't skip, the wrapper runs and
+`skip_if_exists` is checked next.
 
 ## Examples
 

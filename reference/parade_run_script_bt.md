@@ -41,3 +41,13 @@ parade_run_script_bt(i, script, args, env, lib_paths, rscript, wd)
 ## Value
 
 List with ok status and exit code
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+# Internal: called by batchtools to run a script stage
+parade_run_script_bt(chunk_id = 1L, script = "analysis.R",
+  args = list(), registry_dir = "registry/")
+} # }
+```

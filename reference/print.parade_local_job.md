@@ -22,3 +22,12 @@ print(x, ...)
 ## Value
 
 Invisibly returns the job object
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+job <- submit_slurm("my_script.R", engine = "local")
+print(job)
+} # }
+```

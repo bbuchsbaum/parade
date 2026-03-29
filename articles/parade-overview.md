@@ -64,6 +64,10 @@ out
 - Mirai:
   [`dist_mirai()`](https://bbuchsbaum.github.io/parade/reference/dist_mirai.md)
   for high-performance clusters or SSH/TLS setups.
+- Packed nodes: use `within = "callr"` to run each group as an
+  independent R process (work-queue pool). Ideal when scripts use their
+  own internal parallelism. See
+  [`vignette("parade-slurm-distribution")`](https://bbuchsbaum.github.io/parade/articles/parade-slurm-distribution.md).
 
 ## Artifacts and sinks (optional)
 

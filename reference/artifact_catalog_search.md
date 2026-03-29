@@ -8,9 +8,11 @@ using a substring/regex match over common columns.
 ``` r
 artifact_catalog_search(
   catalog = NULL,
-  query,
+  query = NULL,
   fields = c("path", "stage", "field", "row_key"),
   ignore_case = TRUE,
+  run_status = NULL,
+  params = NULL,
   ...
 )
 ```
@@ -44,3 +46,11 @@ artifact_catalog_search(
 ## Value
 
 Filtered tibble.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+artifact_catalog_search("model", type = "rds")
+} # }
+```

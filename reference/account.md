@@ -25,3 +25,11 @@ Updated profile object
 ## Note
 
 Use res_account() to avoid naming collisions in user code.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+account(job)
+} # }
+```

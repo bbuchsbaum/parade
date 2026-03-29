@@ -22,3 +22,12 @@ as.list(x, ...)
 ## Value
 
 List of resources
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+prof <- profile_get("standard")
+as.list(prof)
+} # }
+```

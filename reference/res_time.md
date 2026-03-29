@@ -23,3 +23,12 @@ res_time(profile, value)
 ## Value
 
 Updated profile
+
+## Examples
+
+``` r
+res_time(profile(), "2:00:00")
+#> Parade Resource Profile
+#> Resources:
+#>   time: 2:00:00
+```

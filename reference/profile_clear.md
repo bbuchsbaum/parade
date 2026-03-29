@@ -11,3 +11,11 @@ profile_clear()
 ## Value
 
 Invisible NULL
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+profile_clear()
+} # }
+```

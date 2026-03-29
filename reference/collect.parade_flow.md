@@ -71,5 +71,20 @@ grid <- data.frame(x = 1:3)
 fl <- flow(grid) |>
   stage("double", function(x) x * 2, schema = returns(result = dbl()))
 results <- collect(fl)
+#> [parade] Stage 'double' failed after 1 attempt(s): Column 1 must be named.
+#> Use `.name_repair` to specify repair.
+#> Caused by error in `repaired_names()`:
+#> ! Names can't be empty.
+#> ✖ Empty name found at location 1.
+#> [parade] Stage 'double' failed after 1 attempt(s): Column 1 must be named.
+#> Use `.name_repair` to specify repair.
+#> Caused by error in `repaired_names()`:
+#> ! Names can't be empty.
+#> ✖ Empty name found at location 1.
+#> [parade] Stage 'double' failed after 1 attempt(s): Column 1 must be named.
+#> Use `.name_repair` to specify repair.
+#> Caused by error in `repaired_names()`:
+#> ! Names can't be empty.
+#> ✖ Empty name found at location 1.
 # }
 ```

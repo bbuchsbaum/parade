@@ -22,3 +22,12 @@ print(x, ...)
 ## Value
 
 Invisible x
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+prof <- profile_get("standard")
+print(prof)
+} # }
+```

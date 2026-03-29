@@ -40,3 +40,12 @@ The jobset/job (invisibly)
 ## Methods (by class)
 
 - `await(parade_jobset)`: Wait for all jobs in a jobset to complete
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+await(jobs, timeout = 600)
+} # }
+```

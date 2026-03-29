@@ -22,3 +22,12 @@ print(x, ...)
 ## Value
 
 The input object (invisibly)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+job <- submit_slurm("analysis.R", resources = list(time = "1:00:00"))
+print(job)
+} # }
+```

@@ -103,3 +103,12 @@ slurm_map_cluster(
 ## Value
 
 A `parade_jobset`.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+results <- slurm_map_cluster(1:10, function(x) x^2,
+  nodes = 2, cpus_per_node = 16)
+} # }
+```

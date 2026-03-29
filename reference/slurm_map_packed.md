@@ -25,3 +25,7 @@ slurm_map_packed(
   is_script = FALSE
 )
 ```
+
+## Value
+
+A deferred result handle for the packed SLURM job.

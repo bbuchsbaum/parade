@@ -116,6 +116,9 @@ dist_slurm_allocation(nodes = 10, cores_per_node = 196, within = "multicore")
 #> [1] 196
 #> 
 #> 
+#> $slurm$profile
+#> [1] "default"
+#> 
 #> 
 #> attr(,"class")
 #> [1] "parade_dist"
@@ -159,6 +162,9 @@ dist_slurm_allocation(
 #> $slurm$resources$cpus_per_task
 #> [1] 196
 #> 
+#> 
+#> $slurm$profile
+#> [1] "default"
 #> 
 #> 
 #> attr(,"class")

@@ -41,3 +41,15 @@ dry_run(
 - .engine:
 
   Execution engine ("slurm" or "local")
+
+## Value
+
+A list describing the planned submission (invisibly).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+dry_run(my_function, x = 1:10, .resources = list(time = "1:00:00"))
+} # }
+```

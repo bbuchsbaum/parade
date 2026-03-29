@@ -67,16 +67,28 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># List all jobs</span></span></span>
 <span class="r-in"><span><span class="fu">registry_ls</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              name      status             created</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 parade-7756a928 NO_JOB_FILE 2026-02-06 03:02:51</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 parade-902c44ee NO_JOB_FILE 2026-02-06 03:02:48</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 parade-8cf5c35b NO_JOB_FILE 2026-02-06 03:02:46</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 parade-71150a87 NO_JOB_FILE 2026-02-06 03:02:43</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                              path</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 /tmp/RtmpfrGA9U/parade-registry/parade-7756a928</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 /tmp/RtmpfrGA9U/parade-registry/parade-902c44ee</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 /tmp/RtmpfrGA9U/parade-registry/parade-8cf5c35b</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 /tmp/RtmpfrGA9U/parade-registry/parade-71150a87</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               name      status             created</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  parade-475b873a NO_JOB_FILE 2026-03-29 15:53:07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8  parade-c5ecf6e5 NO_JOB_FILE 2026-03-29 15:53:02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7  parade-76bc79d1 NO_JOB_FILE 2026-03-29 15:52:48</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  parade-072ac098 NO_JOB_FILE 2026-03-29 15:52:45</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 parade-dca48fb7 NO_JOB_FILE 2026-03-29 15:52:33</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  parade-32b052ae NO_JOB_FILE 2026-03-29 15:52:30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9  parade-d2ecf280 NO_JOB_FILE 2026-03-29 15:52:27</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  parade-1c830329 NO_JOB_FILE 2026-03-29 15:52:25</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  parade-168a27c2 NO_JOB_FILE 2026-03-29 15:52:22</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  parade-46365d81 NO_JOB_FILE 2026-03-29 15:52:19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                               path</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  /tmp/RtmpQhARWn/parade-registry/parade-475b873a</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8  /tmp/RtmpQhARWn/parade-registry/parade-c5ecf6e5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7  /tmp/RtmpQhARWn/parade-registry/parade-76bc79d1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  /tmp/RtmpQhARWn/parade-registry/parade-072ac098</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 /tmp/RtmpQhARWn/parade-registry/parade-dca48fb7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  /tmp/RtmpQhARWn/parade-registry/parade-32b052ae</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9  /tmp/RtmpQhARWn/parade-registry/parade-d2ecf280</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  /tmp/RtmpQhARWn/parade-registry/parade-1c830329</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  /tmp/RtmpQhARWn/parade-registry/parade-168a27c2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  /tmp/RtmpQhARWn/parade-registry/parade-46365d81</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># List jobs matching pattern</span></span></span>
 <span class="r-in"><span><span class="fu">registry_ls</span><span class="op">(</span>pattern <span class="op">=</span> <span class="st">"analysis_*"</span><span class="op">)</span></span></span>
@@ -86,16 +98,28 @@
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># List most recent 10 jobs</span></span></span>
 <span class="r-in"><span><span class="fu">registry_ls</span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              name      status             created</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 parade-7756a928 NO_JOB_FILE 2026-02-06 03:02:51</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 parade-902c44ee NO_JOB_FILE 2026-02-06 03:02:48</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 parade-8cf5c35b NO_JOB_FILE 2026-02-06 03:02:46</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 parade-71150a87 NO_JOB_FILE 2026-02-06 03:02:43</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                              path</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 /tmp/RtmpfrGA9U/parade-registry/parade-7756a928</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 /tmp/RtmpfrGA9U/parade-registry/parade-902c44ee</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 /tmp/RtmpfrGA9U/parade-registry/parade-8cf5c35b</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 /tmp/RtmpfrGA9U/parade-registry/parade-71150a87</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               name      status             created</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  parade-475b873a NO_JOB_FILE 2026-03-29 15:53:07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8  parade-c5ecf6e5 NO_JOB_FILE 2026-03-29 15:53:02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7  parade-76bc79d1 NO_JOB_FILE 2026-03-29 15:52:48</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  parade-072ac098 NO_JOB_FILE 2026-03-29 15:52:45</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 parade-dca48fb7 NO_JOB_FILE 2026-03-29 15:52:33</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  parade-32b052ae NO_JOB_FILE 2026-03-29 15:52:30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9  parade-d2ecf280 NO_JOB_FILE 2026-03-29 15:52:27</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  parade-1c830329 NO_JOB_FILE 2026-03-29 15:52:25</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  parade-168a27c2 NO_JOB_FILE 2026-03-29 15:52:22</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  parade-46365d81 NO_JOB_FILE 2026-03-29 15:52:19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                               path</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  /tmp/RtmpQhARWn/parade-registry/parade-475b873a</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8  /tmp/RtmpQhARWn/parade-registry/parade-c5ecf6e5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7  /tmp/RtmpQhARWn/parade-registry/parade-76bc79d1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  /tmp/RtmpQhARWn/parade-registry/parade-072ac098</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 /tmp/RtmpQhARWn/parade-registry/parade-dca48fb7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  /tmp/RtmpQhARWn/parade-registry/parade-32b052ae</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9  /tmp/RtmpQhARWn/parade-registry/parade-d2ecf280</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  /tmp/RtmpQhARWn/parade-registry/parade-1c830329</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  /tmp/RtmpQhARWn/parade-registry/parade-168a27c2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  /tmp/RtmpQhARWn/parade-registry/parade-46365d81</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

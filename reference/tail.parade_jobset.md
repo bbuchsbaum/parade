@@ -26,3 +26,12 @@ tail(x, n = 50, ...)
 ## Value
 
 Character vector of log lines (invisibly)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+tail(jobs, n = 20)
+} # }
+```

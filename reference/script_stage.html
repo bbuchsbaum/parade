@@ -56,6 +56,9 @@ file reference tibbles compatible with <code><a href="artifact.html">artifact()<
 <span>  engine <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"source"</span>, <span class="st">"system"</span><span class="op">)</span>,</span>
 <span>  interpreter <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  prefix <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  skip_when <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  skip_if_exists <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  use_manifest <span class="op">=</span> <span class="va">skip_if_exists</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -105,6 +108,31 @@ If <code>NULL</code>, guessed from the script file extension.</p></dd>
 <dd><p>Whether to prefix output columns with stage ID (default <code>TRUE</code>).</p></dd>
 
 
+<dt id="arg-skip-when">skip_when<a class="anchor" aria-label="anchor" href="#arg-skip-when"></a></dt>
+<dd><p>Optional function (or formula) that receives the row's
+variables (grid columns, upstream outputs, constants). If it returns
+<code>TRUE</code>, the stage is skipped for that row and output columns are filled
+with <code>NA</code>. Useful for avoiding redundant work when the same outputs
+are shared across multiple grid rows.</p></dd>
+
+
+<dt id="arg-skip-if-exists">skip_if_exists<a class="anchor" aria-label="anchor" href="#arg-skip-if-exists"></a></dt>
+<dd><p>Logical (default <code>FALSE</code>). If <code>TRUE</code>, checks whether
+<strong>all</strong> resolved output files already exist before running the script.
+When they do, the script is skipped and valid <code><a href="file_ref.html">file_ref()</a></code> tibbles are
+returned (with <code>written = FALSE, existed = TRUE</code>). Requires template mode
+(produces with glue placeholders); using it with manifest mode will error.</p></dd>
+
+
+<dt id="arg-use-manifest">use_manifest<a class="anchor" aria-label="anchor" href="#arg-use-manifest"></a></dt>
+<dd><p>Logical (defaults to <code>skip_if_exists</code>). When <code>TRUE</code>,
+enables a completion manifest that records <code>{params} -&gt; {output_paths}</code>
+after each successful execution. On subsequent runs the manifest is
+consulted first, which allows skipping even when the <code>produces</code> template
+has changed (e.g., after adding a new grid parameter).
+See <code><a href="completion_manifest.html">completion_manifest()</a></code>, <code><a href="manifest_adopt.html">manifest_adopt()</a></code>, <code><a href="manifest_clear.html">manifest_clear()</a></code>.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional constant arguments passed through to the stage.</p></dd>
 
@@ -137,6 +165,22 @@ declare the paths. <code>script_stage()</code> reads the manifest and verifies:<
 with both the <code>source</code> and <code>system</code> engines:</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>x   <span class="ot">&lt;-</span> <span class="fu">get_arg</span>(<span class="st">"x"</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">get_arg</span>(<span class="st">"output_path"</span>)</span></code></pre><p></p></div>
+    </div>
+    <div class="section level2">
+    <h2 id="caching-with-skip-if-exists">Caching with <code>skip_if_exists</code><a class="anchor" aria-label="anchor" href="#caching-with-skip-if-exists"></a></h2>
+
+
+
+<p>Unlike <code>skip_when</code>, which runs <strong>before</strong> template resolution and fills
+outputs with <code>NA</code>, <code>skip_if_exists</code> runs <strong>inside</strong> the wrapper after
+paths are resolved. This means:</p>
+<ul><li><p>Downstream stages receive real <code><a href="file_ref.html">file_ref()</a></code> tibbles they can read.</p></li>
+<li><p>The check uses the actual resolved file paths, so it works
+correctly when multiple grid rows map to the same output files.</p></li>
+<li><p>If <strong>any</strong> declared output is missing, the script runs normally.</p></li>
+</ul><p><code>skip_when</code> and <code>skip_if_exists</code> are orthogonal and can be combined:
+<code>skip_when</code> is evaluated first; if it doesn't skip, the wrapper runs
+and <code>skip_if_exists</code> is checked next.</p>
     </div>
 
     <div class="section level2">

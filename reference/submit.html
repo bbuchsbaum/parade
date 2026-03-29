@@ -51,7 +51,8 @@ and collecting results.</p>
 <span>  registry_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  index_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  seed_furrr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  scheduling <span class="op">=</span> <span class="fl">1</span></span>
+<span>  scheduling <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  clean <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -85,6 +86,11 @@ and collecting results.</p>
 
 <dt id="arg-scheduling">scheduling<a class="anchor" aria-label="anchor" href="#arg-scheduling"></a></dt>
 <dd><p>Furrr scheduling parameter</p></dd>
+
+
+<dt id="arg-clean">clean<a class="anchor" aria-label="anchor" href="#arg-clean"></a></dt>
+<dd><p>If <code>TRUE</code>, remove an existing registry directory before
+creating a new one. Useful when retrying after a failed submission.</p></dd>
 
 </dl></div>
     <div class="section level2">

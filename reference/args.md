@@ -28,3 +28,11 @@ This function is exported as `args()` and will mask
 [`base::args`](https://rdrr.io/r/base/args.html) when parade is
 attached. Call [`base::args`](https://rdrr.io/r/base/args.html)
 explicitly if you need the base version (e.g., `base::args(lm)`).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+args(job)
+} # }
+```

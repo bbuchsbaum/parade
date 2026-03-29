@@ -21,3 +21,12 @@ res_partition(profile, value)
 ## Value
 
 Updated profile
+
+## Examples
+
+``` r
+res_partition(profile(), "gpu")
+#> Parade Resource Profile
+#> Resources:
+#>   partition: gpu
+```

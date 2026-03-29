@@ -12,13 +12,17 @@ path_patterns
 
 An object of class `list` of length 5.
 
+## Value
+
+A named list of path pattern functions.
+
 ## Examples
 
 ``` r
 # \donttest{
 # Timestamped output
 path_patterns$timestamped("results", "analysis", "csv")
-#> [1] "results/20260206_030310_analysis.csv"
+#> [1] "results/20260329_155306_analysis.csv"
 # -> "results/20240115_143022_analysis.csv"
 
 # Experiment organization

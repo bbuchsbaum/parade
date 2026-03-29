@@ -17,3 +17,7 @@ packed_worker_function(
   parallel_backend = c("callr", "auto", "multicore", "multisession")
 )
 ```
+
+## Value
+
+A function that processes a chunk of elements.

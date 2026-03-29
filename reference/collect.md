@@ -28,3 +28,13 @@ collect(x, simplify = TRUE, ...)
 ## Value
 
 List or simplified structure of results
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) x^2)
+await(jobs)
+results <- collect(jobs)
+} # }
+```

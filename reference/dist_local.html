@@ -52,25 +52,59 @@
 
 
 <dl><dt id="arg-by">by<a class="anchor" aria-label="anchor" href="#arg-by"></a></dt>
-<dd><p>Column names to group by for parallelization</p></dd>
+<dd><p>Character vector of grid column names used to define groups.
+Each unique combination of these columns becomes one <strong>group</strong>, and
+groups are the unit of parallelism — each group runs as an independent
+future.</p><ul><li><p><code>by = "subject"</code> with 20 subjects → 20 groups</p></li>
+<li><p><code>by = c("subject", "session")</code> → one group per subject×session combo</p></li>
+<li><p><code>by = NULL</code> (default) → every row is its own group</p></li>
+</ul></dd>
 
 
 <dt id="arg-within">within<a class="anchor" aria-label="anchor" href="#arg-within"></a></dt>
-<dd><p>Execution strategy: "multisession", "multicore", "callr", or "sequential"</p></dd>
+<dd><p>How to run work <strong>inside</strong> each job (chunk). The first three
+modes use <code>furrr</code> to parallelise across <strong>rows</strong>; <code>"callr"</code> parallelises
+across <strong>groups</strong>, giving each group its own independent R process.</p><ul><li><p><code>"sequential"</code> (default): one row at a time, no extra parallelism.
+Simplest, lowest memory.</p></li>
+<li><p><code>"multisession"</code>: spawn R sub-processes via <code>furrr</code>; rows are
+distributed across workers.</p></li>
+<li><p><code>"multicore"</code>: forked processes via <code>furrr</code> (Linux/macOS only, not in
+RStudio). Faster startup than multisession, shares memory.</p></li>
+<li><p><code>"callr"</code>: <strong>group-level process pool</strong>. Each group runs as a
+fully independent R process via <code><a href="https://callr.r-lib.org/reference/r_bg.html" class="external-link">callr::r_bg()</a></code>. Up to
+<code>workers_within</code> processes run concurrently; when one finishes the
+next group is launched (work-queue pattern). This is ideal for
+packing a node with processes that each use their own internal
+parallelism (e.g., the script calls <code>furrr</code>, <code>mclapply</code>, or uses
+threaded BLAS/OpenMP). Parade does not manage the internal
+parallelism — the script/function is free to use as many cores as
+it needs.</p></li>
+</ul></dd>
 
 
 <dt id="arg-workers-within">workers_within<a class="anchor" aria-label="anchor" href="#arg-workers-within"></a></dt>
-<dd><p>Number of workers within each job</p></dd>
+<dd><p>Integer; how many parallel workers (for
+<code>"multisession"</code> / <code>"multicore"</code>) or concurrent R processes (for
+<code>"callr"</code>) to run inside each job. Not used for <code>"sequential"</code>.
+Defaults to <code>NULL</code> (auto: uses <code><a href="https://parallelly.futureverse.org/reference/availableCores.html" class="external-link">parallelly::availableCores()</a></code> or
+<code>SLURM_CPUS_PER_TASK</code> on a cluster node).</p></dd>
 
 
 <dt id="arg-chunks-per-job">chunks_per_job<a class="anchor" aria-label="anchor" href="#arg-chunks-per-job"></a></dt>
-<dd><p>Number of groups to process per job.</p></dd>
+<dd><p>How many groups to pack into a single future.
+Defaults to <code>1</code> (one group per future). Increase to reduce scheduling
+overhead when you have many small groups.</p><ul><li><p><code>chunks_per_job = 1</code>: 100 groups → 100 futures</p></li>
+<li><p><code>chunks_per_job = 5</code>: 100 groups → 20 futures (5 groups each)</p></li>
+</ul></dd>
 
 
 <dt id="arg-target-jobs">target_jobs<a class="anchor" aria-label="anchor" href="#arg-target-jobs"></a></dt>
-<dd><p>Optional integer; target number of jobs to create (overrides
-<code>chunks_per_job</code> at submit time). Useful when you want to keep a fixed number
-of jobs in flight regardless of how many groups exist.</p></dd>
+<dd><p>Integer; the total number of futures to create.
+Overrides <code>chunks_per_job</code> — parade divides groups evenly across this
+many futures. Useful when you want a fixed number of parallel units
+regardless of how many groups exist.</p><ul><li><p><code>target_jobs = 10</code> with 100 groups → 10 futures (10 groups each)</p></li>
+<li><p><code>target_jobs = NULL</code> (default): use <code>chunks_per_job</code> instead</p></li>
+</ul></dd>
 
 </dl></div>
     <div class="section level2">
@@ -80,7 +114,8 @@ of jobs in flight regardless of how many groups exist.</p></dd>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">dist_local</span><span class="op">(</span>by <span class="op">=</span> <span class="st">"group"</span>, within <span class="op">=</span> <span class="st">"multisession"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># One future per group, rows run sequentially inside each</span></span></span>
+<span class="r-in"><span><span class="fu">dist_local</span><span class="op">(</span>by <span class="op">=</span> <span class="st">"group"</span>, within <span class="op">=</span> <span class="st">"sequential"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $backend</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "local"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -88,7 +123,7 @@ of jobs in flight regardless of how many groups exist.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $within</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "multisession"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "sequential"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $workers_within</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
@@ -104,6 +139,8 @@ of jobs in flight regardless of how many groups exist.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "parade_dist"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Same grouping, but use forked parallelism inside each group</span></span></span>
 <span class="r-in"><span><span class="fu">dist_local</span><span class="op">(</span>by <span class="op">=</span> <span class="st">"group"</span>, within <span class="op">=</span> <span class="st">"multicore"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $backend</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "local"</span>
@@ -128,12 +165,14 @@ of jobs in flight regardless of how many groups exist.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "parade_dist"</span>
-<span class="r-in"><span><span class="fu">dist_local</span><span class="op">(</span>chunks_per_job <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Pack 2 groups per future to reduce overhead</span></span></span>
+<span class="r-in"><span><span class="fu">dist_local</span><span class="op">(</span>by <span class="op">=</span> <span class="st">"group"</span>, chunks_per_job <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $backend</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "local"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $by</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> character(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $within</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "multisession"</span>
@@ -143,6 +182,59 @@ of jobs in flight regardless of how many groups exist.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $chunks_per_job</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "parade_dist"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Fix at 4 futures regardless of group count</span></span></span>
+<span class="r-in"><span><span class="fu">dist_local</span><span class="op">(</span>by <span class="op">=</span> <span class="st">"group"</span>, target_jobs <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $backend</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "local"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $by</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $within</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "multisession"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $workers_within</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $chunks_per_job</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "parade_dist"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Process pool: run up to 4 groups concurrently as independent R processes.</span></span></span>
+<span class="r-in"><span><span class="co"># Each process can use its own internal parallelism (furrr, mclapply, etc.)</span></span></span>
+<span class="r-in"><span><span class="fu">dist_local</span><span class="op">(</span>by <span class="op">=</span> <span class="st">"subject"</span>, within <span class="op">=</span> <span class="st">"callr"</span>, workers_within <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $backend</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "local"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $by</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "subject"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $within</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "callr"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $workers_within</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $chunks_per_job</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>

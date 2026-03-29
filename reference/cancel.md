@@ -21,3 +21,12 @@ cancel(x, ...)
 ## Value
 
 The jobset (invisibly)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) Sys.sleep(100))
+cancel(jobs)
+} # }
+```

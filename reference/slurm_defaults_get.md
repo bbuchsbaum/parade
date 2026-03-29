@@ -13,3 +13,14 @@ slurm_defaults_get(profile = "default")
 - profile:
 
   character name; 'default' by default
+
+## Value
+
+A named list of SLURM default settings for the requested profile.
+
+## Examples
+
+``` r
+slurm_defaults_get()
+#> list()
+```

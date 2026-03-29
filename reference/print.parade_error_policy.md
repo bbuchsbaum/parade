@@ -22,3 +22,13 @@ print(x, ...)
 ## Value
 
 Invisible x
+
+## Examples
+
+``` r
+policy <- on_error("continue", collect_errors = TRUE)
+print(policy)
+#> Parade Error Policy
+#>   Action: continue 
+#>   Collect errors: TRUE 
+```

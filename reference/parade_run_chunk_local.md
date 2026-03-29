@@ -46,3 +46,17 @@ parade_run_chunk_local(
 - scheduling:
 
   Furrr scheduling parameter
+
+## Value
+
+A list of results from executing the chunk.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+# Internal: called by the local future backend
+parade_run_chunk_local(chunk_id = 1L, flow_rds = "flow.rds",
+  index_dir = "index/", seed_furrr = FALSE)
+} # }
+```

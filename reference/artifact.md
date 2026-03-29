@@ -11,3 +11,11 @@ artifact()
 ## Value
 
 File reference schema
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+artifact("model_fit", value = my_model, type = "rds")
+} # }
+```

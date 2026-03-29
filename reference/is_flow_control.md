@@ -17,3 +17,12 @@ is_flow_control(x)
 ## Value
 
 Logical indicating if x is a flow control policy
+
+## Examples
+
+``` r
+is_flow_control(in_waves_of(10))
+#> [1] TRUE
+is_flow_control(42)
+#> [1] FALSE
+```

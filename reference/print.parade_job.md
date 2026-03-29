@@ -23,3 +23,12 @@ print(x, ...)
 ## Value
 
 Invisibly returns the job object
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+job <- submit_slurm("my_script.R", resources = list(time = "1:00:00"))
+print(job)
+} # }
+```

@@ -10,3 +10,7 @@ assigning the cluster functions on the returned registry object.
 ``` r
 bt_make_registry(reg_dir, cf)
 ```
+
+## Value
+
+A batchtools registry object.

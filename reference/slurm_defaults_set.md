@@ -25,3 +25,15 @@ slurm_defaults_set(..., .list = NULL, profile = "default", persist = FALSE)
 - persist:
 
   write to config file if TRUE
+
+## Value
+
+The previous defaults (invisibly).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+slurm_defaults_set(time = "2:00:00", mem = "8G")
+} # }
+```

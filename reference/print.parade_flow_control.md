@@ -22,3 +22,13 @@ print(x, ...)
 ## Value
 
 Invisible x
+
+## Examples
+
+``` r
+fc <- in_waves_of(10)
+print(fc)
+#> Wave Execution Policy
+#>   Wave size: 10 
+#>   Wait for completion: TRUE 
+```

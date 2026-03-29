@@ -35,3 +35,12 @@ top(x, refresh = 2, nlog = 30, ...)
 ## Value
 
 NULL (invisibly)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+jobs <- slurm_map(1:4, function(x) Sys.sleep(60))
+top(jobs)
+} # }
+```

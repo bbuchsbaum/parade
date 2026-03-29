@@ -36,3 +36,9 @@ parade_options(
 ## Value
 
 A named list of current options (invisibly).
+
+## Examples
+
+``` r
+parade_options()
+```

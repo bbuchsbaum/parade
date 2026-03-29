@@ -21,3 +21,12 @@ res_account(profile, value)
 ## Value
 
 Updated profile
+
+## Examples
+
+``` r
+res_account(profile(), "my-lab-account")
+#> Parade Resource Profile
+#> Resources:
+#>   account: my-lab-account
+```

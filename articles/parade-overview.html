@@ -127,6 +127,10 @@ for multi-core.</li>
 <code><a href="../reference/dist_slurm_profile.html">dist_slurm_profile()</a></code> when on a cluster.</li>
 <li>Mirai: <code><a href="../reference/dist_mirai.html">dist_mirai()</a></code> for high-performance clusters or
 SSH/TLS setups.</li>
+<li>Packed nodes: use <code>within = "callr"</code> to run each group as
+an independent R process (work-queue pool). Ideal when scripts use their
+own internal parallelism. See
+<code><a href="../articles/parade-slurm-distribution.html">vignette("parade-slurm-distribution")</a></code>.</li>
 </ul>
 </div>
 <div class="section level2">
