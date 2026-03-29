@@ -179,3 +179,81 @@ test_that("submit() respects dist$target_jobs when chunking groups", {
   expect_equal(res$x, 1:10)
   expect_equal(res$s1.y, (1:10) * 2)
 })
+
+test_that("submit() with within='callr' runs groups as independent R processes", {
+  skip_if_not_installed("callr")
+
+  base_dir <- tempfile("parade-deferred-callr-pool-")
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(base_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  registry_dir <- file.path(base_dir, "registry")
+  index_dir <- file.path(base_dir, "index")
+
+  # 6 rows, 3 groups (by g), 2 callr workers => work-queue of 3 groups
+
+  grid <- tibble::tibble(x = 1:6, g = rep(c("a", "b", "c"), each = 2))
+  fl <- flow(grid) |>
+    stage("s1", function(x) list(y = x^2), schema = schema(y = dbl())) |>
+    distribute(dist_local(by = "g", within = "callr", workers_within = 2L))
+
+  handle <- submit(fl, mode = "results", registry_dir = registry_dir,
+                   index_dir = index_dir)
+  expect_s3_class(handle, "parade_deferred")
+
+  st0 <- deferred_status(handle)
+  expect_true(st0$total >= 1)
+
+  suppressWarnings(deferred_await(handle, timeout = 60, poll = 0.5))
+  res <- suppressWarnings(deferred_collect(handle, how = "results"))
+  expect_s3_class(res, "tbl_df")
+  expect_equal(sort(res$x), 1:6)
+  expect_equal(sort(res$s1.y), (1:6)^2)
+})
+
+test_that("submit() with within='callr' works for index mode", {
+  skip_if_not_installed("callr")
+
+  base_dir <- tempfile("parade-deferred-callr-index-")
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(base_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  registry_dir <- file.path(base_dir, "registry")
+  index_dir <- file.path(base_dir, "index")
+
+  grid <- tibble::tibble(x = 1:4, g = rep(c("a", "b"), each = 2))
+  fl <- flow(grid) |>
+    stage("s1", function(x) list(y = x + 10), schema = schema(y = dbl())) |>
+    distribute(dist_local(by = "g", within = "callr", workers_within = 2L))
+
+  handle <- submit(fl, mode = "index", registry_dir = registry_dir,
+                   index_dir = index_dir)
+
+  suppressWarnings(deferred_await(handle, timeout = 60, poll = 0.5))
+  res <- suppressWarnings(deferred_collect(handle, how = "index"))
+  expect_s3_class(res, "tbl_df")
+  expect_equal(sort(res$x), 1:4)
+  expect_equal(sort(res$s1.y), (1:4) + 10)
+})
+
+test_that("within='callr' with single group works", {
+  skip_if_not_installed("callr")
+
+  base_dir <- tempfile("parade-deferred-callr-single-")
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(base_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  grid <- tibble::tibble(x = 1:3, g = "a")
+  fl <- flow(grid) |>
+    stage("s1", function(x) list(y = x * 3), schema = schema(y = dbl())) |>
+    distribute(dist_local(by = "g", within = "callr", workers_within = 2L))
+
+  handle <- submit(fl, mode = "results",
+                   registry_dir = file.path(base_dir, "reg"),
+                   index_dir = file.path(base_dir, "idx"))
+
+  suppressWarnings(deferred_await(handle, timeout = 60, poll = 0.5))
+  res <- suppressWarnings(deferred_collect(handle, how = "results"))
+  expect_equal(sort(res$x), 1:3)
+  expect_equal(sort(res$s1.y), (1:3) * 3)
+})

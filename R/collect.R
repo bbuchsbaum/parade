@@ -78,10 +78,9 @@ collect.parade_flow <- function(x,
     "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% workers %||% NULL),
     "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% workers %||% NULL),
     "callr" = {
-      if (!requireNamespace("future.callr", quietly = TRUE)) {
-        stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
-      }
-      future::tweak(future.callr::callr, workers = dist$workers_within %||% workers %||% NULL)
+      # callr uses group-level process pooling inside the chunk; outer
+      # dispatch is sequential — parallelism is managed by the callr pool.
+      future::sequential
     },
     "sequential" = future::sequential,
     future::sequential  # fallback

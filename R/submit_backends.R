@@ -320,10 +320,10 @@ list_submit_backends <- function() {
     "multisession" = future::tweak(future::multisession, workers = dist$workers_within %||% NULL),
     "multicore" = future::tweak(future::multicore, workers = dist$workers_within %||% NULL),
     "callr" = {
-      if (!requireNamespace("future.callr", quietly = TRUE)) {
-        stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
-      }
-      future::tweak(future.callr::callr, workers = dist$workers_within %||% NULL)
+      # callr uses group-level process pooling inside .parade_execute_chunk(),
+      # so the outer dispatch plan is sequential — parallelism is managed by
+      # the callr pool, not by futures.
+      future::sequential
     },
     "sequential" = future::sequential,
     future::sequential

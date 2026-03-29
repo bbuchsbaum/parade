@@ -1,10 +1,13 @@
 ---
 title: 'Distribution: local and SLURM (barriers, throttling, chunking)'
 output: rmarkdown::html_vignette
-vignette: |
-  %\VignetteIndexEntry{6. SLURM Distribution: cluster workflows and HPC} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+vignette: >
+  %\VignetteIndexEntry{6. SLURM Distribution: cluster workflows and HPC}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -298,6 +301,77 @@ dist_slurm(by = "subject", workers_within = 4)
 - Consider memory usage: `total_memory / workers_within` per task
 - Account for I/O bottlenecks in shared filesystems
 - Start conservatively and increase based on monitoring
+
+### Packed nodes with callr process pool
+
+When your scripts or stage functions use **internal parallelism** (e.g., they call
+`furrr`, `mclapply`, or rely on threaded BLAS/OpenMP), the `"multicore"` and
+`"multisession"` within-modes are a poor fit — those distribute individual *rows*
+across furrr workers, which conflicts with the script's own parallelism.
+
+Instead, use `within = "callr"` to run each **group** as a fully independent R
+process. Parade maintains a pool of up to `workers_within` concurrent processes;
+when one finishes, the next group is launched automatically (work-queue pattern).
+Each process is free to use as many cores as it needs internally — parade doesn't
+interfere.
+
+**Example: packing a 196-core node with 20 concurrent analyses**
+
+Suppose each subject analysis uses 4 cores internally (via `furrr` with 4 workers).
+You want to run 20 subjects at a time on a single node, filling ~80 of the 196
+cores, and cycle through all 81 subjects:
+
+```r
+fl |> distribute(dist_slurm(
+  by = "subject",
+  within = "callr",              # Each group = independent R process
+
+  workers_within = 20L,          # Up to 20 concurrent processes
+  target_jobs = 1L,              # Pack everything onto one SLURM job
+  resources = list(
+    account       = "rrg-mylab",
+    time          = "12:00:00",
+    mem           = "0",         # All node memory
+    cpus_per_task = 196L,
+    nodes         = 1L
+  )
+))
+```
+
+This produces:
+
+```
+SLURM job (1 node, 196 cores)
+  └─ parade parent process (orchestrator)
+     └─ callr pool, max 20 concurrent:
+        ├─ r_bg(): subject_01 (4 cores via internal furrr)
+        ├─ r_bg(): subject_02 (4 cores via internal furrr)
+        ├─ ...
+        ├─ r_bg(): subject_20
+        │   subject_03 finishes → launch subject_21
+        │   subject_07 finishes → launch subject_22
+        └─ ... until all 81 subjects done
+```
+
+**When to use which `within` mode:**
+
+| Mode | Parallelism unit | Best for |
+|------|-----------------|----------|
+| `"sequential"` | None | Script already saturates the node |
+| `"multicore"` | Rows (via furrr forks) | Many small, single-threaded rows |
+| `"multisession"` | Rows (via furrr sessions) | Same as multicore, works in RStudio |
+| `"callr"` | Groups (independent R processes) | Scripts with internal parallelism; packing a full node |
+
+The callr mode also works with `dist_local()` for development:
+
+```r
+# Test locally: 3 groups, 2 concurrent R processes
+fl |> distribute(dist_local(
+  by = "subject",
+  within = "callr",
+  workers_within = 2L
+))
+```
 
 ## Advanced chunking strategies
 

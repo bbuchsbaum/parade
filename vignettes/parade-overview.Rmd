@@ -1,10 +1,13 @@
 ---
 title: 'Overview: Parade in 10 Minutes'
 output: rmarkdown::html_vignette
-vignette: |
-  %\VignetteIndexEntry{0. Overview: Parade in 10 Minutes} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+vignette: >
+  %\VignetteIndexEntry{0. Overview: Parade in 10 Minutes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -69,6 +72,9 @@ Distribution options
 - Local: `dist_local(by = ..., within = "multisession")` for multi-core.
 - SLURM: `dist_slurm()` or `dist_slurm_profile()` when on a cluster.
 - Mirai: `dist_mirai()` for high-performance clusters or SSH/TLS setups.
+- Packed nodes: use `within = "callr"` to run each group as an independent R
+  process (work-queue pool). Ideal when scripts use their own internal
+  parallelism. See `vignette("parade-slurm-distribution")`.
 
 Artifacts and sinks (optional)
 ------------------------------

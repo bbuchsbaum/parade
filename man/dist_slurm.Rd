@@ -24,8 +24,10 @@ are the unit of distribution — each group is assigned to a SLURM job.
 \item \code{by = NULL} (default) → every row is its own group
 }}
 
-\item{within}{How to execute rows \strong{inside} each SLURM job, once the
-job is running on a compute node:
+\item{within}{How to execute work \strong{inside} each SLURM job, once the
+job is running on a compute node. The first three modes use \code{furrr} to
+parallelise across \strong{rows}; \code{"callr"} parallelises across \strong{groups},
+giving each group its own independent R process.
 \itemize{
 \item \code{"sequential"} (default): rows run one at a time. Use when each row
 already saturates the node (e.g., the script itself is multi-threaded).
@@ -33,15 +35,21 @@ already saturates the node (e.g., the script itself is multi-threaded).
 Good for many independent, single-threaded rows on a multi-core node.
 \item \code{"multisession"}: spawn \code{workers_within} R sub-sessions on the node.
 Like multicore but works everywhere (including RStudio).
-\item \code{"callr"}: same idea, but via the callr package (fully isolated R
-sessions).
+\item \code{"callr"}: \strong{group-level process pool}. Each group runs in its own
+independent R process via \code{\link[callr:r_bg]{callr::r_bg()}}. Up to \code{workers_within}
+processes run concurrently; when one finishes the next group starts
+(work-queue pattern). This is the right choice when you want to
+pack a full node with multiple processes that each use their own
+internal parallelism (e.g., a script that calls \code{furrr},
+\code{mclapply}, or relies on threaded BLAS/OpenMP). Parade manages the
+pool; the script manages its own cores.
 }}
 
-\item{workers_within}{Integer; how many parallel workers to use for the
-\code{within} strategy on each compute node. Only relevant when \code{within} is
-not \code{"sequential"}. Defaults to \code{NULL}, which reads
-\code{SLURM_CPUS_PER_TASK} at runtime (i.e., matches your \code{cpus_per_task}
-resource request).}
+\item{workers_within}{Integer; how many parallel workers (for
+\code{"multisession"} / \code{"multicore"}) or concurrent R processes (for
+\code{"callr"}) to run on each compute node. Not used for \code{"sequential"}.
+Defaults to \code{NULL}, which reads \code{SLURM_CPUS_PER_TASK} at runtime
+(i.e., matches your \code{cpus_per_task} resource request).}
 
 \item{template}{Path to the SLURM batch template file. Defaults to
 parade's built-in template (\code{slurm_template()}). Override for custom
@@ -154,6 +162,26 @@ dist_slurm(
   by = "subject",
   target_jobs = 10L,
   resources = list(time = "4:00:00")
+)
+
+# -- Packed node with callr process pool --
+# One SLURM job claims a full 196-core node. Parade runs up to 20
+# independent R processes concurrently (work-queue). Each process
+# handles one subject group and is free to use its own internal
+# parallelism (e.g., furrr with 4 workers, threaded BLAS, etc.).
+# When a process finishes, the next group is launched automatically.
+dist_slurm(
+  by = "subject",
+  within = "callr",
+  workers_within = 20L,
+  target_jobs = 1L,
+  resources = list(
+    account       = "rrg-mylab",
+    time          = "12:00:00",
+    mem           = "0",
+    cpus_per_task = 196L,
+    nodes         = 1L
+  )
 )
 
 # -- Explicit module loading (override auto-detection) --

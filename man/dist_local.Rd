@@ -23,22 +23,31 @@ future.
 \item \code{by = NULL} (default) → every row is its own group
 }}
 
-\item{within}{How to run the rows \strong{inside} each group (i.e., once a
-future lands on a worker, how does it process its rows?):
+\item{within}{How to run work \strong{inside} each job (chunk). The first three
+modes use \code{furrr} to parallelise across \strong{rows}; \code{"callr"} parallelises
+across \strong{groups}, giving each group its own independent R process.
 \itemize{
 \item \code{"sequential"} (default): one row at a time, no extra parallelism.
 Simplest, lowest memory.
-\item \code{"multisession"}: spawn R sub-processes inside the worker.
-Use when rows are CPU-bound and you have spare cores.
-\item \code{"multicore"}: forked processes (Linux/macOS only, not in RStudio).
-Faster startup than multisession, shares memory.
-\item \code{"callr"}: like multisession but via callr (isolated R sessions).
+\item \code{"multisession"}: spawn R sub-processes via \code{furrr}; rows are
+distributed across workers.
+\item \code{"multicore"}: forked processes via \code{furrr} (Linux/macOS only, not in
+RStudio). Faster startup than multisession, shares memory.
+\item \code{"callr"}: \strong{group-level process pool}. Each group runs as a
+fully independent R process via \code{\link[callr:r_bg]{callr::r_bg()}}. Up to
+\code{workers_within} processes run concurrently; when one finishes the
+next group is launched (work-queue pattern). This is ideal for
+packing a node with processes that each use their own internal
+parallelism (e.g., the script calls \code{furrr}, \code{mclapply}, or uses
+threaded BLAS/OpenMP). Parade does not manage the internal
+parallelism — the script/function is free to use as many cores as
+it needs.
 }}
 
-\item{workers_within}{Integer; how many parallel workers to use for the
-\code{within} strategy inside each group. Only relevant when \code{within} is
-\code{"multisession"}, \code{"multicore"}, or \code{"callr"}.
-Defaults to \code{NULL} (auto: uses all available cores on the machine or
+\item{workers_within}{Integer; how many parallel workers (for
+\code{"multisession"} / \code{"multicore"}) or concurrent R processes (for
+\code{"callr"}) to run inside each job. Not used for \code{"sequential"}.
+Defaults to \code{NULL} (auto: uses \code{parallelly::availableCores()} or
 \code{SLURM_CPUS_PER_TASK} on a cluster node).}
 
 \item{chunks_per_job}{How many groups to pack into a single future.
@@ -76,4 +85,8 @@ dist_local(by = "group", chunks_per_job = 2L)
 
 # Fix at 4 futures regardless of group count
 dist_local(by = "group", target_jobs = 4L)
+
+# Process pool: run up to 4 groups concurrently as independent R processes.
+# Each process can use its own internal parallelism (furrr, mclapply, etc.)
+dist_local(by = "subject", within = "callr", workers_within = 4L)
 }

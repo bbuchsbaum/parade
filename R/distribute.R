@@ -44,19 +44,28 @@ distribute <- function(fl, dist, ...) {
 #'   - `by = "subject"` with 20 subjects → 20 groups
 #'   - `by = c("subject", "session")` → one group per subject×session combo
 #'   - `by = NULL` (default) → every row is its own group
-#' @param within How to run the rows **inside** each group (i.e., once a
-#'   future lands on a worker, how does it process its rows?):
+#' @param within How to run work **inside** each job (chunk). The first three
+#'   modes use `furrr` to parallelise across **rows**; `"callr"` parallelises
+#'   across **groups**, giving each group its own independent R process.
 #'   - `"sequential"` (default): one row at a time, no extra parallelism.
 #'     Simplest, lowest memory.
-#'   - `"multisession"`: spawn R sub-processes inside the worker.
-#'     Use when rows are CPU-bound and you have spare cores.
-#'   - `"multicore"`: forked processes (Linux/macOS only, not in RStudio).
-#'     Faster startup than multisession, shares memory.
-#'   - `"callr"`: like multisession but via callr (isolated R sessions).
-#' @param workers_within Integer; how many parallel workers to use for the
-#'   `within` strategy inside each group. Only relevant when `within` is
-#'   `"multisession"`, `"multicore"`, or `"callr"`.
-#'   Defaults to `NULL` (auto: uses all available cores on the machine or
+#'   - `"multisession"`: spawn R sub-processes via `furrr`; rows are
+#'     distributed across workers.
+#'   - `"multicore"`: forked processes via `furrr` (Linux/macOS only, not in
+#'     RStudio). Faster startup than multisession, shares memory.
+#'   - `"callr"`: **group-level process pool**. Each group runs as a
+#'     fully independent R process via [callr::r_bg()]. Up to
+#'     `workers_within` processes run concurrently; when one finishes the
+#'     next group is launched (work-queue pattern). This is ideal for
+#'     packing a node with processes that each use their own internal
+#'     parallelism (e.g., the script calls `furrr`, `mclapply`, or uses
+#'     threaded BLAS/OpenMP). Parade does not manage the internal
+#'     parallelism — the script/function is free to use as many cores as
+#'     it needs.
+#' @param workers_within Integer; how many parallel workers (for
+#'   `"multisession"` / `"multicore"`) or concurrent R processes (for
+#'   `"callr"`) to run inside each job. Not used for `"sequential"`.
+#'   Defaults to `NULL` (auto: uses `parallelly::availableCores()` or
 #'   `SLURM_CPUS_PER_TASK` on a cluster node).
 #' @param chunks_per_job How many groups to pack into a single future.
 #'   Defaults to `1` (one group per future). Increase to reduce scheduling
@@ -83,6 +92,10 @@ distribute <- function(fl, dist, ...) {
 #'
 #' # Fix at 4 futures regardless of group count
 #' dist_local(by = "group", target_jobs = 4L)
+#'
+#' # Process pool: run up to 4 groups concurrently as independent R processes.
+#' # Each process can use its own internal parallelism (furrr, mclapply, etc.)
+#' dist_local(by = "subject", within = "callr", workers_within = 4L)
 dist_local <- function(by = NULL,
                        within = c("multisession", "multicore", "callr", "sequential"),
                        workers_within = NULL,
@@ -139,21 +152,29 @@ dist_local <- function(by = NULL,
 #'   - `by = "subject"` with 20 subjects → 20 groups → 20 SLURM jobs
 #'   - `by = c("shift", "ridge_x")` → one group per shift×ridge_x combo
 #'   - `by = NULL` (default) → every row is its own group
-#' @param within How to execute rows **inside** each SLURM job, once the
-#'   job is running on a compute node:
+#' @param within How to execute work **inside** each SLURM job, once the
+#'   job is running on a compute node. The first three modes use `furrr` to
+#'   parallelise across **rows**; `"callr"` parallelises across **groups**,
+#'   giving each group its own independent R process.
 #'   - `"sequential"` (default): rows run one at a time. Use when each row
 #'     already saturates the node (e.g., the script itself is multi-threaded).
 #'   - `"multicore"`: fork `workers_within` processes on the node.
 #'     Good for many independent, single-threaded rows on a multi-core node.
 #'   - `"multisession"`: spawn `workers_within` R sub-sessions on the node.
 #'     Like multicore but works everywhere (including RStudio).
-#'   - `"callr"`: same idea, but via the callr package (fully isolated R
-#'     sessions).
-#' @param workers_within Integer; how many parallel workers to use for the
-#'   `within` strategy on each compute node. Only relevant when `within` is
-#'   not `"sequential"`. Defaults to `NULL`, which reads
-#'   `SLURM_CPUS_PER_TASK` at runtime (i.e., matches your `cpus_per_task`
-#'   resource request).
+#'   - `"callr"`: **group-level process pool**. Each group runs in its own
+#'     independent R process via [callr::r_bg()]. Up to `workers_within`
+#'     processes run concurrently; when one finishes the next group starts
+#'     (work-queue pattern). This is the right choice when you want to
+#'     pack a full node with multiple processes that each use their own
+#'     internal parallelism (e.g., a script that calls `furrr`,
+#'     `mclapply`, or relies on threaded BLAS/OpenMP). Parade manages the
+#'     pool; the script manages its own cores.
+#' @param workers_within Integer; how many parallel workers (for
+#'   `"multisession"` / `"multicore"`) or concurrent R processes (for
+#'   `"callr"`) to run on each compute node. Not used for `"sequential"`.
+#'   Defaults to `NULL`, which reads `SLURM_CPUS_PER_TASK` at runtime
+#'   (i.e., matches your `cpus_per_task` resource request).
 #' @param template Path to the SLURM batch template file. Defaults to
 #'   parade's built-in template (`slurm_template()`). Override for custom
 #'   preambles, module stacks, or site-specific `#SBATCH` flags.
@@ -221,6 +242,26 @@ dist_local <- function(by = NULL,
 #'   by = "subject",
 #'   target_jobs = 10L,
 #'   resources = list(time = "4:00:00")
+#' )
+#'
+#' # -- Packed node with callr process pool --
+#' # One SLURM job claims a full 196-core node. Parade runs up to 20
+#' # independent R processes concurrently (work-queue). Each process
+#' # handles one subject group and is free to use its own internal
+#' # parallelism (e.g., furrr with 4 workers, threaded BLAS, etc.).
+#' # When a process finishes, the next group is launched automatically.
+#' dist_slurm(
+#'   by = "subject",
+#'   within = "callr",
+#'   workers_within = 20L,
+#'   target_jobs = 1L,
+#'   resources = list(
+#'     account       = "rrg-mylab",
+#'     time          = "12:00:00",
+#'     mem           = "0",
+#'     cpus_per_task = 196L,
+#'     nodes         = 1L
+#'   )
 #' )
 #'
 #' # -- Explicit module loading (override auto-detection) --

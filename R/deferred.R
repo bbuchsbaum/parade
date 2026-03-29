@@ -128,9 +128,11 @@
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' 
 #' deferred <- submit(fl)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir = NULL, index_dir = NULL, seed_furrr = TRUE, scheduling = 1, clean = FALSE) {
   stopifnot(inherits(fl, "parade_flow"))
@@ -360,37 +362,17 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   within <- dist$within %||% "sequential"
   if (length(within) != 1L) within <- within[[1]]
 
-  subrows <- unlist(idx_vec, use.names = FALSE)
-  sub <- grid[subrows, , drop = FALSE]
   order <- .toposort(fl$stages)
-  op <- future::plan(); on.exit(future::plan(op), add = TRUE)
   n_workers <- dist$workers_within
   if (is.null(n_workers)) {
-    # Safe default: use parallelly::availableCores() which respects connection
-    # limits, falling back to a capped SLURM_CPUS_PER_TASK.
     if (requireNamespace("parallelly", quietly = TRUE)) {
       n_workers <- parallelly::availableCores()
     } else {
       n_workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-      # R has a hard limit on connections (default 128, minus ~4 reserved).
-      # Cap to avoid "cannot open connection" errors.
       max_conn <- as.integer(Sys.getenv("R_MAX_NUM_DLLS", "128"))
       n_workers <- min(n_workers, max_conn - 6L, 120L)
     }
   }
-  inner <- switch(within,
-    "multisession" = future::tweak(future::multisession, workers = n_workers),
-    "multicore" = future::tweak(future::multicore, workers = n_workers),
-    "callr" = {
-      if (!requireNamespace("future.callr", quietly = TRUE)) {
-        stop("dist_local(within = 'callr') requires the 'future.callr' package.", call. = FALSE)
-      }
-      future::tweak(future.callr::callr, workers = n_workers)
-    },
-    "sequential" = future::sequential,
-    future::sequential  # fallback
-  )
-  future::plan(list(inner))
   run_context <- list(
     run_id = fl$options$run_id %||% NA_character_,
     run_key = fl$options$run_key %||% NA_character_,
@@ -402,8 +384,130 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   .event_emit(run_context$run_id, "chunk_started", severity = "info",
               source = "chunk", chunk_id = as.integer(job_id))
 
-  rows <- furrr::future_pmap(sub, function(...) { row <- rlang::list2(...); .eval_row_flow(row, fl$stages, seed_col = fl$options$seed_col, error = fl$options$error, order = order, run_context = run_context, flow_options = fl$options) }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling), .progress = FALSE)
-  rows <- purrr::compact(rows); res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
+  if (identical(within, "callr")) {
+    # --- callr pool: each group runs as an independent R process ----------
+    # This is ideal for packing multiple processes onto a single node where
+    # each process may use its own internal parallelism (furrr, mclapply,
+    # threaded BLAS, etc.).  Up to n_workers processes run concurrently;
+    # when one finishes, the next group is launched (work-queue pattern).
+    if (!requireNamespace("callr", quietly = TRUE)) {
+      stop("within = 'callr' requires the 'callr' package.", call. = FALSE)
+    }
+    n_groups <- length(idx_vec)
+    group_results <- vector("list", n_groups)
+    active <- list()
+    next_g <- 1L
+    pkg_root <- tryCatch(normalizePath(getwd(), mustWork = TRUE), error = function(e) NULL)
+
+    launch_group <- function(g_idx) {
+      group_rows <- grid[idx_vec[[g_idx]], , drop = FALSE]
+      callr::r_bg(
+        function(group_rows, stages, seed_col, error_policy, order,
+                 run_context, flow_options, pkg_root) {
+          # Load parade in the child process
+          if (!require("parade", character.only = TRUE, quietly = TRUE)) {
+            if (!is.null(pkg_root) && requireNamespace("pkgload", quietly = TRUE)) {
+              pkgload::load_all(pkg_root, quiet = TRUE)
+            } else {
+              stop("Cannot load parade package in callr worker", call. = FALSE)
+            }
+          }
+          # Process each row in the group through all stages
+          rows <- lapply(seq_len(nrow(group_rows)), function(i) {
+            row <- as.list(group_rows[i, ])
+            .eval_row_flow(
+              row, stages,
+              seed_col = seed_col, error = error_policy,
+              order = order, run_context = run_context,
+              flow_options = flow_options
+            )
+          })
+          rows <- purrr::compact(rows)
+          if (!length(rows)) {
+            group_rows[0, , drop = FALSE]
+          } else {
+            tibble::as_tibble(vctrs::vec_rbind(!!!rows))
+          }
+        },
+        args = list(
+          group_rows = group_rows,
+          stages = fl$stages,
+          seed_col = fl$options$seed_col,
+          error_policy = fl$options$error,
+          order = order,
+          run_context = run_context,
+          flow_options = fl$options,
+          pkg_root = pkg_root
+        ),
+        package = TRUE
+      )
+    }
+
+    # Launch initial batch
+    while (length(active) < n_workers && next_g <= n_groups) {
+      active[[as.character(next_g)]] <- launch_group(next_g)
+      next_g <- next_g + 1L
+    }
+    # Poll loop: collect finished, backfill
+    while (length(active) > 0L) {
+      done_ids <- character()
+      for (nm in names(active)) {
+        proc <- active[[nm]]
+        if (!proc$is_alive()) {
+          g_idx <- as.integer(nm)
+          group_results[[g_idx]] <- tryCatch(
+            proc$get_result(),
+            error = function(e) {
+              msg <- sprintf("callr worker for group %d failed: %s", g_idx,
+                             conditionMessage(e))
+              warning(msg, call. = FALSE, immediate. = TRUE)
+              grid[idx_vec[[g_idx]], , drop = FALSE][0, , drop = FALSE]
+            }
+          )
+          done_ids <- c(done_ids, nm)
+        }
+      }
+      if (length(done_ids)) active[done_ids] <- NULL
+      while (length(active) < n_workers && next_g <= n_groups) {
+        active[[as.character(next_g)]] <- launch_group(next_g)
+        next_g <- next_g + 1L
+      }
+      if (length(active) > 0L) Sys.sleep(0.25)
+    }
+
+    group_results <- purrr::compact(group_results)
+    res <- if (!length(group_results)) {
+      grid[unlist(idx_vec, use.names = FALSE), , drop = FALSE][0, , drop = FALSE]
+    } else {
+      tibble::as_tibble(vctrs::vec_rbind(!!!group_results))
+    }
+  } else {
+    # --- furrr path: multicore / multisession / sequential ----------------
+    # Parallelism is at the row level via furrr::future_pmap.
+    subrows <- unlist(idx_vec, use.names = FALSE)
+    sub <- grid[subrows, , drop = FALSE]
+    op <- future::plan(); on.exit(future::plan(op), add = TRUE)
+    inner <- switch(within,
+      "multisession" = future::tweak(future::multisession, workers = n_workers),
+      "multicore" = future::tweak(future::multicore, workers = n_workers),
+      "sequential" = future::sequential,
+      future::sequential  # fallback
+    )
+    future::plan(list(inner))
+
+    rows <- furrr::future_pmap(sub, function(...) {
+      row <- rlang::list2(...)
+      .eval_row_flow(row, fl$stages,
+                     seed_col = fl$options$seed_col,
+                     error = fl$options$error,
+                     order = order,
+                     run_context = run_context,
+                     flow_options = fl$options)
+    }, .options = furrr::furrr_options(seed = seed_furrr, scheduling = scheduling),
+       .progress = FALSE)
+    rows <- purrr::compact(rows)
+    res <- if (!length(rows)) sub[0, , drop = FALSE] else tibble::as_tibble(vctrs::vec_rbind(!!!rows))
+  }
   if (identical(mode, "index")) {
     p <- file.path(index_dir, sprintf("index-%04d.rds", as.integer(job_id)))
     dir.create(dirname(p), recursive = TRUE, showWarnings = FALSE)
@@ -442,9 +546,11 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' deferred <- submit(fl)
 #' status <- deferred_status(deferred)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 deferred_status <- function(d, detail = FALSE) {
   stopifnot(inherits(d, "parade_deferred"))
@@ -515,9 +621,11 @@ deferred_status <- function(d, detail = FALSE) {
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' deferred <- submit(fl)
 #' deferred_await(deferred, timeout = 600)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 deferred_await <- function(d, timeout = Inf, poll = 10) {
   stopifnot(inherits(d, "parade_deferred"))
@@ -556,9 +664,11 @@ deferred_await <- function(d, timeout = Inf, poll = 10) {
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' deferred <- submit(fl)
 #' deferred_cancel(deferred, which = "running")
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 deferred_cancel <- function(d, which = c("running","all")) {
   stopifnot(inherits(d, "parade_deferred")); which <- match.arg(which)
@@ -598,11 +708,13 @@ deferred_cancel <- function(d, which = c("running","all")) {
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' deferred <- submit(fl)
 #' # Wait for completion with a finite timeout to avoid hanging
 #' deferred_await(deferred, timeout = 600)
 #' results <- deferred_collect(deferred)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 deferred_collect <- function(d, how = c("auto","index","results")) {
   stopifnot(inherits(d, "parade_deferred")); how <- match.arg(how); if (identical(how, "auto")) how <- d$mode
