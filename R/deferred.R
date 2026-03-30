@@ -408,6 +408,14 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
               stop("Cannot load parade package in callr worker", call. = FALSE)
             }
           }
+          # Ensure any sub-workers (furrr, multicore, etc.) spawned by the
+          # stage function are shut down before this process exits.  Without
+          # this, child processes become orphans that keep the SLURM cgroup
+          # alive long after the real work is done.
+          on.exit({
+            tryCatch(future::plan(future::sequential), error = function(e) NULL)
+            tryCatch(gc(), error = function(e) NULL)
+          }, add = TRUE)
           # Process each row in the group through all stages
           rows <- lapply(seq_len(nrow(group_rows)), function(i) {
             row <- as.list(group_rows[i, ])
@@ -460,6 +468,9 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
               grid[idx_vec[[g_idx]], , drop = FALSE][0, , drop = FALSE]
             }
           )
+          # Explicitly reap the process handle so no zombies or orphans
+          # linger in the SLURM cgroup.
+          tryCatch({ proc$kill(); proc$wait(timeout = 1000) }, error = function(e) NULL)
           done_ids <- c(done_ids, nm)
         }
       }
@@ -470,6 +481,9 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
       }
       if (length(active) > 0L) Sys.sleep(0.25)
     }
+    # Force finalization of any remaining process handles so that
+    # processx finalizers run before we move on to result assembly.
+    gc()
 
     group_results <- purrr::compact(group_results)
     res <- if (!length(group_results)) {
