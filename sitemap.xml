@@ -22,6 +22,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/authors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/index.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/account.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/add_stage.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/apply_concurrency_limit.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/apply_error_policy.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/apply_waves.html</loc></url>
@@ -45,6 +46,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/cancel.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/chr.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/chunk_by.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/code_stage.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/collect.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/collect.parade_flow.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/collect_result.html</loc></url>
@@ -71,6 +73,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dist_slurm_profile.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/distribute.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-classify_failure.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-detect_available_cores.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-empty_run_registry.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-error_fingerprint.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-error_signature.html</loc></url>
@@ -83,6 +86,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-get_writer_reader.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-guess_interpreter.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-is_file_ref.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-is_handlers_on_stack_error.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-is_missing.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-log_append.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-make_file_ref.html</loc></url>
@@ -91,6 +95,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_clean_params.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_lookup.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_lookup_subset.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_output_names.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_path.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_read.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_record.html</loc></url>
@@ -108,12 +113,14 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-run_registry_append.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-run_registry_path.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-run_registry_update_status.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-run_source_script_isolated.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-scan_index_errors_structured.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-slurm_crash_errors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-slurm_exec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-slurm_sacct_info_v2.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-slurm_squeue_info_v2.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-slurm_sstat_info_v2.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-stage_available_cols.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-validate_flex_row.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-write_atomic_generic.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dry_run.default.html</loc></url>
@@ -246,8 +253,10 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/res_mem.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/res_partition.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/res_time.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/resolve_dist_plan.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/resolve_path.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/resolve_resources.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/resolve_workers.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/resubmit_job.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/retry.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/returns.html</loc></url>
@@ -291,6 +300,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_template_default.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/slurm_template_set.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/stage.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/stage_def.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/status.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/stem.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/struct.html</loc></url>

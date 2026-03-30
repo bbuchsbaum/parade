@@ -5,6 +5,9 @@
 - [`account()`](https://bbuchsbaum.github.io/parade/reference/account.md)
   : Set account for a resource profile
 
+- [`add_stage()`](https://bbuchsbaum.github.io/parade/reference/add_stage.md)
+  : Add a pre-defined stage to a parade flow
+
 - [`args()`](https://bbuchsbaum.github.io/parade/reference/args.md) :
   Auto-detect argument type
 
@@ -55,6 +58,9 @@
 
 - [`chunk_by()`](https://bbuchsbaum.github.io/parade/reference/chunk_by.md)
   : Chunk data into groups
+
+- [`code_stage()`](https://bbuchsbaum.github.io/parade/reference/code_stage.md)
+  : Add an inline code block stage to a parade flow
 
 - [`collect()`](https://bbuchsbaum.github.io/parade/reference/collect.md)
   : Collect results from all jobs in a jobset
@@ -491,8 +497,14 @@
 - [`res_time()`](https://bbuchsbaum.github.io/parade/reference/res_time.md)
   : Set time limit for a resource profile (non-masking)
 
+- [`resolve_dist_plan()`](https://bbuchsbaum.github.io/parade/reference/resolve_dist_plan.md)
+  : Resolve the full distribution plan for a flow
+
 - [`resolve_path()`](https://bbuchsbaum.github.io/parade/reference/resolve_path.md)
   : Resolve paths with URI-style aliases
+
+- [`resolve_workers()`](https://bbuchsbaum.github.io/parade/reference/resolve_workers.md)
+  : Resolve workers_within for a distribution spec
 
 - [`retry()`](https://bbuchsbaum.github.io/parade/reference/retry.md) :
   Retry failed jobs in a jobset
@@ -613,6 +625,9 @@
 
 - [`stage()`](https://bbuchsbaum.github.io/parade/reference/stage.md) :
   Add a processing stage to a parade flow
+
+- [`stage_def()`](https://bbuchsbaum.github.io/parade/reference/stage_def.md)
+  : Define a reusable stage object
 
 - [`status()`](https://bbuchsbaum.github.io/parade/reference/status.md)
   : Get status of all jobs in a jobset

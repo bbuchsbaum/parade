@@ -48,7 +48,8 @@ Each SLURM job runs one or more <strong>groups</strong> of grid rows.</p>
 <span>  template <span class="op">=</span> <span class="fu"><a href="slurm_template.html">slurm_template</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  chunks_per_job <span class="op">=</span> <span class="fl">1L</span>,</span>
-<span>  target_jobs <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  target_jobs <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  callr_timeout <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -123,6 +124,15 @@ fill it.</p><ul><li><p><code>target_jobs = 10</code> with 81 groups → 10 jobs 
 <li><p><code>target_jobs = NULL</code> (default): use <code>chunks_per_job</code> instead</p></li>
 </ul></dd>
 
+
+<dt id="arg-callr-timeout">callr_timeout<a class="anchor" aria-label="anchor" href="#arg-callr-timeout"></a></dt>
+<dd><p>Numeric; per-process timeout in seconds for
+<code>within = "callr"</code>. If a callr worker has been alive longer than this,
+it is killed and its result (if any) is recovered. Useful as a safety
+net when stage functions may leave background processes that prevent
+clean exit.
+<code>NULL</code> (default) means no timeout.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -183,6 +193,9 @@ all module handling.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $callr_timeout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm$template</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"</span>
@@ -235,6 +248,9 @@ all module handling.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $callr_timeout</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
@@ -295,6 +311,9 @@ all module handling.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $callr_timeout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm$template</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"</span>
@@ -344,6 +363,9 @@ all module handling.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $callr_timeout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm$template</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"</span>
@@ -383,6 +405,9 @@ all module handling.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $callr_timeout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm$template</span>
@@ -437,6 +462,9 @@ all module handling.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $callr_timeout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm$template</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"</span>
@@ -489,6 +517,9 @@ all module handling.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $callr_timeout</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>

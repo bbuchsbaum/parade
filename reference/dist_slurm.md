@@ -13,7 +13,8 @@ dist_slurm(
   template = slurm_template(),
   resources = list(),
   chunks_per_job = 1L,
-  target_jobs = NULL
+  target_jobs = NULL,
+  callr_timeout = NULL
 )
 ```
 
@@ -101,6 +102,14 @@ dist_slurm(
 
   - `target_jobs = NULL` (default): use `chunks_per_job` instead
 
+- callr_timeout:
+
+  Numeric; per-process timeout in seconds for `within = "callr"`. If a
+  callr worker has been alive longer than this, it is killed and its
+  result (if any) is recovered. Useful as a safety net when stage
+  functions may leave background processes that prevent clean exit.
+  `NULL` (default) means no timeout.
+
 ## Value
 
 A `parade_dist` object for SLURM execution
@@ -158,6 +167,9 @@ dist_slurm(
 #> $target_jobs
 #> NULL
 #> 
+#> $callr_timeout
+#> NULL
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -210,6 +222,9 @@ dist_slurm(
 #> [1] 1
 #> 
 #> $target_jobs
+#> NULL
+#> 
+#> $callr_timeout
 #> NULL
 #> 
 #> $slurm
@@ -270,6 +285,9 @@ dist_slurm(
 #> $target_jobs
 #> NULL
 #> 
+#> $callr_timeout
+#> NULL
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -319,6 +337,9 @@ dist_slurm(
 #> $target_jobs
 #> NULL
 #> 
+#> $callr_timeout
+#> NULL
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -358,6 +379,9 @@ dist_slurm(
 #> 
 #> $target_jobs
 #> [1] 10
+#> 
+#> $callr_timeout
+#> NULL
 #> 
 #> $slurm
 #> $slurm$template
@@ -412,6 +436,9 @@ dist_slurm(
 #> $target_jobs
 #> [1] 1
 #> 
+#> $callr_timeout
+#> NULL
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -464,6 +491,9 @@ dist_slurm(
 #> [1] 1
 #> 
 #> $target_jobs
+#> NULL
+#> 
+#> $callr_timeout
 #> NULL
 #> 
 #> $slurm

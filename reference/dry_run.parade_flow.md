@@ -16,6 +16,14 @@ dry_run(x, limit = NULL, show_rows = 20L, ...)
   A [`flow()`](https://bbuchsbaum.github.io/parade/reference/flow.md)
   object
 
+- limit:
+
+  Optional integer; only show the first `limit` grid rows.
+
+- show_rows:
+
+  Maximum number of grid rows to print (default `20L`).
+
 - ...:
 
   Additional arguments (unused)
@@ -31,8 +39,8 @@ grid <- data.frame(x = 1:3)
 fl <- flow(grid) |>
   stage("sq", function(x) x^2, schema = returns(result = dbl()))
 dry_run(fl)
-#> Plan
-#> ----
+#> Stages
+#> ------
 #> # A tibble: 1 × 17
 #>   stage needs inputs io_mode fields outputs retries retry_backoff cpus  memory
 #>   <chr> <chr> <chr>  <chr>   <chr>  <chr>   <chr>   <chr>         <chr> <chr> 
@@ -42,7 +50,15 @@ dry_run(fl)
 #> 
 #> Grid rows: 3
 #> Flow fingerprint: 5585e4bc9a13cded444238e8745df49962664c4a
-#> Distribution: row-wise (by = NULL) or single process if not distributed.
+#> 
+#> Distribution Plan
+#> -----------------
+#>   Backend : none
+#>   Group by: (none) -- 3 row-level groups
+#>   Jobs    : 1 (3 groups/job)
+#>   Within  : sequential
+#>   Workers : 1 -- No distribution configured
+#> 
 #> Actions: execute=3; reuse=0; blocked=0
 #> Reason codes:
 #>   - no_sink: 3

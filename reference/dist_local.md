@@ -10,7 +10,8 @@ dist_local(
   within = c("multisession", "multicore", "callr", "sequential"),
   workers_within = NULL,
   chunks_per_job = 1L,
-  target_jobs = NULL
+  target_jobs = NULL,
+  callr_timeout = NULL
 )
 ```
 
@@ -84,6 +85,14 @@ dist_local(
 
   - `target_jobs = NULL` (default): use `chunks_per_job` instead
 
+- callr_timeout:
+
+  Numeric; per-process timeout in seconds for `within = "callr"`. If a
+  callr worker has been alive longer than this, it is killed and its
+  result (if any) is recovered. Useful as a safety net when stage
+  functions may leave background processes that prevent clean exit.
+  `NULL` (default) means no timeout.
+
 ## Value
 
 A `parade_dist` object for local execution
@@ -109,6 +118,9 @@ dist_local(by = "group", within = "sequential")
 #> [1] 1
 #> 
 #> $target_jobs
+#> NULL
+#> 
+#> $callr_timeout
 #> NULL
 #> 
 #> $slurm
@@ -137,6 +149,9 @@ dist_local(by = "group", within = "multicore")
 #> $target_jobs
 #> NULL
 #> 
+#> $callr_timeout
+#> NULL
+#> 
 #> $slurm
 #> NULL
 #> 
@@ -161,6 +176,9 @@ dist_local(by = "group", chunks_per_job = 2L)
 #> [1] 2
 #> 
 #> $target_jobs
+#> NULL
+#> 
+#> $callr_timeout
 #> NULL
 #> 
 #> $slurm
@@ -189,6 +207,9 @@ dist_local(by = "group", target_jobs = 4L)
 #> $target_jobs
 #> [1] 4
 #> 
+#> $callr_timeout
+#> NULL
+#> 
 #> $slurm
 #> NULL
 #> 
@@ -214,6 +235,9 @@ dist_local(by = "subject", within = "callr", workers_within = 4L)
 #> [1] 1
 #> 
 #> $target_jobs
+#> NULL
+#> 
+#> $callr_timeout
 #> NULL
 #> 
 #> $slurm

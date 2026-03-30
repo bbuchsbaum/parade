@@ -101,6 +101,9 @@ dist_slurm_allocation(nodes = 10, cores_per_node = 196, within = "multicore")
 #> $target_jobs
 #> [1] 10
 #> 
+#> $callr_timeout
+#> NULL
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -147,6 +150,9 @@ dist_slurm_allocation(
 #> 
 #> $target_jobs
 #> [1] 20
+#> 
+#> $callr_timeout
+#> NULL
 #> 
 #> $slurm
 #> $slurm$template
