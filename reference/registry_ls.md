@@ -33,27 +33,27 @@ Data frame of jobs
 # List all jobs
 registry_ls()
 #>               name      status             created
-#> 7  parade-9cde0bbf NO_JOB_FILE 2026-03-29 19:32:40
-#> 8  parade-ab06d73d NO_JOB_FILE 2026-03-29 19:32:35
-#> 1  parade-43f456b2 NO_JOB_FILE 2026-03-29 19:32:21
-#> 9  parade-b07a449d NO_JOB_FILE 2026-03-29 19:32:18
-#> 5  parade-915cf684 NO_JOB_FILE 2026-03-29 19:32:06
-#> 10 parade-da04388d NO_JOB_FILE 2026-03-29 19:32:03
-#> 4  parade-8c8f22a2 NO_JOB_FILE 2026-03-29 19:32:01
-#> 6  parade-9b0d241e NO_JOB_FILE 2026-03-29 19:31:58
-#> 2  parade-5962dfdd NO_JOB_FILE 2026-03-29 19:31:56
-#> 3  parade-84283774 NO_JOB_FILE 2026-03-29 19:31:53
+#> 6  parade-8f8edec8 NO_JOB_FILE 2026-03-30 15:36:20
+#> 5  parade-7e00c6ac NO_JOB_FILE 2026-03-30 15:36:15
+#> 4  parade-7c018571 NO_JOB_FILE 2026-03-30 15:36:00
+#> 2  parade-6454b545 NO_JOB_FILE 2026-03-30 15:35:57
+#> 3  parade-722253cc NO_JOB_FILE 2026-03-30 15:35:44
+#> 9  parade-d29ae9a1 NO_JOB_FILE 2026-03-30 15:35:41
+#> 7  parade-ad0e8c32 NO_JOB_FILE 2026-03-30 15:35:39
+#> 1  parade-2f7fcb3b NO_JOB_FILE 2026-03-30 15:35:36
+#> 8  parade-c5ef689b NO_JOB_FILE 2026-03-30 15:35:33
+#> 10 parade-e74cc13e NO_JOB_FILE 2026-03-30 15:35:30
 #>                                               path
-#> 7  /tmp/RtmpIykYUv/parade-registry/parade-9cde0bbf
-#> 8  /tmp/RtmpIykYUv/parade-registry/parade-ab06d73d
-#> 1  /tmp/RtmpIykYUv/parade-registry/parade-43f456b2
-#> 9  /tmp/RtmpIykYUv/parade-registry/parade-b07a449d
-#> 5  /tmp/RtmpIykYUv/parade-registry/parade-915cf684
-#> 10 /tmp/RtmpIykYUv/parade-registry/parade-da04388d
-#> 4  /tmp/RtmpIykYUv/parade-registry/parade-8c8f22a2
-#> 6  /tmp/RtmpIykYUv/parade-registry/parade-9b0d241e
-#> 2  /tmp/RtmpIykYUv/parade-registry/parade-5962dfdd
-#> 3  /tmp/RtmpIykYUv/parade-registry/parade-84283774
+#> 6  /tmp/RtmpzGc7Zt/parade-registry/parade-8f8edec8
+#> 5  /tmp/RtmpzGc7Zt/parade-registry/parade-7e00c6ac
+#> 4  /tmp/RtmpzGc7Zt/parade-registry/parade-7c018571
+#> 2  /tmp/RtmpzGc7Zt/parade-registry/parade-6454b545
+#> 3  /tmp/RtmpzGc7Zt/parade-registry/parade-722253cc
+#> 9  /tmp/RtmpzGc7Zt/parade-registry/parade-d29ae9a1
+#> 7  /tmp/RtmpzGc7Zt/parade-registry/parade-ad0e8c32
+#> 1  /tmp/RtmpzGc7Zt/parade-registry/parade-2f7fcb3b
+#> 8  /tmp/RtmpzGc7Zt/parade-registry/parade-c5ef689b
+#> 10 /tmp/RtmpzGc7Zt/parade-registry/parade-e74cc13e
 
 # List jobs matching pattern
 registry_ls(pattern = "analysis_*")
@@ -64,26 +64,26 @@ registry_ls(pattern = "analysis_*")
 # List most recent 10 jobs
 registry_ls(limit = 10)
 #>               name      status             created
-#> 7  parade-9cde0bbf NO_JOB_FILE 2026-03-29 19:32:40
-#> 8  parade-ab06d73d NO_JOB_FILE 2026-03-29 19:32:35
-#> 1  parade-43f456b2 NO_JOB_FILE 2026-03-29 19:32:21
-#> 9  parade-b07a449d NO_JOB_FILE 2026-03-29 19:32:18
-#> 5  parade-915cf684 NO_JOB_FILE 2026-03-29 19:32:06
-#> 10 parade-da04388d NO_JOB_FILE 2026-03-29 19:32:03
-#> 4  parade-8c8f22a2 NO_JOB_FILE 2026-03-29 19:32:01
-#> 6  parade-9b0d241e NO_JOB_FILE 2026-03-29 19:31:58
-#> 2  parade-5962dfdd NO_JOB_FILE 2026-03-29 19:31:56
-#> 3  parade-84283774 NO_JOB_FILE 2026-03-29 19:31:53
+#> 6  parade-8f8edec8 NO_JOB_FILE 2026-03-30 15:36:20
+#> 5  parade-7e00c6ac NO_JOB_FILE 2026-03-30 15:36:15
+#> 4  parade-7c018571 NO_JOB_FILE 2026-03-30 15:36:00
+#> 2  parade-6454b545 NO_JOB_FILE 2026-03-30 15:35:57
+#> 3  parade-722253cc NO_JOB_FILE 2026-03-30 15:35:44
+#> 9  parade-d29ae9a1 NO_JOB_FILE 2026-03-30 15:35:41
+#> 7  parade-ad0e8c32 NO_JOB_FILE 2026-03-30 15:35:39
+#> 1  parade-2f7fcb3b NO_JOB_FILE 2026-03-30 15:35:36
+#> 8  parade-c5ef689b NO_JOB_FILE 2026-03-30 15:35:33
+#> 10 parade-e74cc13e NO_JOB_FILE 2026-03-30 15:35:30
 #>                                               path
-#> 7  /tmp/RtmpIykYUv/parade-registry/parade-9cde0bbf
-#> 8  /tmp/RtmpIykYUv/parade-registry/parade-ab06d73d
-#> 1  /tmp/RtmpIykYUv/parade-registry/parade-43f456b2
-#> 9  /tmp/RtmpIykYUv/parade-registry/parade-b07a449d
-#> 5  /tmp/RtmpIykYUv/parade-registry/parade-915cf684
-#> 10 /tmp/RtmpIykYUv/parade-registry/parade-da04388d
-#> 4  /tmp/RtmpIykYUv/parade-registry/parade-8c8f22a2
-#> 6  /tmp/RtmpIykYUv/parade-registry/parade-9b0d241e
-#> 2  /tmp/RtmpIykYUv/parade-registry/parade-5962dfdd
-#> 3  /tmp/RtmpIykYUv/parade-registry/parade-84283774
+#> 6  /tmp/RtmpzGc7Zt/parade-registry/parade-8f8edec8
+#> 5  /tmp/RtmpzGc7Zt/parade-registry/parade-7e00c6ac
+#> 4  /tmp/RtmpzGc7Zt/parade-registry/parade-7c018571
+#> 2  /tmp/RtmpzGc7Zt/parade-registry/parade-6454b545
+#> 3  /tmp/RtmpzGc7Zt/parade-registry/parade-722253cc
+#> 9  /tmp/RtmpzGc7Zt/parade-registry/parade-d29ae9a1
+#> 7  /tmp/RtmpzGc7Zt/parade-registry/parade-ad0e8c32
+#> 1  /tmp/RtmpzGc7Zt/parade-registry/parade-2f7fcb3b
+#> 8  /tmp/RtmpzGc7Zt/parade-registry/parade-c5ef689b
+#> 10 /tmp/RtmpzGc7Zt/parade-registry/parade-e74cc13e
 # }
 ```

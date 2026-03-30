@@ -61,11 +61,11 @@ d <- submit(fl)
 pipeline_top(d = d, refresh = 1)
 #> parade::pipeline_top  -
 #> 
-#> Run: 9cde0bbf  Backend: local  Submitted: 2026-03-29 19:32:40.343998
+#> Run: 8f8edec8  Backend: local  Submitted: 2026-03-30 15:36:20.156626
 #> Elapsed: 0:00:03  By: g
 #> Stages: s
 #> 
-#> Progress [........................]    0%  (0/3 chunks)
+#> Progress [########................]   33%  (1/3 chunks)
 #> 
 #>   total=3  resolved=3  unresolved=0
 #> 

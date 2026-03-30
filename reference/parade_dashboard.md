@@ -78,7 +78,7 @@ parade_dashboard(job)
 #> - Jobs: 1
 #> - Status: COMPLETED=1
 #> - Project:   /home/runner/work/parade/parade/docs/reference
-#> - Artifacts: /tmp/RtmpIykYUv/parade-artifacts
-#> - Registry:  /tmp/RtmpIykYUv/parade-registry
+#> - Artifacts: /tmp/RtmpzGc7Zt/parade-artifacts
+#> - Registry:  /tmp/RtmpzGc7Zt/parade-registry
 # }
 ```

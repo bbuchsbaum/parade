@@ -52,7 +52,7 @@ wtf(d)
 #> 
 #> ================================================================================ 
 #> parade failure report
-#> Run: b1b52107  Backend: local  Submitted: 2026-03-29 19:33:03.277541
+#> Run: 4dc3546a  Backend: local  Submitted: 2026-03-30 15:36:44.216046
 #> Stages: calc
 #> Elapsed: 0:00:03  Chunks: 2 total, 2 ok, 0 failed
 #> 
