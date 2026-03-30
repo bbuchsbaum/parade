@@ -437,3 +437,327 @@ dist_slurm_profile <- function(profile,
 #' @examples
 #' template_path <- slurm_template()
 slurm_template <- function() system.file("batchtools", "parade-slurm.tmpl", package = "parade")
+
+# Worker resolution --------------------------------------------------------
+
+#' Detect available cores from the runtime environment
+#'
+#' Pure helper that probes `parallelly::availableCores()`, the SLURM
+#' environment variable `SLURM_CPUS_PER_TASK`, or falls back to 1.
+#' Returns the detected count **and** the source that provided it.
+#'
+#' @return A list with `cores` (integer) and `source` (character).
+#' @keywords internal
+.detect_available_cores <- function() {
+  if (requireNamespace("parallelly", quietly = TRUE)) {
+    cores <- parallelly::availableCores()
+    return(list(cores = as.integer(cores), source = "parallelly::availableCores()"))
+  }
+  raw <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+  max_conn <- as.integer(Sys.getenv("R_MAX_NUM_DLLS", "128"))
+  cores <- min(raw, max_conn - 6L, 120L)
+  src <- if (raw == 1L && Sys.getenv("SLURM_CPUS_PER_TASK", "") == "") {
+    "default (no SLURM env, parallelly not installed)"
+  } else if (cores < raw) {
+    sprintf("SLURM_CPUS_PER_TASK=%d, capped to %d (R connection limit)", raw, cores)
+  } else {
+    sprintf("SLURM_CPUS_PER_TASK=%d", raw)
+  }
+  list(cores = as.integer(cores), source = src)
+}
+
+#' Resolve workers_within for a distribution spec
+#'
+#' Determines how many parallel workers or callr processes will run inside
+#' each job, returning both the resolved count and a human-readable
+#' explanation of how it was determined.  This makes the auto-detection
+#' logic fully inspectable.
+#'
+#' @param dist A `parade_dist` object (from [dist_local()], [dist_slurm()],
+#'   etc.), or `NULL`.
+#' @param n_groups Integer; number of groups assigned to the job/chunk.
+#'   Used to cap callr workers (the pool can never exceed the number of
+#'   groups it manages).
+#' @return A list with components:
+#'   \describe{
+#'     \item{workers}{Integer — resolved worker count.}
+#'     \item{source}{Short tag: `"explicit"`, `"auto"`, `"callr_heuristic"`,
+#'       `"sequential"`, `"explicit_capped"`.}
+#'     \item{detail}{Human-readable explanation of how the value was derived.}
+#'   }
+#' @export
+#' @examples
+#' # Explicit
+#' resolve_workers(dist_local(within = "callr", workers_within = 10L))
+#'
+#' # Auto-detected (will probe your current environment)
+#' resolve_workers(dist_local(within = "multisession"))
+#'
+#' # Shows capping when groups < workers
+#' resolve_workers(
+#'   dist_slurm(by = "subject", within = "callr", workers_within = 20L),
+#'   n_groups = 8L
+#' )
+resolve_workers <- function(dist, n_groups = NULL) {
+  if (is.null(dist)) dist <- list(within = "sequential", workers_within = NULL)
+  within <- dist$within %||% "sequential"
+  if (length(within) != 1L) within <- within[[1]]
+  explicit <- dist$workers_within
+
+  # Sequential: always 1
+
+  if (identical(within, "sequential")) {
+    return(list(
+      workers = 1L,
+      source = "sequential",
+      detail = "within = 'sequential': rows run one at a time, no sub-parallelism"
+    ))
+  }
+
+  # --- Explicit value supplied ---
+  if (!is.null(explicit)) {
+    w <- as.integer(explicit)
+    if (identical(within, "callr") && !is.null(n_groups) && n_groups < w) {
+      return(list(
+        workers = as.integer(n_groups),
+        source = "explicit_capped",
+        detail = sprintf(
+          "workers_within=%d but only %d groups in chunk; pool capped at %d",
+          w, n_groups, n_groups
+        )
+      ))
+    }
+    return(list(
+      workers = w,
+      source = "explicit",
+      detail = sprintf("workers_within=%d (user-specified)", w)
+    ))
+  }
+
+  # --- Auto-detect ---
+  env <- .detect_available_cores()
+
+  if (identical(within, "callr")) {
+    # Each callr process is heavyweight — it's a full R session that may
+    # use its own internal parallelism.  Defaulting to one process per core
+    # would oversubscribe the node.  Use cores/4 as a conservative ceiling.
+    heuristic <- max(1L, as.integer(floor(env$cores / 4)))
+    if (!is.null(n_groups)) heuristic <- min(heuristic, as.integer(n_groups))
+    return(list(
+      workers = heuristic,
+      source = "callr_heuristic",
+      detail = sprintf(
+        paste0(
+          "within='callr': detected %d cores (%s); ",
+          "defaulting to %d concurrent processes (cores/4). ",
+          "Set workers_within explicitly for precise control"
+        ),
+        env$cores, env$source, heuristic
+      )
+    ))
+  }
+
+  # furrr path (multisession / multicore): 1 worker per core
+  if (!is.null(n_groups) && n_groups < env$cores) {
+    return(list(
+      workers = as.integer(n_groups),
+      source = "auto_capped",
+      detail = sprintf(
+        "detected %d cores (%s), capped to %d (number of groups)",
+        env$cores, env$source, n_groups
+      )
+    ))
+  }
+
+  list(
+    workers = as.integer(env$cores),
+    source = "auto",
+    detail = sprintf("detected %d workers (%s)", env$cores, env$source)
+  )
+}
+
+# Distribution plan --------------------------------------------------------
+
+#' Resolve the full distribution plan for a flow
+#'
+#' Computes the concrete execution plan without submitting anything: how the
+#' grid will be split into groups, how groups are packed into jobs, and how
+#' many workers each job will run.
+#'
+#' All conditional logic (parallelly availability, SLURM env vars, callr
+#' heuristics) is resolved eagerly so the result shows **exactly** what
+#' will happen on the current machine.
+#'
+#' @param fl A `parade_flow` object with distribution settings.
+#' @return A `parade_dist_plan` list (with a print method) containing:
+#'   \describe{
+#'     \item{backend}{Character — `"local"`, `"slurm"`, `"mirai"`, `"crew"`,
+#'       or `"none"`.}
+#'     \item{by}{Character vector of grouping columns.}
+#'     \item{within}{Character — within-job execution mode.}
+#'     \item{n_rows}{Integer — total grid rows.}
+#'     \item{n_groups}{Integer — number of groups.}
+#'     \item{n_jobs}{Integer — number of jobs/futures.}
+#'     \item{groups_per_job}{Integer — groups packed into each job.}
+#'     \item{workers}{List from [resolve_workers()].}
+#'     \item{cores_per_worker}{Numeric — estimated cores available to each
+#'       worker (only meaningful for callr).}
+#'     \item{slurm_resources}{Named list of SLURM resource flags, or NULL.}
+#'     \item{warnings}{Character vector of potential issues.}
+#'   }
+#' @export
+#' @examples
+#' grid <- data.frame(subject = paste0("sub", 1:40), x = seq_len(40))
+#' fl <- flow(grid) |>
+#'   stage("sq", function(x) x^2, schema = returns(result = dbl())) |>
+#'   distribute(dist_local(by = "subject", within = "callr",
+#'                         workers_within = 10L))
+#' resolve_dist_plan(fl)
+resolve_dist_plan <- function(fl) {
+  stopifnot(inherits(fl, "parade_flow"))
+  dist <- fl$dist
+  if (is.null(dist)) {
+    out <- list(
+      backend = "none",
+      by = character(),
+      within = "sequential",
+      n_rows = nrow(fl$grid),
+      n_groups = nrow(fl$grid),
+      n_jobs = 1L,
+      groups_per_job = nrow(fl$grid),
+      workers = list(workers = 1L, source = "none",
+                     detail = "No distribution configured"),
+      cores_per_worker = NA_real_,
+      slurm_resources = NULL,
+      warnings = character()
+    )
+    class(out) <- "parade_dist_plan"
+    return(out)
+  }
+
+  grid <- fl$grid
+  within <- dist$within %||% "sequential"
+
+  # --- Groups ---
+  if (length(dist$by) == 0L || is.null(dist$by)) {
+    n_groups <- nrow(grid)
+  } else {
+    key <- tibble::as_tibble(grid[dist$by])
+    grp_id <- interaction(key, drop = TRUE, lex.order = TRUE)
+    n_groups <- nlevels(grp_id)
+  }
+
+  # --- Jobs ---
+  if (!is.null(dist$target_jobs)) {
+    target_jobs <- as.integer(dist$target_jobs)
+    groups_per_job <- if (n_groups == 0L) 1L else max(1L, ceiling(n_groups / target_jobs))
+    n_jobs <- if (n_groups == 0L) 0L else min(target_jobs, n_groups)
+  } else {
+    groups_per_job <- max(1L, dist$chunks_per_job %||% 1L)
+    n_jobs <- if (n_groups == 0L) 0L else as.integer(ceiling(n_groups / groups_per_job))
+  }
+
+  # --- Workers ---
+  worker_info <- resolve_workers(dist, n_groups = groups_per_job)
+
+  # --- Cores per worker (for callr) ---
+  # Prefer cpus_per_task from SLURM resources when available; fall back to
+
+  # runtime detection (which only reflects the *current* machine, not the
+  # compute node the job will land on).
+  slurm_res <- if (identical(dist$backend, "slurm")) dist$slurm$resources else NULL
+  node_cores <- slurm_res$cpus_per_task
+  if (is.null(node_cores)) {
+    env <- .detect_available_cores()
+    node_cores <- env$cores
+  }
+  cores_per_worker <- if (identical(within, "callr") && worker_info$workers > 0L) {
+    as.numeric(node_cores) / worker_info$workers
+  } else {
+    NA_real_
+  }
+
+  # --- Warnings ---
+  warns <- character()
+  if (identical(within, "callr")) {
+    if (worker_info$workers > groups_per_job) {
+      warns <- c(warns, sprintf(
+        "workers_within (%d) > groups per job (%d): pool will never fill past %d. Consider fewer, larger jobs (target_jobs = 1).",
+        worker_info$workers, groups_per_job, groups_per_job
+      ))
+    }
+    if (is.null(dist$workers_within) && identical(worker_info$source, "callr_heuristic")) {
+      warns <- c(warns, sprintf(
+        "workers_within not set for callr mode; using heuristic (%d). Set explicitly for predictable behavior.",
+        worker_info$workers
+      ))
+    }
+    if (cores_per_worker < 1.5) {
+      warns <- c(warns, sprintf(
+        "Only %.1f cores per callr process — each process may contend for CPU. Reduce workers_within or request more cpus_per_task.",
+        cores_per_worker
+      ))
+    }
+  }
+
+  out <- list(
+    backend = dist$backend,
+    by = dist$by %||% character(),
+    within = within,
+    n_rows = nrow(grid),
+    n_groups = n_groups,
+    n_jobs = n_jobs,
+    groups_per_job = groups_per_job,
+    workers = worker_info,
+    cores_per_worker = cores_per_worker,
+    slurm_resources = if (identical(dist$backend, "slurm")) dist$slurm$resources else NULL,
+    warnings = warns
+  )
+  class(out) <- "parade_dist_plan"
+  out
+}
+
+#' @export
+print.parade_dist_plan <- function(x, ...) {
+  rule <- function(title) cat(title, "\n", strrep("-", nchar(title)), "\n", sep = "")
+
+  rule("Distribution Plan")
+
+  cat("  Backend : ", x$backend, "\n", sep = "")
+
+  if (length(x$by)) {
+    cat("  Group by: ", paste(x$by, collapse = ", "),
+        " (", x$n_groups, " groups from ", x$n_rows, " rows)\n", sep = "")
+  } else {
+    cat("  Group by: (none) -- ", x$n_groups, " row-level groups\n", sep = "")
+  }
+
+  cat("  Jobs    : ", x$n_jobs, sep = "")
+  if (x$n_jobs > 0L) {
+    cat(" (", x$groups_per_job, " groups/job)", sep = "")
+  }
+  cat("\n")
+
+  cat("  Within  : ", x$within, "\n", sep = "")
+  cat("  Workers : ", x$workers$workers, " -- ", x$workers$detail, "\n", sep = "")
+
+  if (identical(x$within, "callr") && !is.na(x$cores_per_worker)) {
+    cat("  Cores/worker: ~", round(x$cores_per_worker, 1), "\n", sep = "")
+  }
+
+  if (length(x$slurm_resources)) {
+    cat("  SLURM resources:\n")
+    for (nm in names(x$slurm_resources)) {
+      val <- x$slurm_resources[[nm]]
+      if (is.character(val) && length(val) > 1L) val <- paste(val, collapse = ", ")
+      cat("    ", nm, " = ", as.character(val), "\n", sep = "")
+    }
+  }
+
+  if (length(x$warnings)) {
+    cat("  Warnings:\n")
+    for (w in x$warnings) cat("    ! ", w, "\n", sep = "")
+  }
+
+  invisible(x)
+}

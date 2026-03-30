@@ -12,10 +12,15 @@
 \item{...}{Additional arguments passed to methods (unused).}
 }
 \value{
-A tibble summarizing stages.
+An \code{explained_parade_flow} list (with a print method) containing
+\verb{$stages} (tibble) and \verb{$dist_plan} (\code{\link[=resolve_dist_plan]{resolve_dist_plan()}} result).
 }
 \description{
-Explain a flow: DAG + distribution + sinks
+Returns a list with two components: a tibble of stage metadata and a
+resolved distribution plan (see \code{\link[=resolve_dist_plan]{resolve_dist_plan()}}).  Printing the
+result shows both the stage table and the full execution layout with all
+conditional logic (parallelly availability, SLURM env vars, callr
+heuristics) resolved for the \strong{current} environment.
 }
 \examples{
 grid <- data.frame(x = 1:3)

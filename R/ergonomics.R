@@ -35,9 +35,17 @@ with_parade_options <- function(..., code) {
 }
 
 #' Explain a flow: DAG + distribution + sinks
+#'
+#' Returns a list with two components: a tibble of stage metadata and a
+#' resolved distribution plan (see [resolve_dist_plan()]).  Printing the
+#' result shows both the stage table and the full execution layout with all
+#' conditional logic (parallelly availability, SLURM env vars, callr
+#' heuristics) resolved for the **current** environment.
+#'
 #' @param x A [flow()].
 #' @param ... Additional arguments passed to methods (unused).
-#' @return A tibble summarizing stages.
+#' @return An `explained_parade_flow` list (with a print method) containing
+#'   `$stages` (tibble) and `$dist_plan` ([resolve_dist_plan()] result).
 #' @examples
 #' grid <- data.frame(x = 1:3)
 #' fl <- flow(grid) |>
@@ -48,7 +56,7 @@ explain.parade_flow <- function(x, ...) {
   stopifnot(inherits(x, "parade_flow"))
   rs <- flow_stage_resources(x)
   rs_map <- split(rs, rs$stage_id)
-  tibble::tibble(
+  stages_tbl <- tibble::tibble(
     stage   = vapply(x$stages, function(s) s$id, ""),
     needs   = vapply(x$stages, function(s) paste(s$needs %||% character(), collapse = ","), ""),
     inputs  = vapply(x$stages, function(s) {
@@ -94,10 +102,24 @@ explain.parade_flow <- function(x, ...) {
     prefix  = vapply(x$stages, function(s) as.character(isTRUE(s$prefix)), ""),
     hoist   = vapply(x$stages, function(s) as.character(isTRUE(s$hoist_struct)), "")
   )
+  out <- list(stages = stages_tbl, dist_plan = resolve_dist_plan(x))
+  class(out) <- "explained_parade_flow"
+  out
+}
+
+#' @export
+print.explained_parade_flow <- function(x, ...) {
+  cat("Stages\n------\n")
+  print(x$stages)
+  cat("\n")
+  print(x$dist_plan)
+  invisible(x)
 }
 
 #' Dry-run a flow: show plan and counts without executing
 #' @param x A [flow()] object
+#' @param limit Optional integer; only show the first `limit` grid rows.
+#' @param show_rows Maximum number of grid rows to print (default `20L`).
 #' @param ... Additional arguments (unused)
 #' @return A summary of what the flow would execute (invisibly).
 #' @examples
@@ -108,7 +130,8 @@ explain.parade_flow <- function(x, ...) {
 #' @export
 dry_run.parade_flow <- function(x, limit = NULL, show_rows = 20L, ...) {
   stopifnot(inherits(x, "parade_flow"))
-  cat("Plan\n----\n"); print(explain(x)); cat("\n")
+  ex <- explain(x)
+  cat("Stages\n------\n"); print(ex$stages); cat("\n")
   grid <- x$grid
   if (!is.null(limit)) grid <- utils::head(grid, limit)
   cat("Grid rows: ", nrow(grid), "\n", sep="")
@@ -138,22 +161,9 @@ dry_run.parade_flow <- function(x, limit = NULL, show_rows = 20L, ...) {
       }
     }
   }
-  if (!is.null(x$dist) && length(x$dist$by)) {
-    key <- tibble::as_tibble(grid[x$dist$by]); grp_id <- interaction(key, drop=TRUE, lex.order=TRUE); groups <- split(seq_len(nrow(grid)), grp_id)
-    n_groups <- length(groups)
-    if (!is.null(x$dist$target_jobs)) {
-      target_jobs <- as.integer(x$dist$target_jobs)
-      chunks_per_job <- max(1L, ceiling(n_groups / target_jobs))
-    } else {
-      chunks_per_job <- max(1L, x$dist$chunks_per_job %||% 1L)
-    }
-    chunks <- split(groups, ceiling(seq_along(groups) / chunks_per_job))
-    cat("Distribution: ", x$dist$backend, " by ", paste(x$dist$by, collapse=","),
-        "; groups=", length(groups), "; chunks=", length(chunks),
-        "; within=", x$dist$within, " workers=", x$dist$workers_within %||% NA_integer_, "\n", sep="")
-  } else {
-    cat("Distribution: row-wise (by = NULL) or single process if not distributed.\n")
-  }
+  cat("\n")
+  print(ex$dist_plan)
+  cat("\n")
   pl <- flow_plan(x, limit = limit)
   n_execute <- sum(pl$action == "execute")
   n_reuse <- sum(pl$action == "reuse")

@@ -9,6 +9,10 @@
 \arguments{
 \item{x}{A \code{\link[=flow]{flow()}} object}
 
+\item{limit}{Optional integer; only show the first \code{limit} grid rows.}
+
+\item{show_rows}{Maximum number of grid rows to print (default \code{20L}).}
+
 \item{...}{Additional arguments (unused)}
 }
 \value{

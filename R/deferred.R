@@ -363,15 +363,11 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   if (length(within) != 1L) within <- within[[1]]
 
   order <- .toposort(fl$stages)
-  n_workers <- dist$workers_within
-  if (is.null(n_workers)) {
-    if (requireNamespace("parallelly", quietly = TRUE)) {
-      n_workers <- parallelly::availableCores()
-    } else {
-      n_workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-      max_conn <- as.integer(Sys.getenv("R_MAX_NUM_DLLS", "128"))
-      n_workers <- min(n_workers, max_conn - 6L, 120L)
-    }
+  worker_info <- resolve_workers(dist, n_groups = length(idx_vec))
+  n_workers <- worker_info$workers
+  # Only message when the resolved value is surprising (heuristic or capped)
+  if (worker_info$source %in% c("callr_heuristic", "explicit_capped")) {
+    message("[parade] ", worker_info$detail)
   }
   run_context <- list(
     run_id = fl$options$run_id %||% NA_character_,

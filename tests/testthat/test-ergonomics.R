@@ -29,10 +29,12 @@ test_that("explain() and dry_run() provide basic summaries", {
     )
 
   ex <- explain(fl)
-  expect_s3_class(ex, "tbl_df")
-  expect_true(all(c("stage", "needs", "fields") %in% names(ex)))
+  expect_s3_class(ex, "explained_parade_flow")
+  expect_s3_class(ex$stages, "tbl_df")
+  expect_true(all(c("stage", "needs", "fields") %in% names(ex$stages)))
+  expect_s3_class(ex$dist_plan, "parade_dist_plan")
 
   out <- capture.output(dry_run(fl))
-  expect_true(any(grepl("Plan", out)))
+  expect_true(any(grepl("Stages", out)))
   expect_true(any(grepl("Grid rows: 2", out)))
 })
