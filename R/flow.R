@@ -321,3 +321,72 @@ stage <- function(fl, id, f, needs = character(), schema, prefix = TRUE, sink = 
   )
   fl$stages <- append(fl$stages, list(st)); fl
 }
+
+#' Define a reusable stage object
+#'
+#' Creates a pre-configured stage definition that can be added to one or more
+#' flows with [add_stage()].
+#' This is useful for complex or reusable stage logic that benefits from being
+#' defined separately, keeping the pipeline definition clean.
+#'
+#' @param id Unique stage identifier (character).
+#' @param f Function to execute for this stage.
+#' @param needs Character vector of stage IDs this stage depends on.
+#' @param schema Schema defining expected output structure (from [returns()]).
+#' @param prefix Whether to prefix output columns with stage ID (logical).
+#' @param sink Optional sink specification for artifact persistence.
+#' @param skip_when Optional function to determine when to skip this stage.
+#' @param ... Additional constant arguments passed to the stage function.
+#' @return A `parade_stage_def` object.
+#' @export
+#' @examples
+#' fit <- stage_def("fit",
+#'   f = function(x) list(result = x^2),
+#'   schema = returns(result = dbl())
+#' )
+#'
+#' # Use in a pipeline
+#' grid <- data.frame(x = 1:3)
+#' fl <- flow(grid) |> add_stage(fit)
+stage_def <- function(id, f, needs = character(), schema, prefix = TRUE,
+                      sink = NULL, skip_when = NULL, ...) {
+  stopifnot(is.character(id), length(id) == 1L)
+  stopifnot(is.function(f))
+  structure(
+    list(id = id, f = f, needs = needs, schema = schema,
+         prefix = prefix, sink = sink, skip_when = skip_when,
+         extra = rlang::list2(...)),
+    class = "parade_stage_def"
+  )
+}
+
+#' Add a pre-defined stage to a parade flow
+#'
+#' Inserts a stage created by [stage_def()] into a flow.
+#' This allows complex stages to be defined once and reused across
+#' multiple flows.
+#'
+#' @param fl A `parade_flow` object.
+#' @param def A `parade_stage_def` object created by [stage_def()].
+#' @return The input flow with the stage added.
+#' @export
+#' @examples
+#' sq <- stage_def("sq",
+#'   f = function(x) list(result = x^2),
+#'   schema = returns(result = dbl())
+#' )
+#'
+#' grid <- data.frame(x = 1:3)
+#' result <- flow(grid) |>
+#'   add_stage(sq) |>
+#'   collect(engine = "sequential")
+add_stage <- function(fl, def) {
+  stopifnot(inherits(fl, "parade_flow"))
+  stopifnot(inherits(def, "parade_stage_def"))
+  do.call(stage, c(
+    list(fl = fl, id = def$id, f = def$f, needs = def$needs,
+         schema = def$schema, prefix = def$prefix,
+         sink = def$sink, skip_when = def$skip_when),
+    def$extra
+  ))
+}
