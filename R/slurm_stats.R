@@ -1,7 +1,20 @@
 # Slurm metrics + text monitors -------------------------------------------
 # internal helpers
 .slurm_cmd <- function(cmd) { p <- Sys.which(cmd); if (!nzchar(p)) return(NA_character_); p }
-.run_cmd <- function(cmd, args) { p <- .slurm_cmd(cmd); if (is.na(p)) return(structure(character(), status = 127L)); out <- try(suppressWarnings(system2(p, args, stdout = TRUE, stderr = TRUE, wait = TRUE)), silent = TRUE); if (inherits(out, "try-error")) return(structure(character(), status = 127L)); attr(out, "status") <- attr(out, "status") %||% 0L; out }
+.run_cmd <- function(cmd, args) {
+  p <- .slurm_cmd(cmd)
+  if (is.na(p)) return(structure(character(), status = 127L))
+
+  # Quote arguments containing % to prevent shell interpretation of format specifiers
+  args_quoted <- vapply(args, function(a) {
+    if (grepl("%", a, fixed = TRUE)) shQuote(a) else a
+  }, character(1), USE.NAMES = FALSE)
+
+  out <- try(suppressWarnings(system2(p, args_quoted, stdout = TRUE, stderr = TRUE, wait = TRUE)), silent = TRUE)
+  if (inherits(out, "try-error")) return(structure(character(), status = 127L))
+  attr(out, "status") <- attr(out, "status") %||% 0L
+  out
+}
 .parade_parse_hms <- function(x) { if (is.na(x) || !nzchar(x)) return(NA_real_); s <- gsub("\\s+", "", x); if (grepl("^\\d+-\\d{2}:\\d{2}:\\d{2}$", s)) { parts <- strsplit(s, "[-:]")[[1]]; d <- as.numeric(parts[1]); h <- as.numeric(parts[2]); m <- as.numeric(parts[3]); ss <- as.numeric(parts[4]); return(d*86400 + h*3600 + m*60 + ss) }; if (grepl("^\\d{1,2}:\\d{2}:\\d{2}$", s)) { parts <- strsplit(s, ":", fixed = TRUE)[[1]]; h <- as.numeric(parts[1]); m <- as.numeric(parts[2]); ss <- as.numeric(parts[3]); return(h*3600 + m*60 + ss) }; if (grepl("^\\d{1,2}:\\d{2}$", s)) { parts <- strsplit(s, ":", fixed = TRUE)[[1]]; m <- as.numeric(parts[1]); ss <- as.numeric(parts[2]); return(m*60 + ss) }; suppressWarnings(as.numeric(s)) }
 .parade_fmt_bytes <- function(b) { if (is.na(b)) return("NA"); if (b < 1024) return(sprintf("%dB", as.integer(b))); units <- c("K","M","G","T","P"); i <- 0; val <- as.numeric(b); while (val >= 1024 && i < length(units)) { val <- val / 1024; i <- i + 1 }; sprintf("%.1f%s", val, units[i]) }
 .parade_parse_mem <- function(x) { if (is.na(x) || !nzchar(x)) return(NA_real_); s <- trimws(toupper(as.character(x))); if (s %in% c("N/A","NA","NONE")) return(NA_real_); m <- regexec("^([0-9]+(?:\\.[0-9]+)?)([KMGTP]?)", s); g <- regmatches(s, m)[[1]]; if (length(g) >= 2) { n <- as.numeric(g[2]); u <- if (length(g) >= 3) g[3] else ""; mult <- switch(u, "K"=1024, "M"=1024^2, "G"=1024^3, "T"=1024^4, "P"=1024^5, 1); return(n * mult) }; suppressWarnings(as.numeric(s)) }
@@ -110,44 +123,36 @@
 #' }
 script_metrics <- function(job) {
   stopifnot(inherits(job, "parade_script_job"))
-  # Prefer SLURM batch id if available
-  sid <- job$batch_id
-  if (is.null(sid) || is.na(sid) || !nzchar(as.character(sid))) {
-    # Fallback: try to resolve from registry when available
-    if (requireNamespace("batchtools", quietly = TRUE) && !is.null(job$registry_dir)) {
-      reg <- try(batchtools::loadRegistry(job$registry_dir, writeable = FALSE), silent = TRUE)
-      if (!inherits(reg, "try-error")) {
-        jt <- try(batchtools::getJobTable(reg), silent = TRUE)
-        if (!inherits(jt, "try-error")) {
-          row <- jt[jt$job.id == job$job_id, , drop = FALSE]
-          if (nrow(row) >= 1 && !is.na(row$batch.id[[1]])) sid <- row$batch.id[[1]]
-        }
-      }
-    }
-  }
-  if (is.null(sid) || is.na(sid) || !nzchar(as.character(sid))) {
-    # Historical handles may store the SLURM id in job_id
-    sid <- job$job_id
-  }
-  # If we still don't have a valid batch id, return NA metrics
-  # Validate that batch_id looks like a job ID (numeric or contains only digits)
-  sid_chr <- as.character(sid)
-  if (is.null(sid) || is.na(sid) || !nzchar(sid_chr) || !grepl("^[0-9]+$", sid_chr)) {
+  # Use robust resolution to get SLURM job ID
+  jid <- resolve_slurm_job_id(job)
+
+  # If we couldn't resolve a valid batch id, return NA metrics
+  if (is.na(jid) || !nzchar(jid)) {
     return(list(job_id = NA_character_, name = job$name, state = "UNKNOWN", node = NA_character_,
                 elapsed = NA_real_, timelimit = NA_real_, cpus_alloc = NA_real_, cpu_used = NA_real_,
                 cpu_pct = NA_real_, ave_rss = NA_real_, max_rss = NA_real_, ave_vmsize = NA_real_,
                 max_vmsize = NA_real_, req_mem = NA_character_))
   }
-  jid <- sid_chr
   sq <- .slurm_squeue_info(jid)
   ss <- .slurm_sstat_info(jid)
   sa <- .slurm_sacct_info(jid)
+
+  # Determine state: prefer squeue if job is active, fallback to sacct for completed jobs
+  state <- if (!is.null(sq$state) && sq$state != "UNKNOWN") {
+    sq$state
+  } else if (!is.null(sa$State) && !is.na(sa$State)) {
+    sa$State
+  } else {
+    "UNKNOWN"
+  }
+
   alloc_cpus <- job$resources$cpus_per_task %||% sa$AllocCPUS %||% sq$cpus
   elapsed <- if (!is.null(ss$Elapsed)) ss$Elapsed else (sa$ElapsedRaw %||% sq$time)
   cpu_used <- if (!is.null(ss$CPUUtilized)) ss$CPUUtilized else sa$TotalCPU
   cpu_pct <- NA_real_
   if (!is.na(elapsed) && !is.na(alloc_cpus) && alloc_cpus > 0 && !is.na(cpu_used)) cpu_pct <- min(100, 100 * cpu_used / (elapsed * alloc_cpus))
-  list(job_id = jid, name = job$name, state = sq$state %||% sa$State %||% "UNKNOWN", node = sq$nodelist, elapsed = elapsed, timelimit = sq$timelimit %||% NA_real_, cpus_alloc = alloc_cpus, cpu_used = cpu_used, cpu_pct = cpu_pct, ave_rss = ss$AveRSS %||% NA_real_, max_rss = (ss$MaxRSS %||% sa$MaxRSS %||% NA_real_), ave_vmsize = ss$AveVMSize %||% NA_real_, max_vmsize = (ss$MaxVMSize %||% sa$MaxVMSize %||% NA_real_), req_mem = sa$ReqMem %||% job$resources$mem %||% NA_character_)
+
+  list(job_id = jid, name = job$name, state = state, node = sq$nodelist, elapsed = elapsed, timelimit = sq$timelimit %||% NA_real_, cpus_alloc = alloc_cpus, cpu_used = cpu_used, cpu_pct = cpu_pct, ave_rss = ss$AveRSS %||% NA_real_, max_rss = (ss$MaxRSS %||% sa$MaxRSS %||% NA_real_), ave_vmsize = ss$AveVMSize %||% NA_real_, max_vmsize = (ss$MaxVMSize %||% sa$MaxVMSize %||% NA_real_), req_mem = sa$ReqMem %||% job$resources$mem %||% NA_character_)
 }
 
 # Single job text UI -------------------------------------------------------
@@ -207,8 +212,43 @@ script_logs <- function(job) {
 #' }
 #' }
 script_done <- function(job) {
-  if (!requireNamespace("batchtools", quietly = TRUE)) return(FALSE)
-  reg <- batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
-  st <- batchtools::getStatus(reg)
-  (st$done + st$error) > 0
+  # Try batchtools first (fast if it works)
+  bt_result <- tryCatch({
+    if (requireNamespace("batchtools", quietly = TRUE)) {
+      reg <- batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
+      st <- batchtools::getStatus(reg)
+      return((st$done + st$error) > 0)
+    }
+    NULL
+  }, error = function(e) NULL)
+
+  if (!is.null(bt_result)) return(bt_result)
+
+  # Fallback: Check via SLURM commands
+  jid <- resolve_slurm_job_id(job)
+  if (is.na(jid) || !nzchar(jid)) {
+    # Can't determine - check if result file exists as last resort
+    if (!is.null(job$result_path) && file.exists(job$result_path)) {
+      return(TRUE)
+    }
+    return(FALSE)
+  }
+
+  # Check squeue first (if not in queue, likely done)
+  sq_info <- .slurm_squeue_info(jid)
+  if (sq_info$state == "UNKNOWN") {
+    # Not in queue - check sacct for completion
+    sa_info <- .slurm_sacct_info(jid)
+    if (!is.null(sa_info) && !is.null(sa_info$State)) {
+      state <- sa_info$State
+      # Consider COMPLETED, FAILED, CANCELLED, TIMEOUT, etc. as "done"
+      return(state %in% c("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT",
+                          "NODE_FAIL", "PREEMPTED", "OUT_OF_MEMORY"))
+    }
+    # Not found anywhere - assume done
+    return(TRUE)
+  }
+
+  # Still in queue with a known state
+  FALSE
 }

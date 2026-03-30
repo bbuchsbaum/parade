@@ -138,10 +138,7 @@ submit_slurm <- function(script,
     )
   }
   if (!file.exists(tmpl_path)) stop("Template not found: ", tmpl_path)
-  if (!requireNamespace("batchtools", quietly = TRUE)) {
-    stop("submit_slurm() requires 'batchtools'.")
-  }
-  cf <- batchtools::makeClusterFunctionsSlurm(tmpl_path)
+  cf <- make_parade_slurm_cf(tmpl_path)
   reg <- bt_make_registry(reg_dir = reg_dir, cf = cf)
 		  batchtools::batchMap(fun = parade_run_script_bt, i = 1L,
 		                       more.args = list(script = script, args = args, env = env, lib_paths = lib_paths, rscript = rscript, wd = wd),
@@ -217,7 +214,7 @@ submit_slurm <- function(script,
 parade_run_script_bt <- function(i, script, args, env, lib_paths, rscript, wd) {
   if (length(lib_paths)) .libPaths(unique(c(lib_paths, .libPaths())))
   old <- setwd(wd); on.exit(setwd(old), add = TRUE)
-  if (length(env)) for (k in names(env)) Sys.setenv(structure(env[[k]], names = k))
+  if (length(env)) for (k in names(env)) do.call(Sys.setenv, setNames(list(env[[k]]), k))
   cmd <- c(script, args); status <- system2(rscript, cmd, stdout = "", stderr = "", wait = TRUE)
   if (is.null(status)) status <- 0L
   if (status != 0L) stop(sprintf("Script exited with status %s", status))
@@ -259,42 +256,74 @@ print.parade_script_job <- function(x, ...) {
 #' }
 script_status <- function(job, detail = FALSE) {
   stopifnot(inherits(job, "parade_script_job"))
-  if (!requireNamespace("batchtools", quietly = TRUE)) stop("script_status() requires 'batchtools'.")
 
-  # Try to load with write access for syncing; fall back to read-only if that fails
-  reg <- tryCatch(
-    batchtools::loadRegistry(job$registry_dir, writeable = TRUE),
-    error = function(e) batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
-  )
+  # Try batchtools approach first
+  bt_status <- tryCatch({
+    if (!requireNamespace("batchtools", quietly = TRUE)) {
+      return(NULL)
+    }
 
-  # Sync registry with actual SLURM job status (requires write access)
-  if (reg$writeable) {
-    tryCatch(
-      batchtools::syncRegistry(reg = reg),
-      error = function(e) {
-        # Ignore sync errors - we'll work with what we have
-        invisible(NULL)
-      }
+    # Try to load with write access for syncing; fall back to read-only if that fails
+    reg <- tryCatch(
+      batchtools::loadRegistry(job$registry_dir, writeable = TRUE),
+      error = function(e) batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
     )
-  }
 
-  if (isTRUE(detail)) {
-    return(tibble::as_tibble(batchtools::getJobTable(reg)))
-  }
-  # Prefer robust summary derived from job table (avoids API differences)
-  jt <- try(batchtools::getJobTable(reg), silent = TRUE)
-  if (inherits(jt, "try-error")) {
-    # Fallback to getStatus if available
+    # Sync registry with actual SLURM job status (requires write access)
+    if (reg$writeable) {
+      tryCatch(
+        batchtools::syncRegistry(reg = reg),
+        error = function(e) invisible(NULL)
+      )
+    }
+
+    if (isTRUE(detail)) {
+      return(tibble::as_tibble(batchtools::getJobTable(reg)))
+    }
+
+    # Try job table approach
+    jt <- try(batchtools::getJobTable(reg), silent = TRUE)
+    if (!inherits(jt, "try-error") && nrow(jt) > 0) {
+      na_false <- function(x) ifelse(is.na(x), FALSE, x)
+      pending <- sum(is.na(jt$submitted), na.rm = TRUE)
+      running <- sum(na_false(!is.na(jt$started)) & na_false(is.na(jt$done)) & na_false(is.na(jt$error) | jt$error == ""), na.rm = TRUE)
+      started <- sum(!is.na(jt$started), na.rm = TRUE)
+      done <- sum(!is.na(jt$done), na.rm = TRUE)
+      error <- sum(na_false(!is.na(jt$error) & jt$error != ""), na.rm = TRUE)
+      return(tibble::tibble(pending = pending, started = started, running = running, done = done, error = error))
+    }
+
+    # Try getStatus fallback
     st <- try(batchtools::getStatus(reg), silent = TRUE)
     if (!inherits(st, "try-error")) {
       return(tibble::tibble(pending = st$pending, started = st$started, running = st$running, done = st$done, error = st$error))
-    } else {
-      # Last resort: unknown
-      return(tibble::tibble(pending = NA_integer_, started = NA_integer_, running = NA_integer_, done = NA_integer_, error = NA_integer_))
+    }
+
+    NULL
+  }, error = function(e) NULL)
+
+  if (!is.null(bt_status)) return(bt_status)
+
+  # Fallback: Use SLURM commands directly
+  jid <- resolve_slurm_job_id(job)
+  if (is.na(jid) || !nzchar(jid)) {
+    return(tibble::tibble(pending = NA_integer_, started = NA_integer_, running = NA_integer_, done = NA_integer_, error = NA_integer_))
+  }
+
+  # Query SLURM for status
+  sq_info <- .slurm_squeue_info(jid)
+  sa_info <- .slurm_sacct_info(jid)
+
+  # Determine status from SLURM data
+  if (sq_info$state != "UNKNOWN") {
+    # Job is in queue
+    state <- sq_info$state
+    if (state %in% c("PENDING", "CONFIGURING", "RESIZING")) {
+      return(tibble::tibble(pending = 1L, started = 0L, running = 0L, done = 0L, error = 0L))
+    } else if (state %in% c("RUNNING", "COMPLETING")) {
+      return(tibble::tibble(pending = 0L, started = 1L, running = 1L, done = 0L, error = 0L))
     }
   }
-  # Compute summary counts from job table
-  na_false <- function(x) ifelse(is.na(x), FALSE, x)
 
   col_or <- function(df, primary, fallback) {
     if (primary %in% names(df)) return(df[[primary]])
