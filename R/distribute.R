@@ -78,6 +78,12 @@ distribute <- function(fl, dist, ...) {
 #'   regardless of how many groups exist.
 #'   - `target_jobs = 10` with 100 groups → 10 futures (10 groups each)
 #'   - `target_jobs = NULL` (default): use `chunks_per_job` instead
+#' @param callr_timeout Numeric; per-process timeout in seconds for
+#'   `within = "callr"`. If a callr worker has been alive longer than this,
+#'   it is killed and its result (if any) is recovered. Useful as a safety
+#'   net when stage functions may leave background processes that prevent
+#'   clean exit.
+#'   `NULL` (default) means no timeout.
 #' @return A `parade_dist` object for local execution
 #' @export
 #' @examples
@@ -100,7 +106,8 @@ dist_local <- function(by = NULL,
                        within = c("multisession", "multicore", "callr", "sequential"),
                        workers_within = NULL,
                        chunks_per_job = 1L,
-                       target_jobs = NULL) {
+                       target_jobs = NULL,
+                       callr_timeout = NULL) {
   within <- match.arg(within)
   structure(
     list(
@@ -110,6 +117,7 @@ dist_local <- function(by = NULL,
       workers_within = workers_within,
       chunks_per_job = as.integer(chunks_per_job),
       target_jobs = target_jobs,
+      callr_timeout = callr_timeout,
       slurm = NULL
     ),
     class = "parade_dist"
@@ -193,6 +201,12 @@ dist_local <- function(by = NULL,
 #'   fill it.
 #'   - `target_jobs = 10` with 81 groups → 10 jobs (~8 groups each)
 #'   - `target_jobs = NULL` (default): use `chunks_per_job` instead
+#' @param callr_timeout Numeric; per-process timeout in seconds for
+#'   `within = "callr"`. If a callr worker has been alive longer than this,
+#'   it is killed and its result (if any) is recovered. Useful as a safety
+#'   net when stage functions may leave background processes that prevent
+#'   clean exit.
+#'   `NULL` (default) means no timeout.
 #' @return A `parade_dist` object for SLURM execution
 #' @export
 #' @examples
@@ -278,7 +292,8 @@ dist_slurm <- function(by = NULL,
                        template = slurm_template(),
                        resources = list(),
                        chunks_per_job = 1L,
-                       target_jobs = NULL) {
+                       target_jobs = NULL,
+                       callr_timeout = NULL) {
   within <- match.arg(within)
   # Extract workers_within from resources if placed there by mistake
   if (is.null(workers_within) && !is.null(resources$workers_within)) {
@@ -293,6 +308,7 @@ dist_slurm <- function(by = NULL,
       workers_within = workers_within,
       chunks_per_job = as.integer(chunks_per_job),
       target_jobs = target_jobs,
+      callr_timeout = callr_timeout,
       slurm = list(template = template, resources = resources, profile = "default")
     ),
     class = "parade_dist"
@@ -710,6 +726,7 @@ resolve_dist_plan <- function(fl) {
     groups_per_job = groups_per_job,
     workers = worker_info,
     cores_per_worker = cores_per_worker,
+    callr_timeout = dist$callr_timeout,
     slurm_resources = if (identical(dist$backend, "slurm")) dist$slurm$resources else NULL,
     warnings = warns
   )
@@ -743,6 +760,9 @@ print.parade_dist_plan <- function(x, ...) {
 
   if (identical(x$within, "callr") && !is.na(x$cores_per_worker)) {
     cat("  Cores/worker: ~", round(x$cores_per_worker, 1), "\n", sep = "")
+    if (!is.null(x$callr_timeout)) {
+      cat("  Timeout: ", x$callr_timeout, "s per process\n", sep = "")
+    }
   }
 
   if (length(x$slurm_resources)) {

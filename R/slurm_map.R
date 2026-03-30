@@ -758,19 +758,30 @@ packed_worker_function <- function(chunk_elements,
   } else if (parallel_backend == "callr") {
     # Spawn independent R processes up to 'workers' concurrently
     if (!requireNamespace("callr", quietly = TRUE)) stop("callr backend requires the 'callr' package")
-    # Prepare package loader expression for child
     results <- vector("list", length(chunk_elements))
     active <- list(); next_i <- 1L
     pkg_root <- tryCatch(normalizePath(getwd(), mustWork = TRUE), error = function(e) NULL)
+
+    # Safety net: kill any active callr processes on early exit (error, interrupt).
+    on.exit({
+      for (proc in active) {
+        tryCatch(proc$kill_tree(), error = function(e) NULL)
+      }
+    }, add = TRUE)
+
     launch_one <- function(idx) {
       element <- chunk_elements[[idx]]; global_index <- chunk_indices[idx]
       job_name <- generate_job_name(element, global_index, name_by, NULL)
       stem_val <- if (is.character(element) && length(element) == 1) tools::file_path_sans_ext(basename(element)) else job_name
       pkgs <- unique(c("parade"))
-      # Serialize args for child
       call_args <- c(list(element), worker_args)
       if (!is.null(worker_extra_args)) call_args <- c(call_args, worker_extra_args)
       callr::r_bg(function(pkgs, worker_fn, call_args, write_tpl, job_name, global_index, run_id, stem_val, pkg_root) {
+        # Ensure sub-workers are shut down before this process exits
+        on.exit({
+          tryCatch(future::plan(future::sequential), error = function(e) NULL)
+          tryCatch(gc(), error = function(e) NULL)
+        }, add = TRUE)
         # Load packages (dev-friendly fallback for parade)
         if ("parade" %in% pkgs) {
           if (!require("parade", character.only = TRUE, quietly = TRUE)) {
@@ -808,14 +819,23 @@ packed_worker_function <- function(chunk_elements,
     while (length(active) < workers && next_i <= length(chunk_elements)) {
       active[[as.character(next_i)]] <- launch_one(next_i); next_i <- next_i + 1L
     }
-    # Poll loop
+    # Poll loop: collect finished, backfill
     while (length(active) > 0) {
       done_ids <- c()
       for (nm in names(active)) {
         p <- active[[nm]]
         if (!p$is_alive()) {
           idx <- as.integer(nm)
-          results[[idx]] <- p$get_result()
+          tryCatch(p$wait(timeout = 5000), error = function(e) NULL)
+          results[[idx]] <- tryCatch(
+            p$get_result(),
+            error = function(e) {
+              warning(sprintf("callr worker %d failed: %s", idx, conditionMessage(e)),
+                      call. = FALSE, immediate. = TRUE)
+              e
+            }
+          )
+          tryCatch(p$kill_tree(), error = function(e) NULL)
           done_ids <- c(done_ids, nm)
         }
       }
@@ -825,6 +845,9 @@ packed_worker_function <- function(chunk_elements,
       }
       if (length(active) > 0) Sys.sleep(0.5)
     }
+    # Clear guard and force finalization
+    active <- list()
+    gc()
   } else {
     # Fallback sequential
     results <- lapply(seq_along(chunk_elements), function(i) run_worker(chunk_elements[[i]], chunk_indices[i]))

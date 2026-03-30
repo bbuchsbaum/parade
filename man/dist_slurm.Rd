@@ -11,7 +11,8 @@ dist_slurm(
   template = slurm_template(),
   resources = list(),
   chunks_per_job = 1L,
-  target_jobs = NULL
+  target_jobs = NULL,
+  callr_timeout = NULL
 )
 }
 \arguments{
@@ -76,6 +77,13 @@ fill it.
 \item \code{target_jobs = 10} with 81 groups → 10 jobs (~8 groups each)
 \item \code{target_jobs = NULL} (default): use \code{chunks_per_job} instead
 }}
+
+\item{callr_timeout}{Numeric; per-process timeout in seconds for
+\code{within = "callr"}. If a callr worker has been alive longer than this,
+it is killed and its result (if any) is recovered. Useful as a safety
+net when stage functions may leave background processes that prevent
+clean exit.
+\code{NULL} (default) means no timeout.}
 }
 \value{
 A \code{parade_dist} object for SLURM execution

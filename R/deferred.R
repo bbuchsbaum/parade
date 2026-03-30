@@ -447,42 +447,77 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
       )
     }
 
+    # Safety net: kill any active callr processes on early exit (error, interrupt).
+    # Uses kill_tree() to also terminate child processes (furrr workers, etc.)
+    # that would otherwise become orphans in the SLURM cgroup.
+    on.exit({
+      for (proc in active) {
+        tryCatch(proc$kill_tree(), error = function(e) NULL)
+      }
+    }, add = TRUE)
+
     # Launch initial batch
+    callr_timeout <- dist$callr_timeout
+    launch_times <- list()
     while (length(active) < n_workers && next_g <= n_groups) {
       active[[as.character(next_g)]] <- launch_group(next_g)
+      launch_times[[as.character(next_g)]] <- Sys.time()
       next_g <- next_g + 1L
     }
-    # Poll loop: collect finished, backfill
+
+    .reap_callr_proc <- function(proc, g_idx, killed = FALSE) {
+      # Wait briefly for the process to finish writing its result file,
+      # then kill the full process tree and collect the result.
+      if (!killed) {
+        tryCatch(proc$wait(timeout = 5000), error = function(e) NULL)
+      }
+      res <- tryCatch(
+        proc$get_result(),
+        error = function(e) {
+          msg <- sprintf("callr worker for group %d failed: %s", g_idx,
+                         conditionMessage(e))
+          warning(msg, call. = FALSE, immediate. = TRUE)
+          grid[idx_vec[[g_idx]], , drop = FALSE][0, , drop = FALSE]
+        }
+      )
+      tryCatch(proc$kill_tree(), error = function(e) NULL)
+      res
+    }
+
+    # Poll loop: collect finished, enforce timeout, backfill
     while (length(active) > 0L) {
       done_ids <- character()
+      now <- Sys.time()
       for (nm in names(active)) {
         proc <- active[[nm]]
+        g_idx <- as.integer(nm)
         if (!proc$is_alive()) {
-          g_idx <- as.integer(nm)
-          group_results[[g_idx]] <- tryCatch(
-            proc$get_result(),
-            error = function(e) {
-              msg <- sprintf("callr worker for group %d failed: %s", g_idx,
-                             conditionMessage(e))
-              warning(msg, call. = FALSE, immediate. = TRUE)
-              grid[idx_vec[[g_idx]], , drop = FALSE][0, , drop = FALSE]
-            }
-          )
-          # Explicitly reap the process handle so no zombies or orphans
-          # linger in the SLURM cgroup.
-          tryCatch({ proc$kill(); proc$wait(timeout = 1000) }, error = function(e) NULL)
+          group_results[[g_idx]] <- .reap_callr_proc(proc, g_idx)
           done_ids <- c(done_ids, nm)
+        } else if (!is.null(callr_timeout)) {
+          elapsed <- as.numeric(difftime(now, launch_times[[nm]], units = "secs"))
+          if (elapsed > callr_timeout) {
+            warning(sprintf(
+              "callr worker for group %d exceeded timeout (%.0fs > %.0fs); killing process tree",
+              g_idx, elapsed, callr_timeout
+            ), call. = FALSE, immediate. = TRUE)
+            tryCatch(proc$kill_tree(), error = function(e) NULL)
+            tryCatch(proc$wait(timeout = 2000), error = function(e) NULL)
+            group_results[[g_idx]] <- .reap_callr_proc(proc, g_idx, killed = TRUE)
+            done_ids <- c(done_ids, nm)
+          }
         }
       }
       if (length(done_ids)) active[done_ids] <- NULL
       while (length(active) < n_workers && next_g <= n_groups) {
         active[[as.character(next_g)]] <- launch_group(next_g)
+        launch_times[[as.character(next_g)]] <- Sys.time()
         next_g <- next_g + 1L
       }
       if (length(active) > 0L) Sys.sleep(0.25)
     }
-    # Force finalization of any remaining process handles so that
-    # processx finalizers run before we move on to result assembly.
+    # Clear the on.exit guard — all processes collected normally.
+    active <- list()
     gc()
 
     group_results <- purrr::compact(group_results)
