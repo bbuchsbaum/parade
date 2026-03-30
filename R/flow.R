@@ -223,7 +223,7 @@ print.parade_flow <- function(x, ...) {
     if (!is.null(d$slurm) && length(d$slurm$resources) > 0L) {
       cat("    resources:\n")
       for (nm in names(d$slurm$resources)) {
-        cat("      ", nm, " = ", as.character(d$slurm$resources[[nm]]), "\n", sep = "")
+        cat("      ", nm, " = ", paste(as.character(d$slurm$resources[[nm]]), collapse = ", "), "\n", sep = "")
       }
     }
   }

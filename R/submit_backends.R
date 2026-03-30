@@ -208,7 +208,7 @@ list_submit_backends <- function() {
   }
   chunk_ids <- .parade_submit_chunk_ids(handle, chunks)
   tmpl <- resolve_path(dist$slurm$template, create = FALSE)
-  cf <- batchtools::makeClusterFunctionsSlurm(tmpl)
+  cf <- make_parade_slurm_cf(tmpl)
   # batchtools::makeRegistry() creates the directory; save flow/chunks after.
   reg <- bt_make_registry(reg_dir = handle$registry_dir, cf = cf)
   .save_registry_files(handle)
