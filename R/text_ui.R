@@ -2,6 +2,13 @@
 # utilities
 .fmt_hms <- function(sec) { if (is.null(sec) || is.na(sec)) return("NA"); sec <- as.integer(sec); h <- sec %/% 3600; m <- (sec %% 3600) %/% 60; s <- sec %% 60; sprintf("%d:%02d:%02d", h, m, s) }
 .bar <- function(pct, width = 24) { if (is.na(pct)) return(paste(rep('.', width), collapse='')); pct <- max(0, min(100, pct)); full <- as.integer(round(width * pct / 100)); paste0(paste(rep('#', full), collapse=''), paste(rep('.', width - full), collapse='')) }
+.script_event_lines <- function(job, n = 6L) {
+  run_id <- job$run_id %||% NA_character_
+  if (!is.character(run_id) || length(run_id) != 1L || is.na(run_id) || !nzchar(run_id)) {
+    return(character())
+  }
+  tryCatch(.parade_dashboard_event_lines(run_id, n = n), error = function(e) character())
+}
 
 #' Interactive text monitor for a single SLURM job
 #'
@@ -40,6 +47,12 @@ script_top <- function(job, refresh = 2, nlog = 30, clear = TRUE) {
     vm_txt  <- paste0("AveVM ", .parade_fmt_bytes(met$ave_vmsize), "   MaxVM ", .parade_fmt_bytes(met$max_vmsize))
     cat("MEM:  ", mem_txt, "   |   ", vm_txt, "\n", sep = "")
     if (!is.null(met$req_mem) && !is.na(met$req_mem)) cat("ReqMem: ", met$req_mem, "\n", sep = "")
+    event_lines <- .script_event_lines(job, n = min(as.integer(nlog), 6L))
+    if (length(event_lines) > 0L) {
+      cat("\nActivity\n")
+      cat(strrep("-", 48L), "\n")
+      cat(paste(event_lines, collapse = "\n"), "\n", sep = "")
+    }
     try(script_tail(job, n = nlog), silent = TRUE)
     if (isTRUE(try(script_done(job), silent = TRUE))) { cat("\n(Status: finished)\n"); break }
     Sys.sleep(refresh)
@@ -108,8 +121,14 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
     # log tail from first RUNNING job
     run_idx <- which(states == "RUNNING")
     if (length(run_idx)) {
-      cat("\n-- log tail (", mets[[run_idx[1]]]$name, ") --\n", sep = "")
-      try(script_tail(J[[run_idx[1]]], n = nlog), silent = TRUE)
+      event_lines <- .script_event_lines(J[[run_idx[1]]], n = min(as.integer(nlog), 6L))
+      if (length(event_lines) > 0L) {
+        cat("\n-- activity (", mets[[run_idx[1]]]$name, ") --\n", sep = "")
+        cat(paste(event_lines, collapse = "\n"), "\n", sep = "")
+      } else {
+        cat("\n-- log tail (", mets[[run_idx[1]]]$name, ") --\n", sep = "")
+        try(script_tail(J[[run_idx[1]]], n = nlog), silent = TRUE)
+      }
     }
     done <- all(vapply(J, function(j) isTRUE(try(script_done(j), silent = TRUE)), logical(1)))
     if (done) { cat("\n(All jobs finished)\n"); break }

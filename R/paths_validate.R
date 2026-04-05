@@ -20,7 +20,6 @@
 #' @examples
 #' paths_init(quiet = TRUE)
 #' paths_validate()
-#' paths_validate(create = TRUE)
 paths_validate <- function(paths = paths_get(),
                            aliases = NULL,
                            create = FALSE,

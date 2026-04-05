@@ -21,9 +21,11 @@
 #' grid <- data.frame(x = 1:6, g = rep(1:3, 2))
 #' fl <- flow(grid) |>
 #'   stage("s", function(x) list(y = x^2), schema = returns(y = dbl())) |>
-#'   distribute(dist_local(by = "g"))
+#'   distribute(dist_local(by = "g", within = "sequential"))
 #' d <- submit(fl)
 #' pipeline_top(d = d, refresh = 1)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 pipeline_top <- function(run_id = NULL, d = NULL, refresh = 3, max_events = 10L,
                           max_errors = 5L, clear = TRUE) {
@@ -136,13 +138,7 @@ pipeline_top <- function(run_id = NULL, d = NULL, refresh = 3, max_events = 10L,
           "warn"  = "[w]",
           "info"  = "   "
         )
-        .l("  ", ts, " ", sev_tag, " ", ev$event_type %||% "?")
-        if (!is.null(ev$chunk_id)) .l(" chunk=", ev$chunk_id)
-        if (!is.null(ev$stage)) .l(" stage=", ev$stage)
-        if (!is.null(ev$error) && nzchar(ev$error %||% "")) {
-          .l(": ", substr(ev$error, 1, 50))
-        }
-        .l("\n")
+        .l("  ", ts, " ", sev_tag, " ", .event_brief(ev), "\n")
       }
       .l("\n")
     }
@@ -232,10 +228,7 @@ pipeline_top <- function(run_id = NULL, d = NULL, refresh = 3, max_events = 10L,
     .l("-- Events ", strrep("-", max(1, getOption("width", 80) - 11)), "\n")
     for (ev in events) {
       ts <- tryCatch(format(as.POSIXct(ev$timestamp), "%H:%M:%S"), error = function(e) "?")
-      .l("  ", ts, "  ", ev$event_type %||% "?")
-      if (!is.null(ev$chunk_id)) .l(" chunk=", ev$chunk_id)
-      if (!is.null(ev$error) && nzchar(ev$error %||% "")) .l(": ", substr(ev$error, 1, 50))
-      .l("\n")
+      .l("  ", ts, "  ", .event_brief(ev), "\n")
     }
   } else {
     .l("(no events recorded for this run)\n")

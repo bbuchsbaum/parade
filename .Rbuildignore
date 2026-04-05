@@ -16,3 +16,10 @@
 IMPLEMENTATION_PLAN.md
 examples
 ^tests/testthat/registry:$
+^\.ecosystem\.yml$
+^\.rcmdcheck_result\.rds$
+^\.omc($|/)
+^tests/testthat/\.parade($|/)
+^PRD_INCREMENTAL_APPEAL_POWER\.md$
+^manual_cards\.jsonl$
+^parade\.log$

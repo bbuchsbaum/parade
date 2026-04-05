@@ -29,8 +29,10 @@ signature set). Writes a \verb{[DONE]} summary when all chunks complete.
 grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 fl <- flow(grid) |>
   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-  distribute(dist_local(by = "group"))
+  distribute(dist_local(by = "group", within = "sequential"))
 d <- submit(fl)
 parade_watch(d, interval = 5, log_path = NULL)
+unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+unlink("parade.log")
 }
 }

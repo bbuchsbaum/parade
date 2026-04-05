@@ -1,10 +1,13 @@
 ---
 title: 'Unified API: Functions and Scripts, One Surface'
 output: rmarkdown::html_vignette
-vignette: |
-  %\VignetteIndexEntry{1. Unified API: functions and scripts} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+vignette: >
+  %\VignetteIndexEntry{1. Unified API: functions and scripts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css

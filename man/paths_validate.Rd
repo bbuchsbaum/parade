@@ -41,5 +41,4 @@ node-local scratch).
 \examples{
 paths_init(quiet = TRUE)
 paths_validate()
-paths_validate(create = TRUE)
 }

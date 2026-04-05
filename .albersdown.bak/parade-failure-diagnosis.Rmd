@@ -1,13 +1,10 @@
 ---
-title: Failure diagnosis and pipeline monitoring
+title: "Failure diagnosis and pipeline monitoring"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{11. Failure Diagnosis: wtf(), logs, timelines, and monitoring}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+vignette: |
+  %\VignetteIndexEntry{11. Failure Diagnosis: wtf(), logs, timelines, and monitoring} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 params:
   family: red
-  preset: homage
 css: albers.css
 resource_files:
 - albers.css

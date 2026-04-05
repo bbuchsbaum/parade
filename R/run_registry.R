@@ -16,20 +16,7 @@
 #' runs <- run_ls()
 #' }
 run_ls <- function(n = 20L, status = NULL) {
-  path <- .run_registry_path(create = FALSE)
-  if (!file.exists(path)) {
-    return(.empty_run_registry())
-  }
-
-  lines <- tryCatch(readLines(path, warn = FALSE, encoding = "UTF-8"),
-                     error = function(e) character())
-  if (length(lines) == 0L) return(.empty_run_registry())
-
-  records <- lapply(lines, function(line) {
-    tryCatch(jsonlite::fromJSON(line, simplifyVector = FALSE),
-             error = function(e) NULL)
-  })
-  records <- Filter(Negate(is.null), records)
+  records <- .run_registry_read_records()
   if (length(records) == 0L) return(.empty_run_registry())
 
   # Build tibble
@@ -41,7 +28,12 @@ run_ls <- function(n = 20L, status = NULL) {
     n_chunks     = vapply(records, function(r) as.integer(r$n_chunks %||% NA_integer_), integer(1)),
     stages       = vapply(records, function(r) {
       s <- r$flow_stages %||% character()
-      if (length(s) > 0) paste(s, collapse = " -> ") else NA_character_
+      if (length(s) > 0) return(paste(s, collapse = " -> "))
+      if (identical(r$kind %||% "", "script")) {
+        script_name <- r$script_name %||% basename(r$script_path %||% "")
+        if (nzchar(script_name)) return(paste0("script:", script_name))
+      }
+      NA_character_
     }, character(1))
   )
 
@@ -75,20 +67,12 @@ run_ls <- function(n = 20L, status = NULL) {
 #' info <- run_info("a1b2c3d4")
 #' }
 run_info <- function(run_id) {
-  # Read from registry
-  path <- .run_registry_path(create = FALSE)
+  records <- .run_registry_read_records()
   meta <- NULL
-  if (file.exists(path)) {
-    lines <- tryCatch(readLines(path, warn = FALSE, encoding = "UTF-8"),
-                       error = function(e) character())
-    for (line in lines) {
-      rec <- tryCatch(jsonlite::fromJSON(line, simplifyVector = FALSE),
-                       error = function(e) NULL)
-      if (!is.null(rec) && identical(rec$run_id, run_id)) {
-        meta <- rec
-        break
-      }
-    }
+  if (length(records) > 0L) {
+    ids <- vapply(records, function(rec) rec$run_id %||% NA_character_, character(1))
+    hit <- which(ids %in% run_id)
+    if (length(hit) > 0L) meta <- records[[hit[[1L]]]]
   }
 
   if (is.null(meta)) {
@@ -124,7 +108,7 @@ run_info <- function(run_id) {
 #' @keywords internal
 .run_registry_append <- function(run_id, flow_stages = NULL, backend = NULL,
                                   n_chunks = NULL, grid_cols = NULL,
-                                  by_cols = NULL, status = "running") {
+                                  by_cols = NULL, status = "running", ...) {
   if (!isTRUE(getOption("parade.event_store", TRUE))) return(invisible(NULL))
   tryCatch({
     path <- .run_registry_path(create = TRUE)
@@ -138,6 +122,8 @@ run_info <- function(run_id) {
       grid_cols    = grid_cols,
       by_cols      = by_cols
     )
+    extra <- list(...)
+    if (length(extra) > 0L) record <- c(record, extra)
     line <- jsonlite::toJSON(record, auto_unbox = TRUE, null = "null")
     con <- file(path, open = "a", encoding = "UTF-8")
     on.exit(close(con))
@@ -175,6 +161,58 @@ run_info <- function(run_id) {
 .run_registry_path <- function(create = TRUE) {
   dir <- resolve_path("artifacts://runs", create = create)
   file.path(dir, "_registry.jsonl")
+}
+
+#' Read and compact run-registry records
+#' @return A list of run metadata records with last-writer-wins semantics.
+#' @keywords internal
+.run_registry_read_records <- function() {
+  path <- .run_registry_path(create = FALSE)
+  if (!file.exists(path)) {
+    return(list())
+  }
+
+  lines <- tryCatch(readLines(path, warn = FALSE, encoding = "UTF-8"),
+                    error = function(e) character())
+  if (length(lines) == 0L) return(list())
+
+  records <- lapply(lines, function(line) {
+    tryCatch(jsonlite::fromJSON(line, simplifyVector = FALSE),
+             error = function(e) NULL)
+  })
+  records <- Filter(Negate(is.null), records)
+  .run_registry_compact_records(records)
+}
+
+#' Compact append-only registry records by run_id
+#' @param records List of registry records in append order.
+#' @return A compacted list of records with later fields overriding earlier ones.
+#' @keywords internal
+.run_registry_compact_records <- function(records) {
+  if (length(records) == 0L) return(list())
+
+  compact <- list()
+  order_seen <- character()
+
+  for (rec in records) {
+    run_id <- rec$run_id %||% NA_character_
+    if (is.na(run_id) || !nzchar(run_id)) next
+
+    if (!run_id %in% order_seen) {
+      compact[[run_id]] <- rec
+      order_seen <- c(order_seen, run_id)
+      next
+    }
+
+    merged <- compact[[run_id]]
+    for (nm in names(rec)) {
+      val <- rec[[nm]]
+      if (!is.null(val)) merged[[nm]] <- val
+    }
+    compact[[run_id]] <- merged
+  }
+
+  unname(compact[order_seen])
 }
 
 #' Empty tibble for run_ls()

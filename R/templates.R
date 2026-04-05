@@ -7,7 +7,9 @@
 #' @param system Character string specifying the batch system. Currently only "slurm" is supported.
 #' @param out Path where the template file should be written. Defaults to "batchtools/parade-slurm.tmpl".
 #' @param modules Character vector of modules to load. Default is "r".
-#' @param exports Named character vector of environment variables to export in the job script.
+#' @param exports Named character vector of environment variables to export in
+#'   the job script. When `NULL` (default), standard HPC thread-pinning and
+#'   scratch variables are exported.
 #' @param preamble Character vector of additional shell commands to include in the template preamble.
 #' @param overwrite Logical indicating whether to overwrite an existing template file.
 #' @return Invisibly returns the normalized path to the created template file.
@@ -31,11 +33,20 @@
 scaffold_batch_template <- function(system = c("slurm"),
                                    out = file.path("batchtools", paste0("parade-", match.arg(system), ".tmpl")),
                                    modules = "r",
-                                   exports = c(PARADE_SCRATCH='${PARADE_SCRATCH:-${SCRATCH:-${SCRATCHDIR:-${PSCRATCH:-${WORK:-${SLURM_TMPDIR:-${TMPDIR:-/tmp}}}}}}}',
-                                               OMP_NUM_THREADS='1', MKL_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1'),
+                                   exports = NULL,
                                    preamble = character(),
                                    overwrite = FALSE) {
   system <- match.arg(system)
+  if (is.null(exports)) {
+    exports <- c(
+      PARADE_SCRATCH = paste0("${PARADE_SCRATCH:-${SCRATCH:-${SCRATCHDIR:-",
+                              "${PSCRATCH:-${WORK:-${SLURM_TMPDIR:-",
+                              "${TMPDIR:-/tmp}}}}}}}"),
+      OMP_NUM_THREADS = "1",
+      MKL_NUM_THREADS = "1",
+      OPENBLAS_NUM_THREADS = "1"
+    )
+  }
   out_real <- resolve_path(out, create = FALSE)
   dir.create(dirname(out_real), recursive = TRUE, showWarnings = FALSE)
   if (file.exists(out_real) && !isTRUE(overwrite)) stop("File exists: ", out_real, " (set overwrite=TRUE).")

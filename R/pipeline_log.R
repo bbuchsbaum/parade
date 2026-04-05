@@ -20,10 +20,12 @@
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' d <- submit(fl)
 #' deferred_await(d, timeout = 60)
 #' errs <- deferred_errors(d)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 deferred_errors <- function(d) {
   stopifnot(inherits(d, "parade_deferred"))
@@ -119,9 +121,11 @@ deferred_errors <- function(d) {
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' d <- submit(fl)
 #' parade_watch(d, interval = 5, log_path = NULL)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors = 20L) {
   stopifnot(inherits(d, "parade_deferred"))

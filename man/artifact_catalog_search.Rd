@@ -23,6 +23,13 @@ artifact_catalog_search(
 
 \item{ignore_case}{Whether to ignore case.}
 
+\item{run_status}{Optional character vector of run statuses to filter on
+(e.g. \code{"complete"}, \code{"running"}). \code{NULL} (default) keeps all rows.}
+
+\item{params}{Optional named list of parameter values to filter on.
+Only rows whose sidecar parameters match all supplied key-value pairs
+are returned.}
+
 \item{...}{Passed to \link{artifact_catalog} when \code{catalog} is NULL.}
 }
 \value{

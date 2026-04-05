@@ -120,6 +120,12 @@ collect.parade_flow <- function(x,
   if (!is.null(seed_col) && !is.null(row[[seed_col]])) set.seed(as.integer(row[[seed_col]]))
   acc <- tibble::as_tibble(row)[, names(row), drop = FALSE]
   acc$row_id <- digest::digest(row, algo = "sha1")
+  base_ctx <- utils::modifyList(run_context %||% list(), list(
+    row_id = as.character(acc$row_id[[1L]] %||% acc$row_id[1L])
+  ))
+  old_ctx <- getOption("parade.run_context", NULL)
+  on.exit(options(parade.run_context = old_ctx), add = TRUE)
+  options(parade.run_context = base_ctx)
   diag <- list()
   carry <- list()
   error <- match.arg(error, c("keep","omit","stop","propagate","propagate"))
@@ -136,6 +142,8 @@ collect.parade_flow <- function(x,
       block <- .parade_cast_to_ptype_row(list(), st$ptype)
       block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
       acc <- vctrs::vec_cbind(acc, block)
+      stage_ctx <- utils::modifyList(base_ctx, list(stage = id, attempt = 1L))
+      options(parade.run_context = stage_ctx)
       diag[[id]] <- .parade_stage_diag(
         ok = FALSE,
         skipped = TRUE,
@@ -146,6 +154,14 @@ collect.parade_flow <- function(x,
         attempt = 1L,
         retry_count = 0L
       )
+      .parade_emit_run_event(
+        "stage_cancelled",
+        severity = "warn",
+        source = "stage",
+        ctx = stage_ctx,
+        message = "cancelled after upstream failure"
+      )
+      options(parade.run_context = base_ctx)
       next
     }
 
@@ -155,6 +171,8 @@ collect.parade_flow <- function(x,
         block <- .parade_cast_to_ptype_row(list(), st$ptype)
         block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
         acc <- vctrs::vec_cbind(acc, block)
+        stage_ctx <- utils::modifyList(base_ctx, list(stage = id, attempt = 1L))
+        options(parade.run_context = stage_ctx)
         diag[[id]] <- .parade_stage_diag(
           ok = FALSE,
           skipped = TRUE,
@@ -165,6 +183,14 @@ collect.parade_flow <- function(x,
           attempt = 1L,
           retry_count = 0L
         )
+        .parade_emit_run_event(
+          "stage_cancelled",
+          severity = "warn",
+          source = "stage",
+          ctx = stage_ctx,
+          message = sprintf("failed deps: %s", paste(st$needs[!dep_ok], collapse = ", "))
+        )
+        options(parade.run_context = base_ctx)
         next
       }
     }
@@ -177,6 +203,8 @@ collect.parade_flow <- function(x,
         block <- .parade_cast_to_ptype_row(list(), st$ptype)
         block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
         acc <- vctrs::vec_cbind(acc, block)
+        stage_ctx <- utils::modifyList(base_ctx, list(stage = id, attempt = 1L))
+        options(parade.run_context = stage_ctx)
         diag[[id]] <- .parade_stage_diag(
           ok = FALSE,
           skipped = TRUE,
@@ -187,6 +215,14 @@ collect.parade_flow <- function(x,
           attempt = 1L,
           retry_count = 0L
         )
+        .parade_emit_run_event(
+          "stage_cancelled",
+          severity = "info",
+          source = "stage",
+          ctx = stage_ctx,
+          message = "skip_when returned TRUE"
+        )
+        options(parade.run_context = base_ctx)
         next
       }
     }
@@ -196,6 +232,14 @@ collect.parade_flow <- function(x,
     stage_res <- NULL
     stage_err <- NULL
     repeat {
+      stage_ctx <- utils::modifyList(base_ctx, list(stage = id, attempt = attempt))
+      options(parade.run_context = stage_ctx)
+      .parade_emit_run_event(
+        "stage_started",
+        severity = "info",
+        source = "stage",
+        ctx = stage_ctx
+      )
       tried <- try(
         .parade_execute_stage_once(
           row = row,
@@ -215,9 +259,13 @@ collect.parade_flow <- function(x,
       stage_err <- attr(tried, "condition") %||% simpleError(as.character(tried))
       do_retry <- attempt <= policy$retries && .parade_retry_should(stage_err, policy$retry_on)
       if (!isTRUE(do_retry)) break
-      .event_emit(run_context$run_id %||% "", "stage_retried", severity = "warn",
-                  source = "stage", stage = id, attempt = attempt,
-                  error = .parade_condition_message(stage_err))
+      .parade_emit_run_event(
+        "stage_retried",
+        severity = "warn",
+        source = "stage",
+        ctx = stage_ctx,
+        error = .parade_condition_message(stage_err)
+      )
       delay <- .parade_retry_delay(attempt, policy$backoff, policy$base)
       if (isTRUE(delay > 0)) Sys.sleep(delay)
       attempt <- attempt + 1L
@@ -225,6 +273,7 @@ collect.parade_flow <- function(x,
 
     if (is.null(stage_res)) {
       failed_any <- TRUE
+      stage_ctx <- utils::modifyList(base_ctx, list(stage = id, attempt = attempt))
       if (identical(error, "stop")) {
         stop(sprintf("Stage '%s' failed: %s", id, .parade_condition_message(stage_err)), call. = FALSE)
       }
@@ -241,17 +290,28 @@ collect.parade_flow <- function(x,
         attempt = attempt,
         retry_count = attempt - 1L
       )
-      .event_emit(run_context$run_id %||% "", "stage_failed", severity = "error",
-                  source = "stage", stage = id, attempt = attempt,
-                  error = .parade_condition_message(stage_err))
+      .parade_emit_run_event(
+        "stage_failed",
+        severity = "error",
+        source = "stage",
+        ctx = stage_ctx,
+        error = .parade_condition_message(stage_err)
+      )
       if (attempt > 1L) {
-        .event_emit(run_context$run_id %||% "", "retry_exhausted", severity = "error",
-                    source = "stage", stage = id, attempts = attempt)
+        .parade_emit_run_event(
+          "retry_exhausted",
+          severity = "error",
+          source = "stage",
+          ctx = stage_ctx,
+          attempts = attempt
+        )
       }
       message(sprintf("[parade] Stage '%s' failed after %d attempt(s): %s", id, attempt, .parade_condition_message(stage_err)))
+      options(parade.run_context = base_ctx)
       next
     }
 
+    stage_ctx <- utils::modifyList(base_ctx, list(stage = id, attempt = attempt))
     diag[[id]] <- .parade_stage_diag(
       ok = TRUE,
       skipped = FALSE,
@@ -261,11 +321,19 @@ collect.parade_flow <- function(x,
       attempt = attempt,
       retry_count = attempt - 1L
     )
+    .parade_emit_run_event(
+      "stage_completed",
+      severity = "info",
+      source = "stage",
+      ctx = stage_ctx,
+      duration_ms = diag[[id]]$duration_ms %||% NA_real_
+    )
     block <- stage_res$block
     block <- .prefix_block(block, st$id, st$prefix, st$hoist_struct)
     acc <- vctrs::vec_cbind(acc, block)
     carry_add <- as.list(.unprefix_block(block, st$id)); if (!is.null(st$sink) && isTRUE(st$sink$autoload)) { reader <- st$sink$reader %||% readRDS; for (nm in st$sink$fields) if (nm %in% names(carry_add)) carry_add[[nm]] <- .materialize(carry_add[[nm]], reader) }
     carry <- c(carry, carry_add)
+    options(parade.run_context = base_ctx)
   }
   acc$.diag <- list(diag); acc$.ok <- all(vapply(diag, function(d) isTRUE(d$ok) || isTRUE(d$skipped), logical(1))); acc
 }

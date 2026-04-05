@@ -358,20 +358,7 @@ script_stage <- function(fl, id, script, produces,
   .stage_id       <- id
 
   # --- Determine wrapper formals ------------------------------------------
-  grid_cols <- names(fl$grid)
-
-  needs_cols <- character()
-  for (dep in needs) {
-    dep_stage <- Filter(function(s) s$id == dep, fl$stages)
-    if (length(dep_stage) == 1L) {
-      dep_ptype <- dep_stage[[1L]]$ptype
-      if (!is.null(dep_ptype)) {
-        needs_cols <- c(needs_cols, paste0(dep, ".", names(dep_ptype)))
-      }
-    }
-  }
-
-  all_cols <- unique(c(grid_cols, needs_cols))
+  all_cols <- .stage_available_cols(fl, needs)
 
   # --- Build wrapper ------------------------------------------------------
   wrapper <- function() {

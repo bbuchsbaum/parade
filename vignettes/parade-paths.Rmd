@@ -1,10 +1,13 @@
 ---
 title: 'Smart Path Management: Write Once, Run Anywhere'
 output: rmarkdown::html_vignette
-vignette: |
-  %\VignetteIndexEntry{3. Smart Path Management: Write Once, Run Anywhere} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+vignette: >
+  %\VignetteIndexEntry{3. Smart Path Management: Write Once, Run Anywhere}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css

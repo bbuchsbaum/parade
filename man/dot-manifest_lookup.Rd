@@ -4,12 +4,14 @@
 \alias{.manifest_lookup}
 \title{Look up an exact-match manifest entry}
 \usage{
-.manifest_lookup(stage_id, params, config_dir = NULL)
+.manifest_lookup(stage_id, params, produces_names = NULL, config_dir = NULL)
 }
 \arguments{
 \item{stage_id}{Character stage identifier.}
 
 \item{params}{Named list of grid parameters (already cleaned and sorted).}
+
+\item{produces_names}{Optional character vector of current output names.}
 
 \item{config_dir}{Config directory.}
 }

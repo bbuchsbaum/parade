@@ -41,8 +41,10 @@ pipeline execution.
 grid <- data.frame(x = 1:6, g = rep(1:3, 2))
 fl <- flow(grid) |>
   stage("s", function(x) list(y = x^2), schema = returns(y = dbl())) |>
-  distribute(dist_local(by = "g"))
+  distribute(dist_local(by = "g", within = "sequential"))
 d <- submit(fl)
 pipeline_top(d = d, refresh = 1)
+unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+unlink("parade.log")
 }
 }

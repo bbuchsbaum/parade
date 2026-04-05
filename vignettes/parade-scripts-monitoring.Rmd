@@ -1,10 +1,13 @@
 ---
 title: SLURM script submission and monitoring from R
 output: rmarkdown::html_vignette
-vignette: |
-  %\VignetteIndexEntry{10. SLURM Scripts: submission and monitoring} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+vignette: >
+  %\VignetteIndexEntry{10. SLURM Scripts: submission and monitoring}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css

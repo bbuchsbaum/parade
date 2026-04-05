@@ -105,6 +105,111 @@ test_that("event_read last_n parameter works", {
   expect_equal(last2[[2]]$event_type, "event_5")
 })
 
+test_that("deferred runs emit stage lifecycle and heartbeat events with context", {
+  root <- withr::local_tempdir()
+  withr::local_envvar(c(
+    PARADE_PROJECT = root,
+    PARADE_SCRATCH = file.path(root, "scratch"),
+    PARADE_ARTIFACTS = file.path(root, "artifacts"),
+    PARADE_REGISTRY = file.path(root, "registry"),
+    PARADE_DATA = file.path(root, "data"),
+    PARADE_CONFIG_DIR = file.path(root, "config"),
+    PARADE_CACHE = file.path(root, "cache")
+  ))
+  withr::local_options(list(
+    parade.paths = NULL,
+    parade.event_store = TRUE,
+    parade.log_path = file.path(root, "parade.log")
+  ))
+
+  paths_init(create = TRUE, quiet = TRUE)
+
+  grid <- data.frame(x = 1:2, g = c("a", "b"))
+  fl <- flow(grid) |>
+    stage(
+      "work",
+      function(x) {
+        parade_heartbeat("entered work")
+        parade_log("processing row", value = x)
+        list(y = x^2)
+      },
+      schema = returns(y = dbl())
+    ) |>
+    distribute(dist_local(by = "g", within = "sequential"))
+
+  d <- submit(fl)
+  out <- deferred_collect(d)
+
+  expect_true(is.data.frame(out))
+  events <- parade:::.event_read(d$run_id)
+  types <- vapply(events, function(ev) ev$event_type %||% "", character(1))
+
+  expect_true("chunk_started" %in% types)
+  expect_true("stage_started" %in% types)
+  expect_true("stage_heartbeat" %in% types)
+  expect_true("user_log" %in% types)
+  expect_true("stage_completed" %in% types)
+  expect_true("chunk_completed" %in% types)
+  expect_true("run_completed" %in% types)
+
+  hb <- Filter(function(ev) identical(ev$event_type, "stage_heartbeat"), events)[[1]]
+  expect_equal(hb$stage, "work")
+  expect_false(is.null(hb$chunk_id))
+  expect_equal(hb$message, "entered work")
+
+  log_ev <- Filter(function(ev) identical(ev$event_type, "user_log"), events)[[1]]
+  expect_equal(log_ev$stage, "work")
+  expect_false(is.null(log_ev$chunk_id))
+  expect_true(is.character(log_ev$row_id))
+})
+
+test_that("script helpers emit events from PARADE environment context", {
+  root <- withr::local_tempdir()
+  withr::local_envvar(c(
+    PARADE_PROJECT = root,
+    PARADE_SCRATCH = file.path(root, "scratch"),
+    PARADE_ARTIFACTS = file.path(root, "artifacts"),
+    PARADE_REGISTRY = file.path(root, "registry"),
+    PARADE_DATA = file.path(root, "data"),
+    PARADE_CONFIG_DIR = file.path(root, "config"),
+    PARADE_CACHE = file.path(root, "cache"),
+    PARADE_RUN_ID = "script-env-run",
+    PARADE_SCRIPT_NAME = "analysis",
+    PARADE_SCRIPT_PATH = file.path(root, "analysis.R")
+  ))
+  withr::local_options(list(
+    parade.paths = NULL,
+    parade.event_store = TRUE
+  ))
+
+  paths_init(create = TRUE, quiet = TRUE)
+
+  parade_stage("load", state = "started")
+  parade_heartbeat("reading inputs", stage = "load")
+  parade_log("checkpoint", stage = "load")
+  parade_stage("load", state = "completed")
+
+  events <- parade:::.event_read("script-env-run")
+  types <- vapply(events, function(ev) ev$event_type %||% "", character(1))
+
+  expect_true("stage_started" %in% types)
+  expect_true("stage_heartbeat" %in% types)
+  expect_true("user_log" %in% types)
+  expect_true("stage_completed" %in% types)
+
+  stage_ev <- Filter(function(ev) identical(ev$event_type, "stage_started"), events)[[1]]
+  expect_equal(stage_ev$stage, "load")
+  expect_equal(stage_ev$script_name, "analysis")
+
+  hb_ev <- Filter(function(ev) identical(ev$event_type, "stage_heartbeat"), events)[[1]]
+  expect_equal(hb_ev$message, "reading inputs")
+  expect_equal(hb_ev$stage, "load")
+
+  log_ev <- Filter(function(ev) identical(ev$event_type, "user_log"), events)[[1]]
+  expect_equal(log_ev$message, "checkpoint")
+  expect_equal(log_ev$stage, "load")
+})
+
 # --- .parse_slurm_exit_code (tested here for convenience) -------------------
 
 test_that("exit code parser works", {

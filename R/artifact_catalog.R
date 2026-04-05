@@ -199,6 +199,11 @@ artifact_catalog <- function(dir = "artifacts://",
 #' @param query Regex (passed to `grepl()`).
 #' @param fields Character vector of fields to search (defaults to path/stage/field/row_key).
 #' @param ignore_case Whether to ignore case.
+#' @param run_status Optional character vector of run statuses to filter on
+#'   (e.g. `"complete"`, `"running"`). `NULL` (default) keeps all rows.
+#' @param params Optional named list of parameter values to filter on.
+#'   Only rows whose sidecar parameters match all supplied key-value pairs
+#'   are returned.
 #' @param ... Passed to [artifact_catalog] when `catalog` is NULL.
 #' @return Filtered tibble.
 #' @examples

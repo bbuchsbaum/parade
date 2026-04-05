@@ -1,10 +1,13 @@
 ---
 title: 'SLURM Profiles: One Size Doesn''t Fit All Jobs'
 output: rmarkdown::html_vignette
-vignette: |
-  %\VignetteIndexEntry{9. SLURM Profiles: Managing Multiple Job Types} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+vignette: >
+  %\VignetteIndexEntry{9. SLURM Profiles: Managing Multiple Job Types}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css

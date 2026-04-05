@@ -317,6 +317,31 @@
   result
 }
 
+#' Compute available column names for a stage
+#'
+#' Returns the union of grid columns and prefixed upstream output columns
+#' for use as function formals. Used by [script_stage()] and [code_stage()]
+#' to auto-wire stage inputs.
+#'
+#' @param fl A `parade_flow` object.
+#' @param needs Character vector of upstream stage IDs.
+#' @return Character vector of available column names.
+#' @keywords internal
+.stage_available_cols <- function(fl, needs) {
+  grid_cols <- names(fl$grid)
+  needs_cols <- character()
+  for (dep in needs) {
+    dep_stage <- Filter(function(s) s$id == dep, fl$stages)
+    if (length(dep_stage) == 1L) {
+      dep_ptype <- dep_stage[[1L]]$ptype
+      if (!is.null(dep_ptype)) {
+        needs_cols <- c(needs_cols, paste0(dep, ".", names(dep_ptype)))
+      }
+    }
+  }
+  unique(c(grid_cols, needs_cols))
+}
+
 #' @keywords internal
 .parade_validate_contract <- function(row, contract) {
   if (is.null(contract)) return(invisible(TRUE))

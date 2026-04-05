@@ -203,6 +203,72 @@ test_that("submit_slurm uses default values when not specified", {
   expect_equal(result$template, "/default/template.tmpl")
 })
 
+test_that("submit_slurm injects monitoring env and registers script runs", {
+  skip_if_not_installed("batchtools")
+
+  root <- withr::local_tempdir()
+  withr::local_envvar(c(
+    PARADE_PROJECT = root,
+    PARADE_SCRATCH = file.path(root, "scratch"),
+    PARADE_ARTIFACTS = file.path(root, "artifacts"),
+    PARADE_REGISTRY = file.path(root, "registry"),
+    PARADE_DATA = file.path(root, "data"),
+    PARADE_CONFIG_DIR = file.path(root, "config"),
+    PARADE_CACHE = file.path(root, "cache")
+  ))
+  withr::local_options(list(
+    parade.paths = NULL,
+    parade.event_store = TRUE
+  ))
+  paths_init(create = TRUE, quiet = TRUE)
+
+  script_path <- create_test_script(root)
+  reg_root <- file.path(root, "registry-jobs")
+  dir.create(reg_root, recursive = TRUE)
+  reg_dir <- file.path(reg_root, "script-12345678")
+  reg_dir_norm <- normalizePath(reg_dir, mustWork = FALSE)
+  captured_env <- NULL
+
+  mock_reg <- create_mock_registry()
+  mock_jt <- data.frame(job.id = 42L, batch.id = 777L, stringsAsFactors = FALSE)
+
+  stub(submit_slurm, "make_parade_slurm_cf", list(name = "Slurm"))
+  stub(submit_slurm, "bt_make_registry", function(reg_dir, cf) {
+    dir.create(reg_dir, recursive = TRUE)
+    mock_reg
+  })
+  stub(submit_slurm, "batchtools::batchMap", function(fun, i, more.args, reg) {
+    captured_env <<- more.args$env
+    invisible(NULL)
+  })
+  stub(submit_slurm, "batchtools::submitJobs", 42L)
+  stub(submit_slurm, "batchtools::getJobTable", mock_jt)
+  stub(submit_slurm, "slurm_resources", list(ncpus = 1, mem = "4G"))
+  stub(submit_slurm, "slurm_template_default", "/mock/template.tmpl")
+  stub(submit_slurm, "resolve_path", function(x, ...) {
+    if (grepl("^registry://", x)) return(reg_dir_norm)
+    x
+  })
+  stub(submit_slurm, "file.exists", function(x) x %in% c(script_path, "/mock/template.tmpl"))
+  stub(submit_slurm, "digest::digest", "12345678")
+
+  job <- submit_slurm(script_path, name = "script_monitor")
+
+  expect_s3_class(job, "parade_script_job")
+  expect_equal(captured_env[["PARADE_RUN_ID"]], "12345678")
+  expect_equal(captured_env[["PARADE_SCRIPT_NAME"]], "script_monitor")
+  expect_equal(captured_env[["PARADE_SCRIPT_PATH"]], normalizePath(script_path))
+  expect_equal(captured_env[["PARADE_ARTIFACTS"]], normalizePath(file.path(root, "artifacts"), mustWork = FALSE))
+
+  info <- run_info("12345678")
+  expect_equal(info$status, "pending")
+  expect_equal(info$backend, "slurm")
+  expect_equal(info$kind, "script")
+  expect_equal(info$script_name, "script_monitor")
+  expect_equal(info$script_path, normalizePath(script_path))
+  expect_equal(info$job_id, 42L)
+})
+
 test_that("parade_run_script_bt executes script with correct environment", {
   test_dir <- withr::local_tempdir()
   script_path <- create_test_script(test_dir)
@@ -229,6 +295,73 @@ test_that("parade_run_script_bt executes script with correct environment", {
   
   expect_equal(result$ok, TRUE)
   expect_equal(result$status, 0L)
+})
+
+test_that("parade_run_script_bt emits lifecycle events and updates script run status", {
+  root <- withr::local_tempdir()
+  withr::local_envvar(c(
+    PARADE_PROJECT = root,
+    PARADE_SCRATCH = file.path(root, "scratch"),
+    PARADE_ARTIFACTS = file.path(root, "artifacts"),
+    PARADE_REGISTRY = file.path(root, "registry"),
+    PARADE_DATA = file.path(root, "data"),
+    PARADE_CONFIG_DIR = file.path(root, "config"),
+    PARADE_CACHE = file.path(root, "cache")
+  ))
+  withr::local_options(list(
+    parade.paths = NULL,
+    parade.event_store = TRUE
+  ))
+  paths_init(create = TRUE, quiet = TRUE)
+
+  test_dir <- withr::local_tempdir()
+  script_path <- create_test_script(test_dir)
+  run_id <- "script-runner-1"
+  parade:::.run_registry_append(
+    run_id = run_id,
+    backend = "slurm",
+    n_chunks = 1L,
+    status = "pending",
+    kind = "script",
+    script_name = "test_script",
+    script_path = normalizePath(script_path)
+  )
+
+  env_vars <- c(
+    PARADE_RUN_ID = run_id,
+    PARADE_SCRIPT_NAME = "test_script",
+    PARADE_SCRIPT_PATH = normalizePath(script_path),
+    PARADE_ARTIFACTS = normalizePath(file.path(root, "artifacts"), mustWork = FALSE),
+    PARADE_PROJECT = normalizePath(root, mustWork = FALSE),
+    PARADE_REGISTRY = normalizePath(file.path(root, "registry"), mustWork = FALSE),
+    PARADE_SCRATCH = normalizePath(file.path(root, "scratch"), mustWork = FALSE),
+    PARADE_DATA = normalizePath(file.path(root, "data"), mustWork = FALSE),
+    PARADE_CONFIG_DIR = normalizePath(file.path(root, "config"), mustWork = FALSE),
+    PARADE_CACHE = normalizePath(file.path(root, "cache"), mustWork = FALSE)
+  )
+
+  stub(parade_run_script_bt, "system2", 0L)
+
+  result <- parade_run_script_bt(
+    i = 1,
+    script = script_path,
+    args = character(),
+    env = env_vars,
+    lib_paths = character(),
+    rscript = "/usr/bin/Rscript",
+    wd = test_dir
+  )
+
+  expect_equal(result$ok, TRUE)
+  expect_equal(result$status, 0L)
+
+  events <- parade:::.event_read(run_id)
+  types <- vapply(events, function(ev) ev$event_type %||% "", character(1))
+  expect_true("run_started" %in% types)
+  expect_true("run_completed" %in% types)
+
+  info <- run_info(run_id)
+  expect_equal(info$status, "completed")
 })
 
 test_that("parade_run_script_bt handles script failure", {

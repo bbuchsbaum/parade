@@ -26,9 +26,11 @@ Combines three error sources into a single tibble:
 grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 fl <- flow(grid) |>
   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-  distribute(dist_local(by = "group"))
+  distribute(dist_local(by = "group", within = "sequential"))
 d <- submit(fl)
 deferred_await(d, timeout = 60)
 errs <- deferred_errors(d)
+unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+unlink("parade.log")
 }
 }

@@ -2,47 +2,69 @@
 % Please edit documentation in R/dashboard.R
 \name{parade_dashboard}
 \alias{parade_dashboard}
-\title{Unified dashboard for parade jobs}
+\title{Unified dashboard for parade jobs and runs}
 \usage{
 parade_dashboard(
-  x,
+  x = NULL,
   action = c("summary", "top", "tail", "cancel_failed", "collect_completed"),
   refresh = 2,
   nlog = 20,
   show_paths = TRUE,
   show_artifacts = TRUE,
-  artifacts_n = 6
+  artifacts_n = 6,
+  max_rows = 8L,
+  show_events = TRUE,
+  event_n = 6L
 )
 }
 \arguments{
-\item{x}{A \code{parade_job}, \code{parade_jobset}, or list of jobs.}
+\item{x}{Optional dashboard target. Can be a \code{parade_job}, \code{parade_jobset},
+\code{parade_deferred}, run ID, or \code{NULL} for recent runs.}
 
 \item{action}{One of:
 \itemize{
 \item \code{"summary"}: print a one-shot dashboard (default)
-\item \code{"top"}: launch interactive text UI (delegates to \code{\link[=top]{top()}})
-\item \code{"tail"}: show log tail (delegates to \link{tail.parade_jobset})
-\item \code{"cancel_failed"}: cancel failed jobs (script jobs only)
-\item \code{"collect_completed"}: collect results for completed jobs
+\item \code{"top"}: launch an interactive text UI when available
+\item \code{"tail"}: show recent log/event output
+\item \code{"cancel_failed"}: cancel failed jobs (job/jobset inputs only)
+\item \code{"collect_completed"}: collect completed results
 }}
 
 \item{refresh}{Refresh interval for \code{"top"} (seconds).}
 
-\item{nlog}{Number of log lines for \code{"top"}/\code{"tail"}.}
+\item{nlog}{Number of log lines for \code{"top"} / \code{"tail"}.}
 
 \item{show_paths}{Whether to print configured paths.}
 
 \item{show_artifacts}{Whether to show a small "latest artifacts" panel.}
 
 \item{artifacts_n}{How many artifacts to show when \code{show_artifacts = TRUE}.}
+
+\item{max_rows}{Maximum rows to display in summary tables.}
+
+\item{show_events}{Whether to show a recent event feed for run summaries.}
+
+\item{event_n}{How many recent events to show when \code{show_events = TRUE}.}
 }
 \value{
-Invisibly returns a list with \code{jobset}, \code{status}, and optional \code{artifacts}.
+Invisibly returns a summary list. For recent runs the list contains
+\code{runs}; for job dashboards it contains \code{jobset} and \code{status}; for pipeline
+runs it contains \code{run_id}, \code{info}, and \code{counts}.
 }
 \description{
-Provides a single "mission control" entry point for monitoring and acting on
-parade jobs/jobsets. It prints a concise summary by default and can delegate
-to interactive monitors like \code{\link[=top]{top()}} when available.
+Provides a single "mission control" entry point for monitoring submitted
+work. It supports:
+\itemize{
+\item \code{parade_job} / \code{parade_jobset} objects
+\item \code{parade_deferred} pipeline handles
+\item run IDs from the run registry
+\item \code{NULL}, which shows a recent-runs overview
+}
+}
+\details{
+\code{parade_dashboard()} prints a richer one-shot summary by default and can
+still delegate to live monitors like \code{\link[=top]{top()}}, \code{\link[=deferred_top]{deferred_top()}}, or
+\code{\link[=pipeline_top]{pipeline_top()}} when requested.
 }
 \examples{
 \donttest{

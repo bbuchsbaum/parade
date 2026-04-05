@@ -16,10 +16,12 @@
 #' grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 #' fl <- flow(grid) |>
 #'   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-#'   distribute(dist_local(by = "group"))
+#'   distribute(dist_local(by = "group", within = "sequential"))
 #' d <- submit(fl)
 #' deferred_await(d, timeout = 60)
 #' tl <- failure_timeline(d)
+#' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+#' unlink("parade.log")
 #' }
 failure_timeline <- function(x, around_failure = 60, ...) {
   UseMethod("failure_timeline")
@@ -36,7 +38,9 @@ failure_timeline.parade_deferred <- function(x, around_failure = 60, ...) {
     .event_read(x$run_id %||% "", types = c(
       "run_started", "run_completed", "run_failed",
       "chunk_started", "chunk_completed", "chunk_failed", "chunk_crashed",
-      "stage_failed", "stage_retried", "retry_exhausted"
+      "stage_started", "stage_completed", "stage_cancelled",
+      "stage_failed", "stage_retried", "retry_exhausted",
+      "stage_heartbeat", "worker_heartbeat", "user_log"
     )),
     error = function(e) list()
   )
@@ -266,32 +270,54 @@ print.failure_timeline <- function(x, ...) {
 }
 
 .timeline_event_label <- function(event_type, ev) {
+  has_chunk <- !is.null(ev$chunk_id) && length(ev$chunk_id) > 0L && !is.na(ev$chunk_id[[1L]])
+  chunk_chr <- if (has_chunk) as.character(ev$chunk_id[[1L]]) else NULL
+  stage_chr <- ev$stage %||% "?"
+  stage_target <- if (has_chunk) {
+    sprintf("chunk %s stage '%s'", chunk_chr, stage_chr)
+  } else {
+    sprintf("stage '%s'", stage_chr)
+  }
   switch(event_type,
     "run_started"     = "[START] Pipeline started",
-    "run_completed"   = sprintf("[DONE] Pipeline completed (%s)",
-                                ev$summary %||% ""),
-    "run_failed"      = sprintf("[FAIL] Pipeline failed (%s)",
-                                ev$summary %||% ""),
+    "run_completed"   = if (nzchar(ev$summary %||% "")) {
+      sprintf("[DONE] %s", ev$summary %||% "")
+    } else {
+      "[DONE] Pipeline completed"
+    },
+    "run_failed"      = if (nzchar(ev$summary %||% "")) {
+      sprintf("[FAIL] %s", ev$summary %||% "")
+    } else {
+      "[FAIL] Pipeline failed"
+    },
     "chunk_started"   = sprintf("[CHUNK] chunk %s started",
-                                ev$chunk_id %||% "?"),
+                                chunk_chr %||% "?"),
     "chunk_completed" = sprintf("[CHUNK] chunk %s completed",
-                                ev$chunk_id %||% "?"),
+                                chunk_chr %||% "?"),
     "chunk_failed"    = sprintf("[FAIL] chunk %s failed: %s",
-                                ev$chunk_id %||% "?",
+                                chunk_chr %||% "?",
                                 substr(ev$error %||% "", 1, 60)),
     "chunk_crashed"   = sprintf("[CRASH] chunk %s crashed",
-                                ev$chunk_id %||% "?"),
-    "stage_failed"    = sprintf("[FAIL] chunk %s stage '%s': %s",
-                                ev$chunk_id %||% "?",
-                                ev$stage %||% "?",
+                                chunk_chr %||% "?"),
+    "stage_started"   = sprintf("[STAGE] %s started", stage_target),
+    "stage_completed" = sprintf("[STAGE] %s completed", stage_target),
+    "stage_cancelled" = sprintf("[CANCEL] %s: %s",
+                                stage_target,
+                                substr(ev$message %||% "", 1, 60)),
+    "stage_failed"    = sprintf("[FAIL] %s: %s",
+                                stage_target,
                                 substr(ev$error %||% "", 1, 60)),
-    "stage_retried"   = sprintf("[RETRY] chunk %s stage '%s' attempt %s",
-                                ev$chunk_id %||% "?",
-                                ev$stage %||% "?",
+    "stage_retried"   = sprintf("[RETRY] %s attempt %s",
+                                stage_target,
                                 ev$attempt %||% "?"),
-    "retry_exhausted" = sprintf("[EXHAUSTED] chunk %s stage '%s' retries exhausted",
-                                ev$chunk_id %||% "?",
-                                ev$stage %||% "?"),
+    "retry_exhausted" = sprintf("[EXHAUSTED] %s retries exhausted",
+                                stage_target),
+    "stage_heartbeat" = sprintf("[HEARTBEAT] %s: %s",
+                                stage_target,
+                                substr(ev$message %||% "", 1, 60)),
+    "worker_heartbeat" = sprintf("[HEARTBEAT] %s: %s",
+                                 if (has_chunk) paste0("chunk ", chunk_chr) else "worker",
+                                 substr(ev$message %||% "", 1, 60)),
     "user_log"        = sprintf("[LOG] %s", ev$message %||% ""),
     paste0("[", toupper(event_type), "]")
   )
