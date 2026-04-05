@@ -41,12 +41,14 @@ Number of jobs removed
 # \donttest{
 # Remove completed jobs older than 7 days
 registry_clean(older_than = 7, status = "COMPLETED")
-#> No jobs match cleanup criteria
+#> Registry not found: /tmp/Rtmp6bYGYQ/parade-registry
+#> No jobs to clean
 #> [1] 0
 
 # Dry run to see what would be removed
 registry_clean(older_than = 30, dry_run = TRUE)
-#> No jobs match cleanup criteria
+#> Registry not found: /tmp/Rtmp6bYGYQ/parade-registry
+#> No jobs to clean
 #> [1] 0
 # }
 ```

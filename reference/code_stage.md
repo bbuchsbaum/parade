@@ -157,7 +157,6 @@ fl <- flow(grid) |>
   code_stage("sq", {
     list(result = x^2)
   }, schema = returns(result = dbl()))
-#> Error in .stage_available_cols(fl, needs): could not find function ".stage_available_cols"
 
 # With upstream dependencies — code block at end with named args
 fl2 <- flow(grid) |>
@@ -168,5 +167,4 @@ fl2 <- flow(grid) |>
     total <- x + dbl.y
     list(total = total)
   })
-#> Error in .stage_available_cols(fl, needs): could not find function ".stage_available_cols"
 ```

@@ -66,37 +66,15 @@ paths_validate()
 #>   alias     path                           exists writable created level message
 #>   <chr>     <chr>                          <lgl>  <lgl>    <lgl>   <chr> <chr>  
 #> 1 project   /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 2 scratch   /tmp/RtmprbSKPY                TRUE   TRUE     FALSE   ok    ""     
+#> 2 scratch   /tmp/Rtmp6bYGYQ                TRUE   TRUE     FALSE   ok    ""     
 #> 3 data      /home/runner/work/parade/para… FALSE  TRUE     FALSE   warn  "Direc…
-#> 4 artifacts /tmp/RtmprbSKPY/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
-#> 5 registry  /tmp/RtmprbSKPY/parade-regist… TRUE   TRUE     FALSE   ok    ""     
+#> 4 artifacts /tmp/Rtmp6bYGYQ/parade-artifa… FALSE  TRUE     FALSE   warn  "Direc…
+#> 5 registry  /tmp/Rtmp6bYGYQ/parade-regist… FALSE  TRUE     FALSE   warn  "Direc…
 #> 6 config    /home/runner/work/parade/para… FALSE  TRUE     FALSE   warn  "Direc…
 #> 7 cache     /home/runner/.cache/R/parade   FALSE  TRUE     FALSE   warn  "Direc…
 #> 
 #> $warnings
-#> [1] "Missing directory for: data, config, cache"
-#> 
-#> $errors
-#> character(0)
-#> 
-paths_validate(create = TRUE)
-#> $ok
-#> [1] TRUE
-#> 
-#> $results
-#> # A tibble: 7 × 7
-#>   alias     path                           exists writable created level message
-#>   <chr>     <chr>                          <lgl>  <lgl>    <lgl>   <chr> <chr>  
-#> 1 project   /home/runner/work/parade/para… TRUE   TRUE     FALSE   ok    ""     
-#> 2 scratch   /tmp/RtmprbSKPY                TRUE   TRUE     FALSE   ok    ""     
-#> 3 data      /home/runner/work/parade/para… TRUE   TRUE     TRUE    ok    ""     
-#> 4 artifacts /tmp/RtmprbSKPY/parade-artifa… TRUE   TRUE     FALSE   ok    ""     
-#> 5 registry  /tmp/RtmprbSKPY/parade-regist… TRUE   TRUE     FALSE   ok    ""     
-#> 6 config    /home/runner/work/parade/para… TRUE   TRUE     TRUE    ok    ""     
-#> 7 cache     /home/runner/.cache/R/parade   TRUE   TRUE     TRUE    ok    ""     
-#> 
-#> $warnings
-#> character(0)
+#> [1] "Missing directory for: data, artifacts, registry, config, cache"
 #> 
 #> $errors
 #> character(0)

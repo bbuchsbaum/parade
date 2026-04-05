@@ -416,6 +416,163 @@ complex_flow <- flow(grid) |>
 Parade automatically figures out the execution order based on
 dependencies.
 
+## Three ways to write a stage
+
+So far every stage has been an inline `function(...)`. That works great
+for short lambdas, but as logic grows past a few lines the pipe becomes
+hard to read. Parade offers three stage styles — pick the one that fits
+your code:
+
+| Style                                                                                                                                                     | Best for                   | How it looks                                     |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|
+| [`stage()`](https://bbuchsbaum.github.io/parade/reference/stage.md)                                                                                       | Short lambdas (1-5 lines)  | `stage("id", function(x) list(y = x^2), ...)`    |
+| [`code_stage()`](https://bbuchsbaum.github.io/parade/reference/code_stage.md)                                                                             | Medium blocks (5-50 lines) | Code block lives inline, no `function()` wrapper |
+| [`stage_def()`](https://bbuchsbaum.github.io/parade/reference/stage_def.md) + [`add_stage()`](https://bbuchsbaum.github.io/parade/reference/add_stage.md) | Reusable / long stages     | Define once, add to any flow                     |
+
+### `stage()` — inline lambdas
+
+You already know this one. It reads beautifully when the function is
+short:
+
+``` r
+fl <- flow(grid) |>
+  stage("calc", function(x) x^2, schema = returns(result = dbl()))
+```
+
+### `code_stage()` — inline code blocks
+
+When a stage needs 10-50 lines of logic, wrapping everything in
+`function(...)` clutters the pipeline.
+[`code_stage()`](https://bbuchsbaum.github.io/parade/reference/code_stage.md)
+captures a bare code block instead. Grid columns and upstream outputs
+are available as plain variables — no function signature to maintain:
+
+``` r
+grid <- param_grid(
+  subject = c("s01", "s02", "s03"),
+  condition = c("A", "B")
+)
+
+fl <- flow(grid) |>
+
+  stage("load", function(subject) {
+    list(data = data.frame(x = rnorm(50), y = rnorm(50)))
+  }, schema = returns(data = lst())) |>
+
+  code_stage("fit", {
+    # All grid columns + upstream outputs are available as variables:
+    #   subject, condition (from grid)
+    #   load.data           (from the "load" stage)
+
+    data   <- load.data
+    model  <- lm(y ~ x, data = data)
+    r2     <- summary(model)$r.squared
+    n_obs  <- nrow(data)
+
+    list(r_squared = r2, n_obs = n_obs)
+  }, needs = "load",
+     schema = returns(r_squared = dbl(), n_obs = int()))
+```
+
+The code block goes right after the stage id. `needs`, `schema`, and all
+other options are passed as named arguments. Everything you can pass to
+[`stage()`](https://bbuchsbaum.github.io/parade/reference/stage.md) —
+`skip_when`, `sink`, `prefix`, `resources`, retries — works with
+[`code_stage()`](https://bbuchsbaum.github.io/parade/reference/code_stage.md)
+too.
+
+**Tip**:
+[`code_stage()`](https://bbuchsbaum.github.io/parade/reference/code_stage.md)
+captures the block via
+[`substitute()`](https://rdrr.io/r/base/substitute.html), so variables
+from the surrounding scope (closures) are available inside:
+
+``` r
+n_iter <- 500   # defined outside the pipeline
+
+fl <- flow(grid) |>
+  code_stage("sim", {
+    # n_iter is visible here
+    results <- replicate(n_iter, rnorm(1))
+    list(mean_val = mean(results))
+  }, schema = returns(mean_val = dbl()))
+```
+
+### `stage_def()` + `add_stage()` — reusable stage objects
+
+For stages that are long or shared across multiple flows, define them
+separately with
+[`stage_def()`](https://bbuchsbaum.github.io/parade/reference/stage_def.md)
+and plug them in with
+[`add_stage()`](https://bbuchsbaum.github.io/parade/reference/add_stage.md):
+
+``` r
+# Define once — carries its own id, schema, and dependencies
+fit_stage <- stage_def("fit",
+  f = function(load.data) {
+    model <- lm(y ~ x, data = load.data)
+    r2    <- summary(model)$r.squared
+    list(r_squared = r2, model = model)
+  },
+  needs  = "load",
+  schema = returns(r_squared = dbl(), model = lst())
+)
+
+# Reuse in different flows — the pipeline stays clean
+flow_a <- flow(grid_a) |>
+  stage("load", load_fn, schema = returns(data = lst())) |>
+  add_stage(fit_stage)
+
+flow_b <- flow(grid_b) |>
+  stage("load", load_fn_v2, schema = returns(data = lst())) |>
+  add_stage(fit_stage)
+```
+
+[`stage_def()`](https://bbuchsbaum.github.io/parade/reference/stage_def.md)
+stores the function, dependencies, schema, and any extra arguments
+(constants, `skip_when`, `sink`, etc.).
+[`add_stage()`](https://bbuchsbaum.github.io/parade/reference/add_stage.md)
+unpacks them into a regular
+[`stage()`](https://bbuchsbaum.github.io/parade/reference/stage.md)
+call.
+
+### Mixing all three in one pipeline
+
+The three styles compose freely. Use whichever fits each stage:
+
+``` r
+# A reusable loading stage
+loader <- stage_def("load",
+  f = function(subject) {
+    list(data = data.frame(x = rnorm(100), y = rnorm(100)))
+  },
+  schema = returns(data = lst())
+)
+
+results <- flow(grid) |>
+
+  # style 1: reusable stage object
+  add_stage(loader) |>
+
+  # style 2: inline code block for medium-complexity logic
+  code_stage("fit", {
+    mod    <- lm(y ~ x, data = load.data)
+    coeffs <- coef(mod)
+    list(intercept = coeffs[1], slope = coeffs[2])
+  }, needs = "load",
+     schema = returns(intercept = dbl(), slope = dbl())) |>
+
+  # style 3: inline lambda for a quick summary
+  stage("report",
+    function(fit.intercept, fit.slope) {
+      list(summary = paste0("y = ", round(fit.intercept, 2),
+                            " + ", round(fit.slope, 2), "x"))
+    },
+    needs = "fit", schema = returns(summary = chr())) |>
+
+  collect(engine = "sequential")
+```
+
 ## Debugging workflows
 
 Start small and build up:

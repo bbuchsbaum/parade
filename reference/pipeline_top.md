@@ -56,24 +56,35 @@ The deferred object or run_id (invisibly)
 grid <- data.frame(x = 1:6, g = rep(1:3, 2))
 fl <- flow(grid) |>
   stage("s", function(x) list(y = x^2), schema = returns(y = dbl())) |>
-  distribute(dist_local(by = "g"))
+  distribute(dist_local(by = "g", within = "sequential"))
 d <- submit(fl)
 pipeline_top(d = d, refresh = 1)
 #> parade::pipeline_top  -
 #> 
-#> Run: 0b0060a8  Backend: local  Submitted: 2026-03-30 16:39:20.000508
-#> Elapsed: 0:00:03  By: g
+#> Run: e909c5ee  Backend: local  Submitted: 2026-04-05 19:32:15.823505
+#> Elapsed: 0:00:01  By: g
 #> Stages: s
 #> 
-#> Progress [........................]    0%  (0/3 chunks)
+#> Progress [########################]  100%  (3/3 chunks)
 #> 
 #>   total=3  resolved=3  unresolved=0
 #> 
 #> -- Recent Events --------------------------------------------------------------
-#>   00:00:00     run_started stage=s
+#>   00:00:00     chunk 2 / s started (attempt 1)
+#>   00:00:00     chunk 2 / s completed (0.0s)
+#>   00:00:00     chunk 2 completed
+#>   00:00:00     chunk 3 started
+#>   00:00:00     chunk 3 / s started (attempt 1)
+#>   00:00:00     chunk 3 / s completed (0.0s)
+#>   00:00:00     chunk 3 / s started (attempt 1)
+#>   00:00:00     chunk 3 / s completed (0.0s)
+#>   00:00:00     chunk 3 completed
+#>   00:00:00     run started
 #> 
 #> 
 #> (All chunks completed)
 #> 
+unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+unlink("parade.log")
 # }
 ```

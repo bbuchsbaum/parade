@@ -351,10 +351,13 @@
   : Write parade configuration
 
 - [`parade_dashboard()`](https://bbuchsbaum.github.io/parade/reference/parade_dashboard.md)
-  : Unified dashboard for parade jobs
+  : Unified dashboard for parade jobs and runs
 
 - [`parade_doctor()`](https://bbuchsbaum.github.io/parade/reference/parade_doctor.md)
   : Quick setup checks for parade
+
+- [`parade_heartbeat()`](https://bbuchsbaum.github.io/parade/reference/parade_heartbeat.md)
+  : Emit a lightweight heartbeat from within a stage function
 
 - [`parade_init_hpc()`](https://bbuchsbaum.github.io/parade/reference/parade_init_hpc.md)
   : Initialize parade for HPC use
@@ -364,6 +367,9 @@
 
 - [`parade_options()`](https://bbuchsbaum.github.io/parade/reference/parade_options.md)
   : Global parade options (get/set)
+
+- [`parade_stage()`](https://bbuchsbaum.github.io/parade/reference/parade_stage.md)
+  : Emit a stage lifecycle update from a submitted script
 
 - [`parade_watch()`](https://bbuchsbaum.github.io/parade/reference/parade_watch.md)
   : Watch a deferred pipeline and log errors incrementally

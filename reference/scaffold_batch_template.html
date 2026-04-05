@@ -45,9 +45,7 @@ The template is used by batchtools to submit jobs to the cluster.</p>
 <span>  system <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slurm"</span><span class="op">)</span>,</span>
 <span>  out <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"batchtools"</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"parade-"</span>, <span class="fu"><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg</a></span><span class="op">(</span><span class="va">system</span><span class="op">)</span>, <span class="st">".tmpl"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  modules <span class="op">=</span> <span class="st">"r"</span>,</span>
-<span>  exports <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>PARADE_SCRATCH <span class="op">=</span></span>
-<span>    <span class="st">"${PARADE_SCRATCH:-${SCRATCH:-${SCRATCHDIR:-${PSCRATCH:-${WORK:-${SLURM_TMPDIR:-${TMPDIR:-/tmp}}}}}}}"</span>,</span>
-<span>    OMP_NUM_THREADS <span class="op">=</span> <span class="st">"1"</span>, MKL_NUM_THREADS <span class="op">=</span> <span class="st">"1"</span>, OPENBLAS_NUM_THREADS <span class="op">=</span> <span class="st">"1"</span><span class="op">)</span>,</span>
+<span>  exports <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  preamble <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -70,7 +68,9 @@ The template is used by batchtools to submit jobs to the cluster.</p>
 
 
 <dt id="arg-exports">exports<a class="anchor" aria-label="anchor" href="#arg-exports"></a></dt>
-<dd><p>Named character vector of environment variables to export in the job script.</p></dd>
+<dd><p>Named character vector of environment variables to export in
+the job script. When <code>NULL</code> (default), standard HPC thread-pinning and
+scratch variables are exported.</p></dd>
 
 
 <dt id="arg-preamble">preamble<a class="anchor" aria-label="anchor" href="#arg-preamble"></a></dt>

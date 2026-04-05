@@ -10,9 +10,7 @@ scaffold_batch_template(
   system = c("slurm"),
   out = file.path("batchtools", paste0("parade-", match.arg(system), ".tmpl")),
   modules = "r",
-  exports = c(PARADE_SCRATCH =
-    "${PARADE_SCRATCH:-${SCRATCH:-${SCRATCHDIR:-${PSCRATCH:-${WORK:-${SLURM_TMPDIR:-${TMPDIR:-/tmp}}}}}}}",
-    OMP_NUM_THREADS = "1", MKL_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1"),
+  exports = NULL,
   preamble = character(),
   overwrite = FALSE
 )
@@ -37,7 +35,8 @@ scaffold_batch_template(
 - exports:
 
   Named character vector of environment variables to export in the job
-  script.
+  script. When `NULL` (default), standard HPC thread-pinning and scratch
+  variables are exported.
 
 - preamble:
 

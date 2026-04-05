@@ -72,6 +72,17 @@ substring/regex match over common columns.</p>
 <dd><p>Whether to ignore case.</p></dd>
 
 
+<dt id="arg-run-status">run_status<a class="anchor" aria-label="anchor" href="#arg-run-status"></a></dt>
+<dd><p>Optional character vector of run statuses to filter on
+(e.g. <code>"complete"</code>, <code>"running"</code>). <code>NULL</code> (default) keeps all rows.</p></dd>
+
+
+<dt id="arg-params">params<a class="anchor" aria-label="anchor" href="#arg-params"></a></dt>
+<dd><p>Optional named list of parameter values to filter on.
+Only rows whose sidecar parameters match all supplied key-value pairs
+are returned.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Passed to <a href="artifact_catalog.html">artifact_catalog</a> when <code>catalog</code> is NULL.</p></dd>
 

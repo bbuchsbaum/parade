@@ -41,7 +41,7 @@ If found, verifies that all output files still exist on disk.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">.manifest_lookup</span><span class="op">(</span><span class="va">stage_id</span>, <span class="va">params</span>, config_dir <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">.manifest_lookup</span><span class="op">(</span><span class="va">stage_id</span>, <span class="va">params</span>, produces_names <span class="op">=</span> <span class="cn">NULL</span>, config_dir <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -54,6 +54,10 @@ If found, verifies that all output files still exist on disk.</p>
 
 <dt id="arg-params">params<a class="anchor" aria-label="anchor" href="#arg-params"></a></dt>
 <dd><p>Named list of grid parameters (already cleaned and sorted).</p></dd>
+
+
+<dt id="arg-produces-names">produces_names<a class="anchor" aria-label="anchor" href="#arg-produces-names"></a></dt>
+<dd><p>Optional character vector of current output names.</p></dd>
 
 
 <dt id="arg-config-dir">config_dir<a class="anchor" aria-label="anchor" href="#arg-config-dir"></a></dt>

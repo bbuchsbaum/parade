@@ -29,8 +29,32 @@ The input deferred object (invisibly)
 grid <- data.frame(x = 1:4, group = rep(c("A", "B"), 2))
 fl <- flow(grid) |>
   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
-  distribute(dist_local(by = "group"))
+  distribute(dist_local(by = "group", within = "sequential"))
 deferred <- submit(fl)
 deferred_cancel(deferred, which = "running")
+#> [parade] Stage 'calc' failed after 1 attempt(s): Column 1 must be named.
+#> Use `.name_repair` to specify repair.
+#> Caused by error in `repaired_names()`:
+#> ! Names can't be empty.
+#> ✖ Empty name found at location 1.
+#> [parade] Stage 'calc' failed after 1 attempt(s): Column 1 must be named.
+#> Use `.name_repair` to specify repair.
+#> Caused by error in `repaired_names()`:
+#> ! Names can't be empty.
+#> ✖ Empty name found at location 1.
+#> [parade] Chunk 1: 2 of 2 rows had stage errors (index saved to /tmp/Rtmp6bYGYQ/parade-artifacts/runs/d97e2cc6/index/index-0001.rds)
+#> [parade] Stage 'calc' failed after 1 attempt(s): Column 1 must be named.
+#> Use `.name_repair` to specify repair.
+#> Caused by error in `repaired_names()`:
+#> ! Names can't be empty.
+#> ✖ Empty name found at location 1.
+#> [parade] Stage 'calc' failed after 1 attempt(s): Column 1 must be named.
+#> Use `.name_repair` to specify repair.
+#> Caused by error in `repaired_names()`:
+#> ! Names can't be empty.
+#> ✖ Empty name found at location 1.
+#> [parade] Chunk 2: 2 of 2 rows had stage errors (index saved to /tmp/Rtmp6bYGYQ/parade-artifacts/runs/d97e2cc6/index/index-0002.rds)
+unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
+unlink("parade.log")
 # }
 ```

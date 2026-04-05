@@ -68,7 +68,7 @@ d <- submit(fl)
 deferred_top(d, refresh = 1, once = TRUE)
 #> parade::deferred_top  -
 #> 
-#> Run: 783950b5  Backend: local  Submitted: 2026-03-30 16:38:41.769472
+#> Run: be767639  Backend: local  Submitted: 2026-04-05 19:31:41.379806
 #> Elapsed: 0:00:03  By: g  Mode: index
 #> Stages: s
 #> 

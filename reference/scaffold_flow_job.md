@@ -53,10 +53,10 @@ List of created script paths (invisibly)
 flow <- flow(data.frame(x = 1:3))
 scaffold_flow_job(flow, name = "my_job", dir = tempdir())
 #> Created scaffold scripts:
-#>   - /tmp/RtmprbSKPY/scripts/my_job_submit.R
-#>   - /tmp/RtmprbSKPY/scripts/my_job_sbatch.sh
-#>   - /tmp/RtmprbSKPY/scripts/my_job_status.R
-#>   - /tmp/RtmprbSKPY/scripts/my_job_collect.R
-#>   - /tmp/RtmprbSKPY/scripts/my_job_cancel.sh
+#>   - /tmp/Rtmp6bYGYQ/scripts/my_job_submit.R
+#>   - /tmp/Rtmp6bYGYQ/scripts/my_job_sbatch.sh
+#>   - /tmp/Rtmp6bYGYQ/scripts/my_job_status.R
+#>   - /tmp/Rtmp6bYGYQ/scripts/my_job_collect.R
+#>   - /tmp/Rtmp6bYGYQ/scripts/my_job_cancel.sh
 # }
 ```

@@ -12,7 +12,8 @@ Register a pipeline run in the registry
   n_chunks = NULL,
   grid_cols = NULL,
   by_cols = NULL,
-  status = "running"
+  status = "running",
+  ...
 )
 ```
 

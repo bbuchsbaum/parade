@@ -6,7 +6,7 @@ verifies that all output files still exist on disk.
 ## Usage
 
 ``` r
-.manifest_lookup(stage_id, params, config_dir = NULL)
+.manifest_lookup(stage_id, params, produces_names = NULL, config_dir = NULL)
 ```
 
 ## Arguments
@@ -18,6 +18,10 @@ verifies that all output files still exist on disk.
 - params:
 
   Named list of grid parameters (already cleaned and sorted).
+
+- produces_names:
+
+  Optional character vector of current output names.
 
 - config_dir:
 

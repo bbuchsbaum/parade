@@ -37,6 +37,16 @@ artifact_catalog_search(
 
   Whether to ignore case.
 
+- run_status:
+
+  Optional character vector of run statuses to filter on (e.g.
+  `"complete"`, `"running"`). `NULL` (default) keeps all rows.
+
+- params:
+
+  Optional named list of parameter values to filter on. Only rows whose
+  sidecar parameters match all supplied key-value pairs are returned.
+
 - ...:
 
   Passed to
