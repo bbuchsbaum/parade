@@ -65,6 +65,27 @@ test_that(".manifest_read skips malformed lines", {
   expect_equal(records[[2]]$param_hash, "def")
 })
 
+test_that(".manifest_read cache invalidates after append", {
+  tmp <- withr::local_tempdir()
+  out1 <- file.path(tmp, "out1.rds")
+  out2 <- file.path(tmp, "out2.rds")
+  saveRDS(1, out1)
+  saveRDS(2, out2)
+
+  parade:::.manifest_record("s1", list(a = 1L), c(output = out1), config_dir = tmp)
+
+  first <- parade:::.manifest_read("s1", config_dir = tmp)
+  expect_length(first, 1)
+
+  parade:::.manifest_record("s1", list(a = 2L), c(output = out2), config_dir = tmp)
+
+  second <- parade:::.manifest_read("s1", config_dir = tmp)
+  expect_length(second, 2)
+  expect_equal(vapply(second, `[[`, character(1), "param_hash"),
+               c(digest::digest(list(a = 1L), algo = "sha1"),
+                 digest::digest(list(a = 2L), algo = "sha1")))
+})
+
 test_that(".manifest_lookup exact match succeeds", {
   tmp <- withr::local_tempdir()
   out <- file.path(tmp, "result.rds")

@@ -4,6 +4,62 @@
 # execution, decoupling "has this been computed?" from template paths.
 # Storage: per-stage JSONL at .parade/completions/{stage_id}.jsonl
 
+.manifest_cache <- new.env(parent = emptyenv())
+
+.manifest_cache_key <- function(path) {
+  normalizePath(path, winslash = "/", mustWork = FALSE)
+}
+
+.manifest_cache_get <- function(path) {
+  key <- .manifest_cache_key(path)
+  if (!file.exists(path)) {
+    if (exists(key, envir = .manifest_cache, inherits = FALSE)) {
+      rm(list = key, envir = .manifest_cache, inherits = FALSE)
+    }
+    return(NULL)
+  }
+
+  info <- file.info(path)
+  cached <- .manifest_cache[[key]]
+  if (is.null(cached)) return(NULL)
+
+  if (identical(cached$mtime, info$mtime) && identical(cached$size, info$size)) {
+    return(cached$records)
+  }
+
+  rm(list = key, envir = .manifest_cache, inherits = FALSE)
+  NULL
+}
+
+.manifest_cache_set <- function(path, records) {
+  if (!file.exists(path)) return(invisible(records))
+
+  info <- file.info(path)
+  key <- .manifest_cache_key(path)
+  .manifest_cache[[key]] <- list(
+    mtime = info$mtime,
+    size = info$size,
+    records = records
+  )
+  invisible(records)
+}
+
+.manifest_cache_invalidate <- function(path = NULL) {
+  if (is.null(path)) {
+    keys <- ls(envir = .manifest_cache, all.names = TRUE)
+    if (length(keys)) {
+      rm(list = keys, envir = .manifest_cache)
+    }
+    return(invisible(NULL))
+  }
+
+  key <- .manifest_cache_key(path)
+  if (exists(key, envir = .manifest_cache, inherits = FALSE)) {
+    rm(list = key, envir = .manifest_cache, inherits = FALSE)
+  }
+  invisible(NULL)
+}
+
 # --- Internal helpers -------------------------------------------------------
 
 #' Resolve path to a stage's completion manifest JSONL
@@ -50,6 +106,7 @@
   con <- file(path, open = "a")
   on.exit(close(con))
   writeLines(as.character(line), con)
+  .manifest_cache_invalidate(path)
 }
 
 #' Read all records from a manifest JSONL file
@@ -63,6 +120,8 @@
 .manifest_read <- function(stage_id, config_dir = NULL) {
   path <- .manifest_path(stage_id, config_dir)
   if (!file.exists(path)) return(list())
+  cached <- .manifest_cache_get(path)
+  if (!is.null(cached)) return(cached)
   lines <- readLines(path, warn = FALSE)
   records <- list()
   for (line in lines) {
@@ -73,7 +132,7 @@
     )
     if (!is.null(rec)) records <- c(records, list(rec))
   }
-  records
+  .manifest_cache_set(path, records)
 }
 
 #' Normalize output names for manifest comparisons
@@ -379,6 +438,7 @@ manifest_clear <- function(stage_id = NULL, config_dir = NULL) {
     files <- list.files(comp_dir, pattern = "\\.jsonl$", full.names = TRUE)
     if (length(files) > 0L) {
       unlink(files)
+      .manifest_cache_invalidate()
       message("Cleared ", length(files), " manifest file(s)")
     }
     invisible(files)
@@ -386,6 +446,7 @@ manifest_clear <- function(stage_id = NULL, config_dir = NULL) {
     path <- .manifest_path(stage_id, config_dir)
     if (file.exists(path)) {
       unlink(path)
+      .manifest_cache_invalidate(path)
       message("Cleared manifest for stage '", stage_id, "'")
     }
     invisible(path)
