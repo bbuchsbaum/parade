@@ -22,7 +22,7 @@ A named list of path pattern functions.
 # \donttest{
 # Timestamped output
 path_patterns$timestamped("results", "analysis", "csv")
-#> [1] "results/20260405_193214_analysis.csv"
+#> [1] "results/20260408_185840_analysis.csv"
 # -> "results/20240115_143022_analysis.csv"
 
 # Experiment organization
