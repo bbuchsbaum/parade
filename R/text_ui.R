@@ -224,11 +224,13 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
 }
 
 .deferred_total_chunks <- function(d) {
-  if (!is.null(d$jobs) && length(d$jobs) > 0) return(length(d$jobs))
+  plan <- tryCatch(.parade_read_chunk_plan(d$run_id %||% ""), error = function(e) NULL)
+  if (!is.null(plan) && nrow(plan) > 0L) return(nrow(plan))
   if (!is.null(d$chunks_path) && file.exists(d$chunks_path)) {
     chunks <- readRDS(d$chunks_path)
     return(length(chunks))
   }
+  if (!is.null(d$jobs) && length(d$jobs) > 0) return(length(d$jobs))
   NA_integer_
 }
 
@@ -263,6 +265,13 @@ jobs_top <- function(jobs, refresh = 3, nlog = 20, clear = TRUE) {
   cache_key <- d$run_id %||% ""
   cached <- .deferred_chunk_labels_cache[[cache_key]]
   if (!is.null(cached)) return(cached)
+
+  plan <- tryCatch(.parade_read_chunk_plan(cache_key), error = function(e) NULL)
+  if (!is.null(plan) && "label" %in% names(plan)) {
+    labels <- as.character(plan$label)
+    .deferred_chunk_labels_cache[[cache_key]] <- labels
+    return(labels)
+  }
 
   by_cols <- d$by
   if (is.null(by_cols) || length(by_cols) == 0L) return(NULL)

@@ -74,6 +74,15 @@ run_info <- function(run_id) {
     hit <- which(ids %in% run_id)
     if (length(hit) > 0L) meta <- records[[hit[[1L]]]]
   }
+  status_path <- tryCatch(.parade_status_path(run_id, create = FALSE), error = function(e) NULL)
+  status_snapshot <- if (!is.null(status_path) && file.exists(status_path)) {
+    tryCatch(.parade_json_read(status_path), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  if (!is.null(status_snapshot)) {
+    meta <- .run_registry_merge(meta %||% list(run_id = run_id), status_snapshot)
+  }
 
   if (is.null(meta)) {
     meta <- list(run_id = run_id, status = "unknown")
@@ -122,8 +131,8 @@ run_info <- function(run_id) {
       grid_cols    = grid_cols,
       by_cols      = by_cols
     )
-    extra <- list(...)
-    if (length(extra) > 0L) record <- c(record, extra)
+    extras <- list(...)
+    if (length(extras) > 0L) record <- c(record, extras)
     line <- jsonlite::toJSON(record, auto_unbox = TRUE, null = "null")
     con <- file(path, open = "a", encoding = "UTF-8")
     on.exit(close(con))
@@ -139,7 +148,7 @@ run_info <- function(run_id) {
 #' @param run_id Character run identifier
 #' @param status New status
 #' @keywords internal
-.run_registry_update_status <- function(run_id, status) {
+.run_registry_update_status <- function(run_id, status, ...) {
   if (!isTRUE(getOption("parade.event_store", TRUE))) return(invisible(NULL))
   tryCatch({
     path <- .run_registry_path(create = TRUE)
@@ -148,6 +157,8 @@ run_info <- function(run_id) {
       updated_at   = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS3%z"),
       status       = status
     )
+    extras <- list(...)
+    if (length(extras) > 0L) record <- c(record, extras)
     line <- jsonlite::toJSON(record, auto_unbox = TRUE, null = "null")
     con <- file(path, open = "a", encoding = "UTF-8")
     on.exit(close(con))
@@ -227,3 +238,22 @@ run_info <- function(run_id) {
     stages       = character()
   )
 }
+
+#' @keywords internal
+.run_registry_merge <- function(old, new) {
+  old <- old %||% list()
+  new <- new %||% list()
+  keys <- union(names(old), names(new))
+  out <- vector("list", length(keys))
+  names(out) <- keys
+  for (nm in keys) {
+    if (nm %in% names(new) && !is.null(new[[nm]])) {
+      out[[nm]] <- new[[nm]]
+    } else {
+      out[[nm]] <- old[[nm]]
+    }
+  }
+  out
+}
+
+#' @keywords internal

@@ -385,6 +385,20 @@ parade_watch <- function(d, interval = 30, log_path = "parade.log", max_errors =
   .log_append(path, line)
 }
 
+#' Append a submission failure line to the log
+#' @return NULL, called for side effect of writing the failure.
+#' @keywords internal
+.pipeline_log_submission_failure <- function(d, path, error_msg, submitted_jobs, expected_jobs) {
+  line <- sprintf(
+    "[SUBMIT-FAILED] %s | %s/%s submitted | %s",
+    format(Sys.time(), "%Y-%m-%d %H:%M"),
+    submitted_jobs %||% "?",
+    expected_jobs %||% "?",
+    substr(error_msg %||% "unknown submission failure", 1, 300)
+  )
+  .log_append(path, line)
+}
+
 #' Compute dedup signature for an error
 #' @return Character string hash of the error signature.
 #' @keywords internal

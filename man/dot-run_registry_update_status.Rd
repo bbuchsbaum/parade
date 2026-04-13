@@ -4,7 +4,7 @@
 \alias{.run_registry_update_status}
 \title{Update run status in the registry}
 \usage{
-.run_registry_update_status(run_id, status)
+.run_registry_update_status(run_id, status, ...)
 }
 \arguments{
 \item{run_id}{Character run identifier}
