@@ -230,6 +230,12 @@ script_returns <- function(...) {
 #'   When they do, the script is skipped and valid [file_ref()] tibbles are
 #'   returned (with `written = FALSE, existed = TRUE`). Requires template mode
 #'   (produces with glue placeholders); using it with manifest mode will error.
+#' @param skip_if_exists_output Optional output name to use as the canonical
+#'   existence sentinel for `skip_if_exists`. When set, only that resolved
+#'   output path is checked to decide whether the stage should be skipped.
+#'   This is useful for multi-output stages on slow filesystems where one
+#'   durable artifact (for example `perf`) is sufficient to indicate the row
+#'   is complete.
 #' @param use_manifest Logical (defaults to `skip_if_exists`). When `TRUE`,
 #'   enables a completion manifest that records `{params} -> {output_paths}`
 #'   after each successful execution. On subsequent runs the manifest is
@@ -297,6 +303,7 @@ script_stage <- function(fl, id, script, produces,
                          prefix = TRUE,
                          skip_when = NULL,
                          skip_if_exists = FALSE,
+                         skip_if_exists_output = NULL,
                          use_manifest = skip_if_exists, ...) {
   stopifnot(inherits(fl, "parade_flow"))
   stopifnot(is.character(script), length(script) == 1L)
@@ -305,6 +312,10 @@ script_stage <- function(fl, id, script, produces,
 
   # --- Validate skip_if_exists --------------------------------------------
   stopifnot(is.logical(skip_if_exists), length(skip_if_exists) == 1L)
+  if (!is.null(skip_if_exists_output)) {
+    stopifnot(is.character(skip_if_exists_output), length(skip_if_exists_output) == 1L,
+              !is.na(skip_if_exists_output), nzchar(skip_if_exists_output))
+  }
 
   # --- Detect mode and normalise produces ---------------------------------
   is_template <- any(grepl("\\{", produces))
@@ -335,6 +346,14 @@ script_stage <- function(fl, id, script, produces,
 
   output_names <- names(produces)
 
+  if (!is.null(skip_if_exists_output) && !(skip_if_exists_output %in% output_names)) {
+    stop(
+      "skip_if_exists_output must name one of the declared outputs: ",
+      paste(output_names, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
   # Build schema: one file_ref() per output name
   schema_args <- lapply(output_names, function(nm) file_ref())
   names(schema_args) <- output_names
@@ -354,6 +373,7 @@ script_stage <- function(fl, id, script, produces,
   .template_mode  <- is_template
   .output_names   <- output_names
   .skip_if_exists <- skip_if_exists
+  .skip_if_exists_output <- skip_if_exists_output
   .use_manifest   <- use_manifest
   .stage_id       <- id
 
@@ -408,7 +428,12 @@ script_stage <- function(fl, id, script, produces,
         }
 
         # Tier 2: file.exists on resolved template paths (original behavior)
-        if (all(file.exists(paths))) {
+        skip_paths <- if (is.null(.skip_if_exists_output)) {
+          paths
+        } else {
+          paths[.skip_if_exists_output]
+        }
+        if (all(file.exists(skip_paths))) {
           # Also record to manifest for future runs
           if (isTRUE(.use_manifest)) {
             tryCatch(
@@ -561,6 +586,7 @@ script_stage <- function(fl, id, script, produces,
     engine = engine,
     template_mode = isTRUE(.template_mode),
     skip_if_exists = isTRUE(.skip_if_exists),
+    skip_if_exists_output = .skip_if_exists_output,
     use_manifest = isTRUE(.use_manifest)
   )
   fl

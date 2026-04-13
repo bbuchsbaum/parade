@@ -566,6 +566,40 @@ test_that("skip_if_exists with multiple named outputs", {
   expect_equal(readRDS(res$fit.model[[2]]$path)$val, 2L)
 })
 
+test_that("skip_if_exists_output uses the named sentinel output", {
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "multi_out.R")
+  writeLines(c(
+    'saveRDS(list(val = x), perf_path)',
+    'saveRDS(list(val = x * 10), cross_conn_path)',
+    'saveRDS(list(val = x * 100), pred_conn_path)'
+  ), script_path)
+
+  perf1 <- file.path(tmp, "perf_1.rds")
+  saveRDS("cached_perf", perf1)
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("fit",
+      script = script_path,
+      produces = c(
+        perf = file.path(tmp, "perf_{x}.rds"),
+        cross_conn = file.path(tmp, "cross_{x}.rds"),
+        pred_conn = file.path(tmp, "pred_{x}.rds")
+      ),
+      skip_if_exists = TRUE,
+      skip_if_exists_output = "perf"
+    )
+
+  res <- collect(fl, engine = "sequential")
+
+  expect_false(res$fit.perf[[1]]$written)
+  expect_true(res$fit.perf[[1]]$existed)
+  expect_equal(res$fit.cross_conn[[1]]$path, file.path(tmp, "cross_1.rds"))
+  expect_true(res$fit.perf[[2]]$written)
+  expect_equal(readRDS(res$fit.perf[[2]]$path)$val, 2L)
+})
+
 test_that("skip_if_exists errors in manifest mode", {
   grid <- tibble(x = 1L)
   expect_error(

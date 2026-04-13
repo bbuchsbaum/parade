@@ -54,7 +54,14 @@
     }, character(1)),
     error = function(e) NULL
   )
-  if (is.null(paths) || !all(file.exists(paths))) return(NULL)
+  if (is.null(paths)) return(NULL)
+
+  skip_paths <- if (!is.null(meta$skip_if_exists_output)) {
+    paths[meta$skip_if_exists_output]
+  } else {
+    paths
+  }
+  if (!all(file.exists(skip_paths))) return(NULL)
 
   if (isTRUE(meta$use_manifest)) {
     tryCatch(
@@ -88,6 +95,10 @@
     return(list(pruned = list(), pending = groups))
   }
 
+  t0 <- Sys.time()
+  n_groups <- length(groups)
+  message(sprintf("[parade] submit prune: scanning %d groups for cached outputs", n_groups))
+
   pruned <- list()
   pending <- list()
   for (i in seq_along(groups)) {
@@ -97,7 +108,18 @@
     } else {
       pending[[length(pending) + 1L]] <- group_rows
     }
+    if (n_groups >= 100L && (i %% 100L) == 0L) {
+      message(sprintf(
+        "[parade] submit prune: checked %d/%d groups (%d pruned, %d pending)",
+        i, n_groups, length(pruned), length(pending)
+      ))
+    }
   }
+  elapsed <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+  message(sprintf(
+    "[parade] submit prune complete in %.1fs (%d pruned, %d pending)",
+    elapsed, length(pruned), length(pending)
+  ))
   list(pruned = pruned, pending = pending)
 }
 
