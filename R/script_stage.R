@@ -168,6 +168,24 @@ script_returns <- function(...) {
   invisible(paths)
 }
 
+#' @keywords internal
+#' @noRd
+script_stage_expand_paths <- function(row, produces, output_dir = NULL) {
+  dir_path <- if (is.null(output_dir)) {
+    NULL
+  } else {
+    as.character(glue::glue_data(row, output_dir))
+  }
+
+  vapply(produces, function(spec) {
+    path <- as.character(glue::glue_data(row, spec))
+    if (!is.null(dir_path) && !.path_is_absolute(path)) {
+      return(file.path(dir_path, path))
+    }
+    path
+  }, character(1))
+}
+
 # script_stage -------------------------------------------------------------
 
 #' Add a script-based stage to a parade flow
@@ -205,6 +223,9 @@ script_returns <- function(...) {
 #' @param fl A `parade_flow` object
 #' @param id Unique stage identifier (character)
 #' @param script Path to the script file (R, Python, bash, etc.)
+#' @param output_dir Optional directory template for template mode outputs.
+#'   When set, any relative entries in `produces` are resolved inside this
+#'   directory.
 #' @param produces Character vector of output declarations. Two forms:
 #'
 #'   - **Templates** (contain glue braces): glue-style path templates
@@ -281,6 +302,17 @@ script_returns <- function(...) {
 #'     )
 #'   )
 #'
+#' # Template mode: shared output directory with relative file names
+#' flow(grid) |>
+#'   script_stage("fit",
+#'     script = "scripts/fit_model.R",
+#'     output_dir = "results/{subject}/fit",
+#'     produces = c(
+#'       model = "model.rds",
+#'       metrics = "metrics.csv"
+#'     )
+#'   )
+#'
 #' # Manifest mode: script declares paths via script_returns()
 #' flow(grid) |>
 #'   script_stage("fit",
@@ -297,6 +329,7 @@ script_returns <- function(...) {
 #'   )
 #' }
 script_stage <- function(fl, id, script, produces,
+                         output_dir = NULL,
                          needs = character(),
                          engine = c("source", "system"),
                          interpreter = NULL,
@@ -308,6 +341,10 @@ script_stage <- function(fl, id, script, produces,
   stopifnot(inherits(fl, "parade_flow"))
   stopifnot(is.character(script), length(script) == 1L)
   stopifnot(is.character(produces), length(produces) >= 1L)
+  if (!is.null(output_dir)) {
+    stopifnot(is.character(output_dir), length(output_dir) == 1L,
+              !is.na(output_dir), nzchar(output_dir))
+  }
   engine <- match.arg(engine)
 
   # --- Validate skip_if_exists --------------------------------------------
@@ -318,7 +355,7 @@ script_stage <- function(fl, id, script, produces,
   }
 
   # --- Detect mode and normalise produces ---------------------------------
-  is_template <- any(grepl("\\{", produces))
+  is_template <- !is.null(output_dir) || any(grepl("\\{", produces))
 
   if (is_template) {
     # Template mode: values are glue templates, names are output names
@@ -366,6 +403,7 @@ script_stage <- function(fl, id, script, produces,
 
   # Capture for the closure
   .produces       <- produces
+  .output_dir     <- output_dir
   .script         <- script
   .engine         <- engine
   .interp         <- interpreter
@@ -398,9 +436,7 @@ script_stage <- function(fl, id, script, produces,
 
     # --- Resolve template paths (template mode only) ----------------------
     if (.template_mode) {
-      paths <- vapply(.produces, function(tmpl) {
-        as.character(glue::glue_data(row, tmpl))
-      }, character(1))
+      paths <- script_stage_expand_paths(row, .produces, output_dir = .output_dir)
 
       # --- Three-tier skip check -----------------------------------------------
       if (isTRUE(.skip_if_exists)) {
@@ -583,6 +619,7 @@ script_stage <- function(fl, id, script, produces,
   fl$stages[[length(fl$stages)]]$script_meta <- list(
     script = script,
     produces = .produces,
+    output_dir = .output_dir,
     engine = engine,
     template_mode = isTRUE(.template_mode),
     skip_if_exists = isTRUE(.skip_if_exists),

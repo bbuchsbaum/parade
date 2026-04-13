@@ -49,6 +49,30 @@ library(testthat)
     distribute(dist_local(by = by, within = "sequential"))
 }
 
+.submit_prune_multi_dir_flow <- function(root, grid, by = "grp") {
+  script_path <- file.path(root, "write_multi_dir.R")
+  writeLines(c(
+    "saveRDS(list(x = x), perf_path)",
+    "saveRDS(list(x = x * 10), cross_conn_path)",
+    "saveRDS(list(x = x * 100), pred_conn_path)"
+  ), script_path)
+
+  flow(grid) |>
+    script_stage(
+      "s1",
+      script = script_path,
+      output_dir = file.path(root, "sub_{x}"),
+      produces = c(
+        perf = "perf.rds",
+        cross_conn = "cross.rds",
+        pred_conn = "pred.rds"
+      ),
+      skip_if_exists = TRUE,
+      skip_if_exists_output = "perf"
+    ) |>
+    distribute(dist_local(by = by, within = "sequential"))
+}
+
 test_that("submit() prunes fully cached script-stage groups before scheduling", {
   tmp <- withr::local_tempdir()
   withr::local_options(parade.paths = .submit_prune_paths(tmp))
@@ -113,5 +137,24 @@ test_that("submit() prune honors skip_if_exists_output sentinel", {
   expect_length(d$jobs, 1L)
   expect_false(res$s1.perf[[1]]$written)
   expect_true(res$s1.perf[[1]]$existed)
+  expect_true(res$s1.perf[[2]]$written)
+})
+
+test_that("submit() prune honors output_dir with skip_if_exists_output sentinel", {
+  tmp <- withr::local_tempdir()
+  withr::local_options(parade.paths = .submit_prune_paths(tmp))
+
+  grid <- tibble::tibble(x = 1:2, grp = c("a", "b"))
+  dir.create(file.path(tmp, "sub_1"), recursive = TRUE, showWarnings = FALSE)
+  saveRDS("cached_perf", file.path(tmp, "sub_1", "perf.rds"))
+
+  d <- submit(.submit_prune_multi_dir_flow(tmp, grid))
+  res <- deferred_collect(d)
+  res <- res[order(res$x), , drop = FALSE]
+
+  expect_length(d$jobs, 1L)
+  expect_false(res$s1.perf[[1]]$written)
+  expect_true(res$s1.perf[[1]]$existed)
+  expect_equal(res$s1.cross_conn[[1]]$path, file.path(tmp, "sub_1", "cross.rds"))
   expect_true(res$s1.perf[[2]]$written)
 })

@@ -9,6 +9,7 @@ script_stage(
   id,
   script,
   produces,
+  output_dir = NULL,
   needs = character(),
   engine = c("source", "system"),
   interpreter = NULL,
@@ -35,6 +36,10 @@ defaults to \code{"output"}).
 \item \strong{Names only} (no braces): output names only. The script must
 call \code{\link[=script_returns]{script_returns()}} to declare actual paths.
 }}
+
+\item{output_dir}{Optional directory template for template mode outputs.
+When set, any relative entries in \code{produces} are resolved inside this
+directory.}
 
 \item{needs}{Character vector of upstream stage IDs this stage depends on.
 For the \code{source} engine, upstream outputs are injected into the script
@@ -148,6 +153,17 @@ flow(grid) |>
     produces = c(
       model   = "results/{subject}/model.rds",
       metrics = "results/{subject}/metrics.csv"
+    )
+  )
+
+# Template mode: shared output directory with relative file names
+flow(grid) |>
+  script_stage("fit",
+    script = "scripts/fit_model.R",
+    output_dir = "results/{subject}/fit",
+    produces = c(
+      model = "model.rds",
+      metrics = "metrics.csv"
     )
   )
 

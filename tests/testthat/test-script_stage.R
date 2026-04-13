@@ -153,6 +153,33 @@ test_that("multiple named outputs (template mode)", {
   expect_equal(readLines(metrics_ref$path), "1")
 })
 
+test_that("output_dir resolves relative produces in template mode", {
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "multi_out_dir.R")
+  writeLines(c(
+    'saveRDS(list(val = x), perf_path)',
+    'writeLines(as.character(x), metrics_path)'
+  ), script_path)
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("fit",
+      script = script_path,
+      output_dir = file.path(tmp, "sub_{x}"),
+      produces = c(
+        perf = "perf.rds",
+        metrics = "metrics.txt"
+      )
+    )
+
+  res <- collect(fl, engine = "sequential")
+
+  expect_equal(res$fit.perf[[1]]$path, file.path(tmp, "sub_1", "perf.rds"))
+  expect_equal(res$fit.metrics[[2]]$path, file.path(tmp, "sub_2", "metrics.txt"))
+  expect_equal(readRDS(res$fit.perf[[1]]$path), list(val = 1L))
+  expect_equal(readLines(res$fit.metrics[[2]]$path), "2")
+})
+
 test_that("error when script doesn't produce expected file (template mode)", {
   tmp <- withr::local_tempdir()
   script_path <- file.path(tmp, "noop.R")
@@ -596,6 +623,41 @@ test_that("skip_if_exists_output uses the named sentinel output", {
   expect_false(res$fit.perf[[1]]$written)
   expect_true(res$fit.perf[[1]]$existed)
   expect_equal(res$fit.cross_conn[[1]]$path, file.path(tmp, "cross_1.rds"))
+  expect_true(res$fit.perf[[2]]$written)
+  expect_equal(readRDS(res$fit.perf[[2]]$path)$val, 2L)
+})
+
+test_that("skip_if_exists_output works with output_dir", {
+  tmp <- withr::local_tempdir()
+  script_path <- file.path(tmp, "multi_out_dir.R")
+  writeLines(c(
+    'saveRDS(list(val = x), perf_path)',
+    'saveRDS(list(val = x * 10), cross_conn_path)',
+    'saveRDS(list(val = x * 100), pred_conn_path)'
+  ), script_path)
+
+  dir.create(file.path(tmp, "sub_1"), recursive = TRUE, showWarnings = FALSE)
+  saveRDS("cached_perf", file.path(tmp, "sub_1", "perf.rds"))
+
+  grid <- tibble(x = 1:2)
+  fl <- flow(grid) |>
+    script_stage("fit",
+      script = script_path,
+      output_dir = file.path(tmp, "sub_{x}"),
+      produces = c(
+        perf = "perf.rds",
+        cross_conn = "cross.rds",
+        pred_conn = "pred.rds"
+      ),
+      skip_if_exists = TRUE,
+      skip_if_exists_output = "perf"
+    )
+
+  res <- collect(fl, engine = "sequential")
+
+  expect_false(res$fit.perf[[1]]$written)
+  expect_true(res$fit.perf[[1]]$existed)
+  expect_equal(res$fit.cross_conn[[1]]$path, file.path(tmp, "sub_1", "cross.rds"))
   expect_true(res$fit.perf[[2]]$written)
   expect_equal(readRDS(res$fit.perf[[2]]$path)$val, 2L)
 })

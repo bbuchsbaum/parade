@@ -49,9 +49,7 @@
   }
 
   paths <- tryCatch(
-    vapply(meta$produces, function(tmpl) {
-      as.character(glue::glue_data(row, tmpl))
-    }, character(1)),
+    script_stage_expand_paths(row, meta$produces, output_dir = meta$output_dir %||% NULL),
     error = function(e) NULL
   )
   if (is.null(paths)) return(NULL)
