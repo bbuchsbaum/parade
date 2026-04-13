@@ -99,6 +99,23 @@ test_that(".manifest_lookup exact match succeeds", {
   expect_equal(found$output_paths$output, out)
 })
 
+test_that(".manifest_lookup uses newest matching manifest entry", {
+  tmp <- withr::local_tempdir()
+  out1 <- file.path(tmp, "result1.rds")
+  out2 <- file.path(tmp, "result2.rds")
+  saveRDS(1, out1)
+  saveRDS(2, out2)
+
+  params <- list(a = 1L, b = "x")
+  parade:::.manifest_record("s1", params, c(output = out1), config_dir = tmp)
+  parade:::.manifest_record("s1", list(a = 2L, b = "y"), c(output = out2), config_dir = tmp)
+  parade:::.manifest_record("s1", params, c(output = out2), config_dir = tmp)
+
+  found <- parade:::.manifest_lookup("s1", params, config_dir = tmp)
+  expect_false(is.null(found))
+  expect_equal(found$output_paths$output, out2)
+})
+
 test_that(".manifest_lookup rejects entries whose output names no longer match", {
   tmp <- withr::local_tempdir()
   out <- file.path(tmp, "perf.rds")

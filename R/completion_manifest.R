@@ -36,12 +36,37 @@
 
   info <- file.info(path)
   key <- .manifest_cache_key(path)
+  index <- split(records, vapply(records, function(rec) {
+    rec$param_hash %||% NA_character_
+  }, character(1)))
   .manifest_cache[[key]] <- list(
     mtime = info$mtime,
     size = info$size,
-    records = records
+    records = records,
+    index = index
   )
   invisible(records)
+}
+
+.manifest_cache_index <- function(path) {
+  key <- .manifest_cache_key(path)
+  if (!file.exists(path)) {
+    if (exists(key, envir = .manifest_cache, inherits = FALSE)) {
+      rm(list = key, envir = .manifest_cache, inherits = FALSE)
+    }
+    return(NULL)
+  }
+
+  info <- file.info(path)
+  cached <- .manifest_cache[[key]]
+  if (is.null(cached)) return(NULL)
+
+  if (identical(cached$mtime, info$mtime) && identical(cached$size, info$size)) {
+    return(cached$index %||% NULL)
+  }
+
+  rm(list = key, envir = .manifest_cache, inherits = FALSE)
+  NULL
 }
 
 .manifest_cache_invalidate <- function(path = NULL) {
@@ -160,11 +185,14 @@
 #' @return The matching record (a list) or \code{NULL}.
 #' @keywords internal
 .manifest_lookup <- function(stage_id, params, produces_names = NULL, config_dir = NULL) {
+  path <- .manifest_path(stage_id, config_dir)
   records <- .manifest_read(stage_id, config_dir)
   if (length(records) == 0L) return(NULL)
   target_hash <- digest::digest(params, algo = "sha1")
   expected_names <- .manifest_output_names(produces_names)
-  for (rec in rev(records)) {
+  candidates <- .manifest_cache_index(path)[[target_hash]]
+  if (is.null(candidates)) return(NULL)
+  for (rec in rev(candidates)) {
     if (identical(rec$param_hash, target_hash)) {
       if (length(expected_names) > 0L) {
         recorded_names <- if (!is.null(rec$output_names)) {
