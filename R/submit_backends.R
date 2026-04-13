@@ -167,7 +167,8 @@ list_submit_backends <- function() {
   # Start controller if not already started.
   .crew_start(controller)
 
-  task_names <- sprintf("parade-%s-%04d", handle$run_id, chunk_ids)
+  task_names <- sprintf("%s-c%04d", handle$label %||% handle$run_id, chunk_ids)
+  task_names <- vapply(task_names, .sanitize_job_name, character(1), default = "parade-task")
   for (idx in seq_along(chunk_ids)) {
     chunk_id <- chunk_ids[[idx]]
     cmd <- substitute(
@@ -211,6 +212,7 @@ list_submit_backends <- function() {
   cf <- make_parade_slurm_cf(tmpl)
   # batchtools::makeRegistry() creates the directory; save flow/chunks after.
   reg <- bt_make_registry(reg_dir = handle$registry_dir, cf = cf)
+  reg$parade_job_label <- handle$label %||% handle$run_id
   .save_registry_files(handle)
 
   batchtools::batchMap(

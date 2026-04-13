@@ -128,6 +128,26 @@
   if (is.null(ids)) seq_along(chunks) else as.integer(ids)
 }
 
+.parade_submit_label <- function(fl, label = NULL) {
+  if (!is.null(label)) {
+    return(.sanitize_job_name(label, default = "parade", max_len = 80L))
+  }
+
+  opt_label <- fl$options$submit_label %||% NULL
+  if (is.character(opt_label) && length(opt_label) == 1L && !is.na(opt_label) && nzchar(opt_label)) {
+    return(.sanitize_job_name(opt_label, default = "parade", max_len = 80L))
+  }
+
+  stage_ids <- vapply(fl$stages, function(s) s$id %||% "", character(1))
+  stage_ids <- stage_ids[nzchar(stage_ids)]
+  if (!length(stage_ids)) {
+    return("parade")
+  }
+
+  .sanitize_job_name(paste(c("parade", tail(stage_ids, 1L)), collapse = "-"),
+                     default = "parade", max_len = 80L)
+}
+
 #' Submit a flow for deferred execution
 #'
 #' Submits a parade flow for asynchronous execution, either locally using
@@ -143,6 +163,8 @@
 #' @param scheduling Furrr scheduling parameter
 #' @param clean If `TRUE`, remove an existing registry directory before
 #'   creating a new one. Useful when retrying after a failed submission.
+#' @param label Optional human-readable submit label. Used to derive the
+#'   default registry directory name and backend job/task names.
 #' @return A `parade_deferred` object for monitoring execution
 #' @export
 #' @examples
@@ -156,7 +178,7 @@
 #' unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
 #' unlink("parade.log")
 #' }
-submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir = NULL, index_dir = NULL, seed_furrr = TRUE, scheduling = 1, clean = FALSE) {
+submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir = NULL, index_dir = NULL, seed_furrr = TRUE, scheduling = 1, clean = FALSE, label = NULL) {
   stopifnot(inherits(fl, "parade_flow"))
   mode <- match.arg(mode)
   dist <- fl$dist
@@ -202,7 +224,8 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     integer()
   }
   run_id <- run_id %||% substr(digest::digest(list(Sys.time(), nrow(grid), names(grid))), 1, 8)
-  registry_dir <- registry_dir %||% paste0("registry://", paste0("parade-", run_id))
+  submit_label <- .parade_submit_label(fl, label = label)
+  registry_dir <- registry_dir %||% paste0("registry://", paste0(submit_label, "-", run_id))
   # Resolve path without creating the directory — backends handle creation
   # so that batchtools::makeRegistry() can own the directory for SLURM.
   registry_dir_real <- resolve_path(registry_dir, create = FALSE)
@@ -240,6 +263,7 @@ submit <- function(fl, mode = c("index","results"), run_id = NULL, registry_dir 
     by = dist$by,
     mode = mode,
     run_id = run_id,
+    label = submit_label,
     registry_dir = normalizePath(registry_dir_real, mustWork = FALSE),
     flow_path = normalizePath(flow_path, mustWork = FALSE),
     chunks_path = normalizePath(chunks_path, mustWork = FALSE),

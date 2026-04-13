@@ -15,6 +15,7 @@ script_stage(
   prefix = TRUE,
   skip_when = NULL,
   skip_if_exists = FALSE,
+  skip_if_exists_output = NULL,
   use_manifest = skip_if_exists,
   ...
 )
@@ -58,6 +59,13 @@ are shared across multiple grid rows.}
 When they do, the script is skipped and valid \code{\link[=file_ref]{file_ref()}} tibbles are
 returned (with \verb{written = FALSE, existed = TRUE}). Requires template mode
 (produces with glue placeholders); using it with manifest mode will error.}
+
+\item{skip_if_exists_output}{Optional output name to use as the canonical
+existence sentinel for \code{skip_if_exists}. When set, only that resolved
+output path is checked to decide whether the stage should be skipped.
+This is useful for multi-output stages on slow filesystems where one
+durable artifact (for example \code{perf}) is sufficient to indicate the row
+is complete.}
 
 \item{use_manifest}{Logical (defaults to \code{skip_if_exists}). When \code{TRUE},
 enables a completion manifest that records \code{{params} -> {output_paths}}

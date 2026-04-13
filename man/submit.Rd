@@ -12,7 +12,8 @@ submit(
   index_dir = NULL,
   seed_furrr = TRUE,
   scheduling = 1,
-  clean = FALSE
+  clean = FALSE,
+  label = NULL
 )
 }
 \arguments{
@@ -32,6 +33,9 @@ submit(
 
 \item{clean}{If \code{TRUE}, remove an existing registry directory before
 creating a new one. Useful when retrying after a failed submission.}
+
+\item{label}{Optional human-readable submit label. Used to derive the
+default registry directory name and backend job/task names.}
 }
 \value{
 A \code{parade_deferred} object for monitoring execution

@@ -395,6 +395,32 @@ test_that("submit() handles custom run_id", {
   expect_true(grepl(custom_id, handle$registry_dir))
 })
 
+test_that("submit() derives a readable default label from the final stage", {
+  temp_dir <- setup_test_registry()
+  on.exit(cleanup_test_registry(temp_dir))
+
+  fl <- create_test_flow() |>
+    distribute(dist_local(by = "group"))
+
+  handle <- submit(fl, mode = "index")
+
+  expect_equal(handle$label, "parade-double")
+  expect_true(grepl("parade-double", basename(handle$registry_dir), fixed = TRUE))
+})
+
+test_that("submit() accepts an explicit human-readable label", {
+  temp_dir <- setup_test_registry()
+  on.exit(cleanup_test_registry(temp_dir))
+
+  fl <- create_test_flow() |>
+    distribute(dist_local(by = "group"))
+
+  handle <- submit(fl, mode = "index", label = "phase3 x recall")
+
+  expect_equal(handle$label, "phase3-x-recall")
+  expect_true(grepl("phase3-x-recall", basename(handle$registry_dir), fixed = TRUE))
+})
+
 test_that("submit() handles custom registry_dir", {
   temp_dir <- setup_test_registry()
   on.exit(cleanup_test_registry(temp_dir))

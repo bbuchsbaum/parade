@@ -26,6 +26,23 @@ make_parade_slurm_cf <- function(template) {
 
   # Wrap submitJob to fix job ID parsing
   cf$submitJob <- function(reg, jc) {
+    if (!is.null(reg$parade_job_label) && nzchar(as.character(reg$parade_job_label))) {
+      chunk_ids <- jc$jobs[["job.id"]] %||% integer()
+      chunk_tag <- if (length(chunk_ids) == 1L) {
+        sprintf("c%04d", as.integer(chunk_ids[[1L]]))
+      } else if (length(chunk_ids) > 1L) {
+        sprintf("c%04d-%04d", min(chunk_ids), max(chunk_ids))
+      } else {
+        "chunk"
+      }
+      job_name <- .sanitize_job_name(
+        paste(reg$parade_job_label, chunk_tag, sep = "-"),
+        default = "parade-job"
+      )
+      jc$job.name <- job_name
+      jc$log.file <- file.path(dirname(jc$log.file), paste0(job_name, ".log"))
+    }
+
     # Call the original submitJob function
     result <- original_submit(reg, jc)
 
