@@ -28,7 +28,7 @@ Current registry path
 # \donttest{
 # Get current registry
 use_registry()
-#> Current registry: /tmp/RtmpNuRaxT/parade-registry
+#> Current registry: /tmp/RtmpXBiAfs/parade-registry
 
 # Switch to different registry
 use_registry("~/my_project/jobs")

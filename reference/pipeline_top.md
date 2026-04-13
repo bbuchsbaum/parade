@@ -63,7 +63,7 @@ d <- submit(fl)
 pipeline_top(d = d, refresh = 1)
 #> parade::pipeline_top  -
 #> 
-#> Run: 82bc5972  Backend: local  Submitted: 2026-04-13 16:59:22.922058
+#> Run: 816733fc  Backend: local  Submitted: 2026-04-13 17:10:47.959069
 #> Elapsed: 0:00:01  By: g
 #> Stages: s
 #> 

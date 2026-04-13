@@ -16,6 +16,7 @@ script_stage(
   id,
   script,
   produces,
+  output_dir = NULL,
   needs = character(),
   engine = c("source", "system"),
   interpreter = NULL,
@@ -53,6 +54,11 @@ script_stage(
   - **Names only** (no braces): output names only. The script must call
     [`script_returns()`](https://bbuchsbaum.github.io/parade/reference/script_returns.md)
     to declare actual paths.
+
+- output_dir:
+
+  Optional directory template for template mode outputs. When set, any
+  relative entries in `produces` are resolved inside this directory.
 
 - needs:
 
@@ -183,6 +189,17 @@ flow(grid) |>
     produces = c(
       model   = "results/{subject}/model.rds",
       metrics = "results/{subject}/metrics.csv"
+    )
+  )
+
+# Template mode: shared output directory with relative file names
+flow(grid) |>
+  script_stage("fit",
+    script = "scripts/fit_model.R",
+    output_dir = "results/{subject}/fit",
+    produces = c(
+      model = "model.rds",
+      metrics = "metrics.csv"
     )
   )
 
