@@ -22,6 +22,7 @@ script_stage(
   prefix = TRUE,
   skip_when = NULL,
   skip_if_exists = FALSE,
+  skip_if_exists_output = NULL,
   use_manifest = skip_if_exists,
   ...
 )
@@ -91,6 +92,14 @@ script_stage(
   tibbles are returned (with `written = FALSE, existed = TRUE`).
   Requires template mode (produces with glue placeholders); using it
   with manifest mode will error.
+
+- skip_if_exists_output:
+
+  Optional output name to use as the canonical existence sentinel for
+  `skip_if_exists`. When set, only that resolved output path is checked
+  to decide whether the stage should be skipped. This is useful for
+  multi-output stages on slow filesystems where one durable artifact
+  (for example `perf`) is sufficient to indicate the row is complete.
 
 - use_manifest:
 

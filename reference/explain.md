@@ -42,7 +42,7 @@ explain(
 #> Function:
 #> function (x) 
 #> x^2
-#> <environment: 0x55bc4429f7e0>
+#> <environment: 0x557a94e138a0>
 #> 
 #> Arguments:
 #>   [[1]] = 10

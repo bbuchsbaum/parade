@@ -58,6 +58,7 @@ file reference tibbles compatible with <code><a href="artifact.html">artifact()<
 <span>  prefix <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  skip_when <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  skip_if_exists <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  skip_if_exists_output <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  use_manifest <span class="op">=</span> <span class="va">skip_if_exists</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -122,6 +123,15 @@ are shared across multiple grid rows.</p></dd>
 When they do, the script is skipped and valid <code><a href="file_ref.html">file_ref()</a></code> tibbles are
 returned (with <code>written = FALSE, existed = TRUE</code>). Requires template mode
 (produces with glue placeholders); using it with manifest mode will error.</p></dd>
+
+
+<dt id="arg-skip-if-exists-output">skip_if_exists_output<a class="anchor" aria-label="anchor" href="#arg-skip-if-exists-output"></a></dt>
+<dd><p>Optional output name to use as the canonical
+existence sentinel for <code>skip_if_exists</code>. When set, only that resolved
+output path is checked to decide whether the stage should be skipped.
+This is useful for multi-output stages on slow filesystems where one
+durable artifact (for example <code>perf</code>) is sufficient to indicate the row
+is complete.</p></dd>
 
 
 <dt id="arg-use-manifest">use_manifest<a class="anchor" aria-label="anchor" href="#arg-use-manifest"></a></dt>

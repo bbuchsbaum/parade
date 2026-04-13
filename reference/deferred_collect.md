@@ -45,7 +45,7 @@ deferred_await(deferred, timeout = 600)
 #> Caused by error in `repaired_names()`:
 #> ! Names can't be empty.
 #> ✖ Empty name found at location 1.
-#> [parade] Chunk 1: 2 of 2 rows had stage errors (index saved to /tmp/Rtmp8TJRoF/parade-artifacts/runs/986f8472/index/index-0001.rds)
+#> [parade] Chunk 1: 2 of 2 rows had stage errors (index saved to /tmp/RtmpNuRaxT/parade-artifacts/runs/4cc39e52/index/index-0001.rds)
 #> [parade] Stage 'calc' failed after 1 attempt(s): Column 1 must be named.
 #> Use `.name_repair` to specify repair.
 #> Caused by error in `repaired_names()`:
@@ -56,7 +56,7 @@ deferred_await(deferred, timeout = 600)
 #> Caused by error in `repaired_names()`:
 #> ! Names can't be empty.
 #> ✖ Empty name found at location 1.
-#> [parade] Chunk 2: 2 of 2 rows had stage errors (index saved to /tmp/Rtmp8TJRoF/parade-artifacts/runs/986f8472/index/index-0002.rds)
+#> [parade] Chunk 2: 2 of 2 rows had stage errors (index saved to /tmp/RtmpNuRaxT/parade-artifacts/runs/4cc39e52/index/index-0002.rds)
 results <- deferred_collect(deferred)
 unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
 unlink("parade.log")

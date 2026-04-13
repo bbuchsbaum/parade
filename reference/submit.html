@@ -52,7 +52,8 @@ and collecting results.</p>
 <span>  index_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  seed_furrr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  scheduling <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  clean <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  clean <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  label <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -91,6 +92,11 @@ and collecting results.</p>
 <dt id="arg-clean">clean<a class="anchor" aria-label="anchor" href="#arg-clean"></a></dt>
 <dd><p>If <code>TRUE</code>, remove an existing registry directory before
 creating a new one. Useful when retrying after a failed submission.</p></dd>
+
+
+<dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
+<dd><p>Optional human-readable submit label. Used to derive the
+default registry directory name and backend job/task names.</p></dd>
 
 </dl></div>
     <div class="section level2">

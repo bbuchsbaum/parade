@@ -15,7 +15,8 @@ submit(
   index_dir = NULL,
   seed_furrr = TRUE,
   scheduling = 1,
-  clean = FALSE
+  clean = FALSE,
+  label = NULL
 )
 ```
 
@@ -53,6 +54,11 @@ submit(
 
   If `TRUE`, remove an existing registry directory before creating a new
   one. Useful when retrying after a failed submission.
+
+- label:
+
+  Optional human-readable submit label. Used to derive the default
+  registry directory name and backend job/task names.
 
 ## Value
 
