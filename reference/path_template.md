@@ -31,8 +31,8 @@ results_path <- path_template("results/{experiment}/{date}/{name}_{index}.rds")
 
 # Use it with different parameters
 results_path(experiment = "exp001", name = "analysis", index = 1)
-#> [1] "results/exp001/20260408/analysis_1.rds"
+#> [1] "results/exp001/20260413/analysis_1.rds"
 results_path(experiment = "exp002", name = "model", index = 5)
-#> [1] "results/exp002/20260408/model_5.rds"
+#> [1] "results/exp002/20260413/model_5.rds"
 # }
 ```

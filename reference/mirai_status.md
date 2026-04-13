@@ -26,7 +26,7 @@ if (!is.null(status)) {
 #> [1] 8
 #> 
 #> $daemons
-#> [1] "abstract://9dce75875f94d092623c9591"
+#> [1] "abstract://7acd3ff805cf252c28f5e7aa"
 #> 
 #> $mirai
 #>  awaiting executing completed 
