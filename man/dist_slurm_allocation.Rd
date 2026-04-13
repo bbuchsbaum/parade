@@ -8,10 +8,12 @@ dist_slurm_allocation(
   nodes,
   cores_per_node,
   by = NULL,
-  within = c("multisession", "multicore", "callr", "sequential"),
+  within = c("multisession", "multicore", "callr", "parallel", "sequential"),
+  workers_within = NULL,
   template = slurm_template(),
   resources = list(),
-  target_jobs = NULL
+  target_jobs = NULL,
+  parallel_opts = list()
 )
 }
 \arguments{
@@ -21,8 +23,14 @@ dist_slurm_allocation(
 
 \item{by}{Optional column names to group by for parallelization.}
 
-\item{within}{Execution strategy within each SLURM job: "multisession",
-"multicore", "callr", or "sequential".}
+\item{within}{Execution strategy within each SLURM job: \code{"multisession"},
+\code{"multicore"}, \code{"callr"}, \code{"parallel"}, or \code{"sequential"}.}
+
+\item{workers_within}{Integer; number of concurrent inner workers per
+SLURM job. For \code{within = "parallel"} this is gnu-parallel's \code{-j} value.
+Defaults to \code{cores_per_node} (one worker per core) when the within
+strategy uses sub-parallelism; pass a smaller value to intentionally
+under-saturate the node, e.g. when each worker needs multiple threads.}
 
 \item{template}{Path to SLURM template file.}
 
@@ -31,6 +39,9 @@ full-node defaults; user values win).}
 
 \item{target_jobs}{Optional integer; override the default \code{target_jobs = nodes}
 (useful for oversubscription, e.g., \code{target_jobs = nodes * 2}).}
+
+\item{parallel_opts}{Named list of options forwarded to the gnu-parallel
+backend when \code{within = "parallel"} (see \code{\link[=dist_slurm]{dist_slurm()}}).}
 }
 \value{
 A \code{parade_dist} object suitable for \code{distribute()}.

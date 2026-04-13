@@ -376,7 +376,9 @@ parade_run_chunk_bt <- function(i, flow_path, chunks_path, index_dir, mode = "in
   fl <- .read_rds_cached(flow_path)
   chunks <- .read_rds_cached(chunks_path)
   idx_vec <- chunks[[i]]
-  .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)
+  .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i,
+                        mode = mode, seed_furrr = seed_furrr, scheduling = scheduling,
+                        flow_path = flow_path, chunks_path = chunks_path)
 }
 #' Run a single distributed chunk locally
 #'
@@ -397,10 +399,241 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
   fl <- .read_rds_cached(flow_path)
   chunks <- .read_rds_cached(chunks_path)
   idx_vec <- chunks[[i]]
-  .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i, mode = mode, seed_furrr = seed_furrr, scheduling = scheduling)
+  .parade_execute_chunk(fl, idx_vec, index_dir = index_dir, job_id = i,
+                        mode = mode, seed_furrr = seed_furrr, scheduling = scheduling,
+                        flow_path = flow_path, chunks_path = chunks_path)
 }
+#' Run a single grid row through all stages
+#'
+#' Entry point used by the `within = "parallel"` gnu-parallel backend.
+#' Each row becomes an isolated `Rscript` subprocess that calls this
+#' function.  The result is written to
+#' `<index_dir>/chunk-<chunk_id>-row-<row_id>.rds` and the calling parent
+#' reads every per-row RDS back into a tibble after gnu-parallel exits.
+#'
+#' @param flow_path Path to the serialized flow object (RDS).
+#' @param chunks_path Path to the serialized chunk-index list (RDS).
+#'   Currently unused inside the child — kept in the signature so a future
+#'   version can validate that `row_id` belongs to `chunk_id`.
+#' @param chunk_id Integer; the chunk this row belongs to. Used only for
+#'   output-file naming and run-context provenance.
+#' @param row_id Integer; 1-based row index into `fl$grid`.
+#' @param index_dir Directory where the per-row RDS file is written.
+#' @param mode Either `"index"` or `"results"` — matches the semantics of
+#'   [parade_run_chunk_local()].
+#' @return Invisibly `NULL`. The per-row RDS file is the actual output.
 #' @keywords internal
-.parade_execute_chunk <- function(fl, idx_vec, index_dir, job_id, mode = "index", seed_furrr = TRUE, scheduling = 1) {
+#' @export
+parade_run_row <- function(flow_path, chunks_path, chunk_id, row_id,
+                           index_dir, mode = "index") {
+  if (is.na(flow_path) || !nzchar(flow_path)) {
+    stop("parade_run_row(): PARADE_FLOW_PATH is not set", call. = FALSE)
+  }
+  if (is.na(index_dir) || !nzchar(index_dir)) {
+    stop("parade_run_row(): PARADE_INDEX_DIR is not set", call. = FALSE)
+  }
+  fl <- .read_rds_cached(flow_path)
+  grid <- fl$grid
+  if (row_id < 1L || row_id > nrow(grid)) {
+    stop(sprintf("parade_run_row(): row_id %d out of range [1, %d]",
+                 row_id, nrow(grid)), call. = FALSE)
+  }
+  row <- as.list(grid[row_id, , drop = FALSE])
+  order <- .toposort(fl$stages)
+  run_context <- list(
+    run_id       = fl$options$run_id %||% NA_character_,
+    run_key      = fl$options$run_key %||% NA_character_,
+    run_status   = "running",
+    creator      = fl$options$creator %||% .parade_user_name(),
+    code_version = fl$options$code_version %||% .parade_code_version(),
+    engine       = fl$dist$backend %||% "deferred",
+    chunk_id     = as.integer(chunk_id)
+  )
+  old_ctx <- getOption("parade.run_context", NULL)
+  on.exit(options(parade.run_context = old_ctx), add = TRUE)
+  options(parade.run_context = run_context)
+
+  row_result <- .eval_row_flow(
+    row, fl$stages,
+    seed_col    = fl$options$seed_col,
+    error       = fl$options$error,
+    order       = order,
+    run_context = run_context,
+    flow_options = fl$options
+  )
+
+  out_path <- file.path(index_dir,
+                        sprintf("chunk-%04d-row-%06d.rds",
+                                as.integer(chunk_id), as.integer(row_id)))
+  dir.create(dirname(out_path), recursive = TRUE, showWarnings = FALSE)
+  if (is.null(row_result)) {
+    saveRDS(grid[0, , drop = FALSE], out_path, compress = "gzip")
+  } else {
+    saveRDS(tibble::as_tibble(vctrs::vec_rbind(row_result)),
+            out_path, compress = "gzip")
+  }
+  invisible(NULL)
+}
+
+#' @keywords internal
+.parade_find_parallel <- function(override = NULL) {
+  if (!is.null(override) && nzchar(override)) {
+    if (!file.exists(override)) {
+      stop("parallel_opts$parallel_bin: file not found: ", override,
+           call. = FALSE)
+    }
+    p <- override
+  } else {
+    p <- Sys.which("parallel")
+    if (!nzchar(p)) {
+      stop(
+        "within = 'parallel' requires GNU Parallel on PATH. ",
+        "On HPC: `module load gnu-parallel`. ",
+        "On macOS: `brew install parallel`. ",
+        "On Debian/Ubuntu: `apt install parallel`. ",
+        "Or set dist parallel_opts$parallel_bin = '/path/to/parallel'.",
+        call. = FALSE
+      )
+    }
+  }
+  v <- tryCatch(
+    suppressWarnings(system2(p, "--version", stdout = TRUE, stderr = TRUE)),
+    error = function(e) character()
+  )
+  if (!length(v) || !grepl("^GNU parallel", v[[1]])) {
+    stop(
+      "Found `parallel` at ", p,
+      " but it does not appear to be GNU Parallel ",
+      "(moreutils ships an incompatible `parallel`). ",
+      "Set parallel_opts$parallel_bin.",
+      call. = FALSE
+    )
+  }
+  unname(p)
+}
+
+#' @keywords internal
+.parade_run_row_wrapper <- function() {
+  wrapper <- system.file("scripts", "parade_run_row.R", package = "parade")
+  if (nzchar(wrapper) && file.exists(wrapper)) return(wrapper)
+  # devtools::load_all support — fall back to the source tree copy
+  src <- file.path(getwd(), "inst", "scripts", "parade_run_row.R")
+  if (file.exists(src)) return(src)
+  # Last resort: search DESC-level path
+  pkg <- tryCatch(find.package("parade"), error = function(e) NULL)
+  if (!is.null(pkg)) {
+    cand <- file.path(pkg, "inst", "scripts", "parade_run_row.R")
+    if (file.exists(cand)) return(cand)
+    cand2 <- file.path(pkg, "scripts", "parade_run_row.R")
+    if (file.exists(cand2)) return(cand2)
+  }
+  stop("parade_run_row.R wrapper script not found; reinstall parade",
+       call. = FALSE)
+}
+
+#' @keywords internal
+.parade_run_chunk_via_gnu_parallel <- function(fl, idx_vec, index_dir, job_id, mode,
+                                               flow_path, chunks_path, dist,
+                                               n_workers, run_context) {
+  if (!requireNamespace("processx", quietly = TRUE)) {
+    stop("within = 'parallel' requires the 'processx' package.", call. = FALSE)
+  }
+  grid <- fl$grid
+  row_ids <- unlist(idx_vec, use.names = FALSE)
+  if (!length(row_ids)) return(grid[0, , drop = FALSE])
+
+  opts <- dist$parallel_opts %||% list()
+  parallel_bin <- .parade_find_parallel(opts$parallel_bin)
+  wrapper <- .parade_run_row_wrapper()
+
+  dir.create(index_dir, recursive = TRUE, showWarnings = FALSE)
+  joblog <- opts$joblog %||% file.path(
+    index_dir, sprintf("parallel-joblog-chunk-%04d.log", as.integer(job_id))
+  )
+  tagstring <- opts$tagstring %||% "[parade row {}]"
+
+  par_args <- c(
+    sprintf("-j%d", as.integer(n_workers)),
+    "--line-buffer",
+    "--tagstring", tagstring,
+    "--joblog", joblog,
+    if (isTRUE(opts$resume)) "--resume" else NULL,
+    if (!is.null(dist$callr_timeout))
+      c("--timeout", as.character(as.integer(dist$callr_timeout))) else NULL,
+    if (!is.null(opts$memfree)) c("--memfree", opts$memfree) else NULL,
+    as.character(opts$extra_args %||% character()),
+    "Rscript", "--vanilla", wrapper, "{}",
+    ":::",
+    as.character(row_ids)
+  )
+
+  pkg_root <- tryCatch(normalizePath(getwd(), mustWork = TRUE),
+                       error = function(e) "")
+  env_extra <- c(
+    PARADE_FLOW_PATH   = normalizePath(flow_path,   mustWork = FALSE),
+    PARADE_CHUNKS_PATH = normalizePath(chunks_path, mustWork = FALSE),
+    PARADE_CHUNK_ID    = as.character(as.integer(job_id)),
+    PARADE_INDEX_DIR   = normalizePath(index_dir,   mustWork = FALSE),
+    PARADE_MODE        = as.character(mode),
+    PARADE_PKG_ROOT    = pkg_root
+  )
+  old_env <- vapply(names(env_extra),
+                    function(n) Sys.getenv(n, unset = NA_character_),
+                    character(1))
+  do.call(Sys.setenv, as.list(env_extra))
+  on.exit({
+    for (n in names(old_env)) {
+      if (is.na(old_env[[n]])) Sys.unsetenv(n)
+      else do.call(Sys.setenv, setNames(list(old_env[[n]]), n))
+    }
+  }, add = TRUE)
+
+  status <- processx::run(
+    command         = parallel_bin,
+    args            = par_args,
+    echo            = TRUE,
+    spinner         = FALSE,
+    error_on_status = FALSE
+  )
+  if (!identical(status$status, 0L)) {
+    warning(sprintf(
+      "gnu-parallel chunk %d exited with status %d; joblog at %s",
+      as.integer(job_id), status$status, joblog
+    ), call. = FALSE, immediate. = TRUE)
+  }
+
+  # Collect per-row RDS files
+  row_results <- lapply(row_ids, function(r) {
+    p <- file.path(index_dir,
+                   sprintf("chunk-%04d-row-%06d.rds",
+                           as.integer(job_id), as.integer(r)))
+    if (file.exists(p)) {
+      tryCatch(readRDS(p), error = function(e) NULL)
+    } else {
+      NULL
+    }
+  })
+  missing_ids <- row_ids[vapply(row_results, is.null, logical(1))]
+  if (length(missing_ids)) {
+    warning(sprintf(
+      "within='parallel': %d row(s) produced no output file (rows: %s); check %s",
+      length(missing_ids),
+      paste(utils::head(missing_ids, 10), collapse = ","),
+      joblog
+    ), call. = FALSE, immediate. = TRUE)
+  }
+  row_results <- purrr::compact(row_results)
+  if (!length(row_results)) {
+    grid[row_ids, , drop = FALSE][0, , drop = FALSE]
+  } else {
+    tibble::as_tibble(vctrs::vec_rbind(!!!row_results))
+  }
+}
+
+#' @keywords internal
+.parade_execute_chunk <- function(fl, idx_vec, index_dir, job_id,
+                                  mode = "index", seed_furrr = TRUE, scheduling = 1,
+                                  flow_path = NULL, chunks_path = NULL) {
   grid <- fl$grid
   dist <- fl$dist %||% list(within = "sequential", workers_within = NULL)
   within <- dist$within %||% "sequential"
@@ -516,12 +749,40 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
       next_g <- next_g + 1L
     }
 
+    # Drain any stdout/stderr the child has emitted since we last checked,
+    # and mirror it into the parent process's stdout/stderr with a per-group
+    # prefix. callr::r_bg() defaults to stdout="|" / stderr="|", so without
+    # this the child's message()/cat() output would stay trapped in pipes
+    # and never appear in the batchtools/SLURM log. Reading non-blocking
+    # line-at-a-time avoids interleaving mid-line and preserves provenance.
+    .drain_callr_io <- function(proc, g_idx) {
+      prefix <- sprintf("[parade grp %d] ", g_idx)
+      tryCatch({
+        out <- proc$read_output_lines()
+        if (length(out)) {
+          cat(paste0(prefix, out, "\n"), sep = "", file = stdout())
+          flush(stdout())
+        }
+      }, error = function(e) NULL)
+      tryCatch({
+        err <- proc$read_error_lines()
+        if (length(err)) {
+          cat(paste0(prefix, err, "\n"), sep = "", file = stderr())
+          flush(stderr())
+        }
+      }, error = function(e) NULL)
+      invisible(NULL)
+    }
+
     .reap_callr_proc <- function(proc, g_idx, killed = FALSE) {
       # Wait briefly for the process to finish writing its result file,
       # then kill the full process tree and collect the result.
       if (!killed) {
         tryCatch(proc$wait(timeout = 5000), error = function(e) NULL)
       }
+      # Drain anything the child wrote between the last poll tick and exit,
+      # before we tear the process tree down.
+      .drain_callr_io(proc, g_idx)
       res <- tryCatch(
         proc$get_result(),
         error = function(e) {
@@ -531,6 +792,9 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
           grid[idx_vec[[g_idx]], , drop = FALSE][0, , drop = FALSE]
         }
       )
+      # Final drain: get_result() may have caused the process to close its
+      # pipes, so one more read is cheap insurance against lost trailing lines.
+      .drain_callr_io(proc, g_idx)
       tryCatch(proc$kill_tree(), error = function(e) NULL)
       res
     }
@@ -542,6 +806,9 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
       for (nm in names(active)) {
         proc <- active[[nm]]
         g_idx <- as.integer(nm)
+        # Mirror any new child output into the parent log every tick,
+        # whether or not the process has exited.
+        .drain_callr_io(proc, g_idx)
         if (!proc$is_alive()) {
           group_results[[g_idx]] <- .reap_callr_proc(proc, g_idx)
           done_ids <- c(done_ids, nm)
@@ -577,6 +844,24 @@ parade_run_chunk_local <- function(i, flow_path, chunks_path, index_dir, mode = 
     } else {
       tibble::as_tibble(vctrs::vec_rbind(!!!group_results))
     }
+  } else if (identical(within, "parallel") && !is.null(flow_path) && !is.null(chunks_path)) {
+    # --- gnu-parallel pool: row-level shell pool -------------------------
+    # Each grid row becomes a fully isolated Rscript subprocess.  gnu-parallel
+    # throttles to n_workers concurrent subprocesses, writes a joblog for
+    # resumable-on-failure semantics, and streams tagged output back into
+    # our stdout/stderr (which in SLURM jobs is the batchtools .log file).
+    res <- .parade_run_chunk_via_gnu_parallel(
+      fl            = fl,
+      idx_vec       = idx_vec,
+      index_dir     = index_dir,
+      job_id        = job_id,
+      mode          = mode,
+      flow_path     = flow_path,
+      chunks_path   = chunks_path,
+      dist          = dist,
+      n_workers     = n_workers,
+      run_context   = run_context
+    )
   } else {
     # --- furrr path: multicore / multisession / sequential ----------------
     # Parallelism is at the row level via furrr::future_pmap.

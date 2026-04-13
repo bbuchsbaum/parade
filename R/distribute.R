@@ -103,11 +103,12 @@ distribute <- function(fl, dist, ...) {
 #' # Each process can use its own internal parallelism (furrr, mclapply, etc.)
 #' dist_local(by = "subject", within = "callr", workers_within = 4L)
 dist_local <- function(by = NULL,
-                       within = c("multisession", "multicore", "callr", "sequential"),
+                       within = c("multisession", "multicore", "callr", "parallel", "sequential"),
                        workers_within = NULL,
                        chunks_per_job = 1L,
                        target_jobs = NULL,
-                       callr_timeout = NULL) {
+                       callr_timeout = NULL,
+                       parallel_opts = list()) {
   within <- match.arg(within)
   structure(
     list(
@@ -118,6 +119,7 @@ dist_local <- function(by = NULL,
       chunks_per_job = as.integer(chunks_per_job),
       target_jobs = target_jobs,
       callr_timeout = callr_timeout,
+      parallel_opts = .parade_validate_parallel_opts(parallel_opts),
       slurm = NULL
     ),
     class = "parade_dist"
@@ -287,13 +289,14 @@ dist_local <- function(by = NULL,
 #'   )
 #' )
 dist_slurm <- function(by = NULL,
-                       within = c("multisession", "multicore", "callr", "sequential"),
+                       within = c("multisession", "multicore", "callr", "parallel", "sequential"),
                        workers_within = NULL,
                        template = slurm_template(),
                        resources = list(),
                        chunks_per_job = 1L,
                        target_jobs = NULL,
-                       callr_timeout = NULL) {
+                       callr_timeout = NULL,
+                       parallel_opts = list()) {
   within <- match.arg(within)
   # Extract workers_within from resources if placed there by mistake
   if (is.null(workers_within) && !is.null(resources$workers_within)) {
@@ -309,6 +312,7 @@ dist_slurm <- function(by = NULL,
       chunks_per_job = as.integer(chunks_per_job),
       target_jobs = target_jobs,
       callr_timeout = callr_timeout,
+      parallel_opts = .parade_validate_parallel_opts(parallel_opts),
       slurm = list(template = template, resources = resources, profile = "default")
     ),
     class = "parade_dist"
@@ -334,13 +338,20 @@ dist_slurm <- function(by = NULL,
 #' @param nodes Integer; number of nodes available concurrently.
 #' @param cores_per_node Integer; number of CPU cores per node.
 #' @param by Optional column names to group by for parallelization.
-#' @param within Execution strategy within each SLURM job: "multisession",
-#'   "multicore", "callr", or "sequential".
+#' @param within Execution strategy within each SLURM job: `"multisession"`,
+#'   `"multicore"`, `"callr"`, `"parallel"`, or `"sequential"`.
+#' @param workers_within Integer; number of concurrent inner workers per
+#'   SLURM job. For `within = "parallel"` this is gnu-parallel's `-j` value.
+#'   Defaults to `cores_per_node` (one worker per core) when the within
+#'   strategy uses sub-parallelism; pass a smaller value to intentionally
+#'   under-saturate the node, e.g. when each worker needs multiple threads.
 #' @param template Path to SLURM template file.
 #' @param resources Named list of SLURM resource specifications (merged with the
 #'   full-node defaults; user values win).
 #' @param target_jobs Optional integer; override the default `target_jobs = nodes`
 #'   (useful for oversubscription, e.g., `target_jobs = nodes * 2`).
+#' @param parallel_opts Named list of options forwarded to the gnu-parallel
+#'   backend when `within = "parallel"` (see [dist_slurm()]).
 #' @return A `parade_dist` object suitable for `distribute()`.
 #' @export
 #' @examples
@@ -359,10 +370,12 @@ dist_slurm <- function(by = NULL,
 dist_slurm_allocation <- function(nodes,
                                   cores_per_node,
                                   by = NULL,
-                                  within = c("multisession", "multicore", "callr", "sequential"),
+                                  within = c("multisession", "multicore", "callr", "parallel", "sequential"),
+                                  workers_within = NULL,
                                   template = slurm_template(),
                                   resources = list(),
-                                  target_jobs = NULL) {
+                                  target_jobs = NULL,
+                                  parallel_opts = list()) {
   within <- match.arg(within)
   nodes <- as.integer(nodes)
   cores_per_node <- as.integer(cores_per_node)
@@ -384,7 +397,12 @@ dist_slurm_allocation <- function(nodes,
 
   if (is.null(target_jobs)) target_jobs <- nodes
 
-  workers_within <- if (within %in% c("multisession", "multicore", "callr")) cores_per_node else NULL
+  if (is.null(workers_within)) {
+    workers_within <- if (within %in% c("multisession", "multicore", "callr", "parallel"))
+      cores_per_node else NULL
+  } else {
+    workers_within <- as.integer(workers_within)
+  }
 
   dist_slurm(
     by = by,
@@ -393,7 +411,8 @@ dist_slurm_allocation <- function(nodes,
     template = template,
     resources = resources,
     chunks_per_job = 1L,
-    target_jobs = target_jobs
+    target_jobs = target_jobs,
+    parallel_opts = parallel_opts
   )
 }
 #' Convenience: SLURM distribution from a named profile
@@ -455,6 +474,30 @@ dist_slurm_profile <- function(profile,
 slurm_template <- function() system.file("batchtools", "parade-slurm.tmpl", package = "parade")
 
 # Worker resolution --------------------------------------------------------
+
+#' Validate and canonicalise `parallel_opts` for within = "parallel"
+#' @keywords internal
+#' @noRd
+.parade_validate_parallel_opts <- function(opts) {
+  if (is.null(opts)) return(list())
+  if (!is.list(opts)) {
+    stop("parallel_opts must be a named list", call. = FALSE)
+  }
+  known <- c("parallel_bin", "joblog", "memfree", "extra_args", "resume", "tagstring")
+  unknown <- setdiff(names(opts), known)
+  if (length(unknown)) {
+    stop(sprintf("parallel_opts: unknown option(s): %s. Known: %s",
+                 paste(unknown, collapse = ", "),
+                 paste(known, collapse = ", ")), call. = FALSE)
+  }
+  if (!is.null(opts$extra_args) && !is.character(opts$extra_args)) {
+    stop("parallel_opts$extra_args must be a character vector", call. = FALSE)
+  }
+  if (!is.null(opts$resume) && !is.logical(opts$resume)) {
+    stop("parallel_opts$resume must be TRUE or FALSE", call. = FALSE)
+  }
+  opts
+}
 
 #' Detect available cores from the runtime environment
 #'
@@ -552,6 +595,22 @@ resolve_workers <- function(dist, n_groups = NULL) {
 
   # --- Auto-detect ---
   env <- .detect_available_cores()
+
+  if (identical(within, "parallel")) {
+    # gnu-parallel path: each row is an isolated Rscript subprocess, so one
+    # worker per core is the right default (matches SciNet guidance of
+    # filling the whole node).
+    workers <- as.integer(env$cores)
+    if (!is.null(n_groups) && n_groups < workers) workers <- as.integer(n_groups)
+    return(list(
+      workers = workers,
+      source = "parallel_auto",
+      detail = sprintf(
+        "within='parallel': detected %d cores (%s); defaulting to %d gnu-parallel slots",
+        env$cores, env$source, workers
+      )
+    ))
+  }
 
   if (identical(within, "callr")) {
     # Each callr process is heavyweight — it's a full R session that may

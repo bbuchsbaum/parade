@@ -6,11 +6,12 @@
 \usage{
 dist_local(
   by = NULL,
-  within = c("multisession", "multicore", "callr", "sequential"),
+  within = c("multisession", "multicore", "callr", "parallel", "sequential"),
   workers_within = NULL,
   chunks_per_job = 1L,
   target_jobs = NULL,
-  callr_timeout = NULL
+  callr_timeout = NULL,
+  parallel_opts = list()
 )
 }
 \arguments{

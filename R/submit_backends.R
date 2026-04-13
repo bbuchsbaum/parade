@@ -327,6 +327,11 @@ list_submit_backends <- function() {
       # the callr pool, not by futures.
       future::sequential
     },
+    "parallel" = {
+      # gnu-parallel manages a row-level subprocess pool inside
+      # .parade_execute_chunk(); the outer dispatch plan is sequential.
+      future::sequential
+    },
     "sequential" = future::sequential,
     future::sequential
   )
