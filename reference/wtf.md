@@ -47,12 +47,14 @@ fl <- flow(grid) |>
   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
   distribute(dist_local(by = "group"))
 d <- submit(fl)
+#> [parade] submit prune: scanning 2 groups for cached outputs
+#> [parade] submit prune complete in 0.0s (0 pruned, 2 pending)
 deferred_await(d, timeout = 60)
 wtf(d)
 #> 
 #> ================================================================================ 
 #> parade failure report
-#> Run: 1c81bfb5  Backend: local  Submitted: 2026-04-13 16:03:28.513839
+#> Run: 6be61122  Backend: local  Submitted: 2026-04-13 16:34:44.151946
 #> Stages: calc
 #> Elapsed: 0:00:03  Chunks: 2 total, 2 ok, 0 failed
 #> 

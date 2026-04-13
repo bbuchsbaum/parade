@@ -45,6 +45,8 @@ fl <- flow(grid) |>
   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
   distribute(dist_local(by = "group"))
 d <- submit(fl)
+#> [parade] submit prune: scanning 2 groups for cached outputs
+#> [parade] submit prune complete in 0.0s (0 pruned, 2 pending)
 deferred_await(d, timeout = 60)
 hits <- search_logs(d, "Error|fatal|segfault", context = 5)
 # }

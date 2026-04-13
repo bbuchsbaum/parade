@@ -65,10 +65,12 @@ fl <- flow(grid) |>
          schema = returns(y = dbl())) |>
   distribute(dist_local(by = "g"))
 d <- submit(fl)
+#> [parade] submit prune: scanning 3 groups for cached outputs
+#> [parade] submit prune complete in 0.0s (0 pruned, 3 pending)
 deferred_top(d, refresh = 1, once = TRUE)
 #> parade::deferred_top  -
 #> 
-#> Run: b10a0594  Backend: local  Submitted: 2026-04-13 16:01:37.05754
+#> Run: 3f5bace2  Backend: local  Submitted: 2026-04-13 16:33:06.022681
 #> Elapsed: 0:00:04  By: g  Mode: index
 #> Stages: s
 #> 

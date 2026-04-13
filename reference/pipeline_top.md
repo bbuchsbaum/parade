@@ -58,10 +58,12 @@ fl <- flow(grid) |>
   stage("s", function(x) list(y = x^2), schema = returns(y = dbl())) |>
   distribute(dist_local(by = "g", within = "sequential"))
 d <- submit(fl)
+#> [parade] submit prune: scanning 3 groups for cached outputs
+#> [parade] submit prune complete in 0.0s (0 pruned, 3 pending)
 pipeline_top(d = d, refresh = 1)
 #> parade::pipeline_top  -
 #> 
-#> Run: 72d2aef1  Backend: local  Submitted: 2026-04-13 16:02:44.999223
+#> Run: 869f1289  Backend: local  Submitted: 2026-04-13 16:34:11.053004
 #> Elapsed: 0:00:01  By: g
 #> Stages: s
 #> 

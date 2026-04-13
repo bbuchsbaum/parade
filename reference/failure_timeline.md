@@ -37,6 +37,8 @@ fl <- flow(grid) |>
   stage("calc", function(x) x^2, schema = returns(result = dbl())) |>
   distribute(dist_local(by = "group", within = "sequential"))
 d <- submit(fl)
+#> [parade] submit prune: scanning 2 groups for cached outputs
+#> [parade] submit prune complete in 0.0s (0 pruned, 2 pending)
 deferred_await(d, timeout = 60)
 #> [parade] Stage 'calc' failed after 1 attempt(s): Column 1 must be named.
 #> Use `.name_repair` to specify repair.
@@ -48,7 +50,7 @@ deferred_await(d, timeout = 60)
 #> Caused by error in `repaired_names()`:
 #> ! Names can't be empty.
 #> ✖ Empty name found at location 1.
-#> [parade] Chunk 1: 2 of 2 rows had stage errors (index saved to /tmp/RtmpvaC14h/parade-artifacts/runs/2ded8816/index/index-0001.rds)
+#> [parade] Chunk 1: 2 of 2 rows had stage errors (index saved to /tmp/Rtmp8TJRoF/parade-artifacts/runs/d89fe263/index/index-0001.rds)
 #> [parade] Stage 'calc' failed after 1 attempt(s): Column 1 must be named.
 #> Use `.name_repair` to specify repair.
 #> Caused by error in `repaired_names()`:
@@ -59,7 +61,7 @@ deferred_await(d, timeout = 60)
 #> Caused by error in `repaired_names()`:
 #> ! Names can't be empty.
 #> ✖ Empty name found at location 1.
-#> [parade] Chunk 2: 2 of 2 rows had stage errors (index saved to /tmp/RtmpvaC14h/parade-artifacts/runs/2ded8816/index/index-0002.rds)
+#> [parade] Chunk 2: 2 of 2 rows had stage errors (index saved to /tmp/Rtmp8TJRoF/parade-artifacts/runs/d89fe263/index/index-0002.rds)
 tl <- failure_timeline(d)
 unlink(c(paths_get()$registry, paths_get()$artifacts), recursive = TRUE)
 unlink("parade.log")

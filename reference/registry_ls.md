@@ -32,19 +32,19 @@ Data frame of jobs
 # \donttest{
 # List all jobs
 registry_ls()
-#> Registry not found: /tmp/RtmpvaC14h/parade-registry
+#> Registry not found: /tmp/Rtmp8TJRoF/parade-registry
 #> [1] name    status  created
 #> <0 rows> (or 0-length row.names)
 
 # List jobs matching pattern
 registry_ls(pattern = "analysis_*")
-#> Registry not found: /tmp/RtmpvaC14h/parade-registry
+#> Registry not found: /tmp/Rtmp8TJRoF/parade-registry
 #> [1] name    status  created
 #> <0 rows> (or 0-length row.names)
 
 # List most recent 10 jobs
 registry_ls(limit = 10)
-#> Registry not found: /tmp/RtmpvaC14h/parade-registry
+#> Registry not found: /tmp/Rtmp8TJRoF/parade-registry
 #> [1] name    status  created
 #> <0 rows> (or 0-length row.names)
 # }
