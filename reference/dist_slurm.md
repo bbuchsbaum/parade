@@ -8,13 +8,14 @@ SLURM job runs one or more **groups** of grid rows.
 ``` r
 dist_slurm(
   by = NULL,
-  within = c("multisession", "multicore", "callr", "sequential"),
+  within = c("multisession", "multicore", "callr", "parallel", "sequential"),
   workers_within = NULL,
   template = slurm_template(),
   resources = list(),
   chunks_per_job = 1L,
   target_jobs = NULL,
-  callr_timeout = NULL
+  callr_timeout = NULL,
+  parallel_opts = list()
 )
 ```
 
@@ -170,6 +171,9 @@ dist_slurm(
 #> $callr_timeout
 #> NULL
 #> 
+#> $parallel_opts
+#> list()
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -226,6 +230,9 @@ dist_slurm(
 #> 
 #> $callr_timeout
 #> NULL
+#> 
+#> $parallel_opts
+#> list()
 #> 
 #> $slurm
 #> $slurm$template
@@ -288,6 +295,9 @@ dist_slurm(
 #> $callr_timeout
 #> NULL
 #> 
+#> $parallel_opts
+#> list()
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -340,6 +350,9 @@ dist_slurm(
 #> $callr_timeout
 #> NULL
 #> 
+#> $parallel_opts
+#> list()
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -382,6 +395,9 @@ dist_slurm(
 #> 
 #> $callr_timeout
 #> NULL
+#> 
+#> $parallel_opts
+#> list()
 #> 
 #> $slurm
 #> $slurm$template
@@ -439,6 +455,9 @@ dist_slurm(
 #> $callr_timeout
 #> NULL
 #> 
+#> $parallel_opts
+#> list()
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -495,6 +514,9 @@ dist_slurm(
 #> 
 #> $callr_timeout
 #> NULL
+#> 
+#> $parallel_opts
+#> list()
 #> 
 #> $slurm
 #> $slurm$template

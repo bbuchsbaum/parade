@@ -7,11 +7,12 @@ Configure local parallel execution using the future framework.
 ``` r
 dist_local(
   by = NULL,
-  within = c("multisession", "multicore", "callr", "sequential"),
+  within = c("multisession", "multicore", "callr", "parallel", "sequential"),
   workers_within = NULL,
   chunks_per_job = 1L,
   target_jobs = NULL,
-  callr_timeout = NULL
+  callr_timeout = NULL,
+  parallel_opts = list()
 )
 ```
 
@@ -123,6 +124,9 @@ dist_local(by = "group", within = "sequential")
 #> $callr_timeout
 #> NULL
 #> 
+#> $parallel_opts
+#> list()
+#> 
 #> $slurm
 #> NULL
 #> 
@@ -151,6 +155,9 @@ dist_local(by = "group", within = "multicore")
 #> 
 #> $callr_timeout
 #> NULL
+#> 
+#> $parallel_opts
+#> list()
 #> 
 #> $slurm
 #> NULL
@@ -181,6 +188,9 @@ dist_local(by = "group", chunks_per_job = 2L)
 #> $callr_timeout
 #> NULL
 #> 
+#> $parallel_opts
+#> list()
+#> 
 #> $slurm
 #> NULL
 #> 
@@ -209,6 +219,9 @@ dist_local(by = "group", target_jobs = 4L)
 #> 
 #> $callr_timeout
 #> NULL
+#> 
+#> $parallel_opts
+#> list()
 #> 
 #> $slurm
 #> NULL
@@ -239,6 +252,9 @@ dist_local(by = "subject", within = "callr", workers_within = 4L)
 #> 
 #> $callr_timeout
 #> NULL
+#> 
+#> $parallel_opts
+#> list()
 #> 
 #> $slurm
 #> NULL

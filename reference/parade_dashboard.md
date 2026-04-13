@@ -118,7 +118,7 @@ parade_dashboard(job)
 #> Paths
 #> --------------------------------------------------------------------------------
 #> Project:   /home/runner/work/parade/parade/docs/reference
-#> Artifacts: /tmp/RtmpXBiAfs/parade-artifacts
-#> Registry:  /tmp/RtmpXBiAfs/parade-registry
+#> Artifacts: /tmp/RtmpJzDkY3/parade-artifacts
+#> Registry:  /tmp/RtmpJzDkY3/parade-registry
 # }
 ```

@@ -12,10 +12,12 @@ dist_slurm_allocation(
   nodes,
   cores_per_node,
   by = NULL,
-  within = c("multisession", "multicore", "callr", "sequential"),
+  within = c("multisession", "multicore", "callr", "parallel", "sequential"),
+  workers_within = NULL,
   template = slurm_template(),
   resources = list(),
-  target_jobs = NULL
+  target_jobs = NULL,
+  parallel_opts = list()
 )
 ```
 
@@ -35,8 +37,16 @@ dist_slurm_allocation(
 
 - within:
 
-  Execution strategy within each SLURM job: "multisession", "multicore",
-  "callr", or "sequential".
+  Execution strategy within each SLURM job: `"multisession"`,
+  `"multicore"`, `"callr"`, `"parallel"`, or `"sequential"`.
+
+- workers_within:
+
+  Integer; number of concurrent inner workers per SLURM job. For
+  `within = "parallel"` this is gnu-parallel's `-j` value. Defaults to
+  `cores_per_node` (one worker per core) when the within strategy uses
+  sub-parallelism; pass a smaller value to intentionally under-saturate
+  the node, e.g. when each worker needs multiple threads.
 
 - template:
 
@@ -51,6 +61,12 @@ dist_slurm_allocation(
 
   Optional integer; override the default `target_jobs = nodes` (useful
   for oversubscription, e.g., `target_jobs = nodes * 2`).
+
+- parallel_opts:
+
+  Named list of options forwarded to the gnu-parallel backend when
+  `within = "parallel"` (see
+  [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md)).
 
 ## Value
 
@@ -104,6 +120,9 @@ dist_slurm_allocation(nodes = 10, cores_per_node = 196, within = "multicore")
 #> $callr_timeout
 #> NULL
 #> 
+#> $parallel_opts
+#> list()
+#> 
 #> $slurm
 #> $slurm$template
 #> [1] "/home/runner/work/_temp/Library/parade/batchtools/parade-slurm.tmpl"
@@ -153,6 +172,9 @@ dist_slurm_allocation(
 #> 
 #> $callr_timeout
 #> NULL
+#> 
+#> $parallel_opts
+#> list()
 #> 
 #> $slurm
 #> $slurm$template

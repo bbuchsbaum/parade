@@ -48,14 +48,14 @@ use_mirai_ssh(
 #> $url
 #> function () 
 #> mirai::local_url(tcp = TRUE, port = port)
-#> <bytecode: 0x55c06218a538>
-#> <environment: 0x55c062189fc0>
+#> <bytecode: 0x55e17c63c558>
+#> <environment: 0x55e17c63fe10>
 #> 
 #> $remote
 #> function () 
 #> mirai::ssh_config(remotes, tunnel = TRUE)
-#> <bytecode: 0x55c06218a960>
-#> <environment: 0x55c062189fc0>
+#> <bytecode: 0x55e17c63c980>
+#> <environment: 0x55e17c63fe10>
 #> 
 #> $dispatcher
 #> [1] TRUE
@@ -101,8 +101,8 @@ use_mirai_ssh(
 #> $remote
 #> function () 
 #> mirai::ssh_config(remotes)
-#> <bytecode: 0x55c06218a730>
-#> <environment: 0x55c06208d6c0>
+#> <bytecode: 0x55e17c63c750>
+#> <environment: 0x55e16d8d9c70>
 #> 
 #> $dispatcher
 #> [1] TRUE
