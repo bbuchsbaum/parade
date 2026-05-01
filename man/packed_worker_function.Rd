@@ -13,7 +13,10 @@ packed_worker_function(
   name_by = "auto",
   write_result_template = NULL,
   workers = 1L,
-  parallel_backend = c("callr", "auto", "multicore", "multisession")
+  parallel_backend = c("callr", "auto", "multicore", "multisession"),
+  chunk_log_dir = NULL,
+  chunk_name = NULL,
+  capture_child_io = TRUE
 )
 }
 \value{

@@ -129,6 +129,13 @@ job_status.parade_local_job <- function(x) {
     state <- "FAILED"
   }
 
+  # Packed jobs surface element-level failures: a chunk that finished cleanly
+  # at the subprocess level may still have N child workers that errored.
+  packed_errors <- .parade_packed_n_errors(x)
+  if (!is.na(packed_errors) && packed_errors > 0L && !identical(state, "FAILED")) {
+    state <- "FAILED"
+  }
+
   tibble::tibble(
     name = x$name,
     state = state,
@@ -145,7 +152,14 @@ job_status.parade_script_job <- function(x) {
            else if (status$error > 0) "FAILED"
            else if (status$done > 0) "COMPLETED"
            else "UNKNOWN"
-  
+
+  # If this is a packed chunk and the subprocess succeeded, the per-element
+  # children may still have errored. Check the chunk's summary.rds for failures.
+  if (identical(state, "COMPLETED")) {
+    packed_errors <- .parade_packed_n_errors(x)
+    if (!is.na(packed_errors) && packed_errors > 0L) state <- "FAILED"
+  }
+
   tibble::tibble(
     name = x$name,
     state = state,
@@ -153,6 +167,54 @@ job_status.parade_script_job <- function(x) {
     job_id = x$job_id,
     result_available = !is.null(x$result_path)
   )
+}
+
+#' Read the per-chunk error count for a packed parade job
+#'
+#' Returns `NA_integer_` for non-packed jobs or when the summary cannot be
+#' read. Otherwise returns the number of element-level failures recorded in
+#' the chunk's `summary.rds`.
+#'
+#' @param x A parade job (script or local) belonging to a packed jobset.
+#' @return An integer count of element-level errors, or `NA_integer_`.
+#' @keywords internal
+.parade_packed_n_errors <- function(x) {
+  if (!isTRUE(x$.__is_packed__)) return(NA_integer_)
+
+  # Prefer the in-memory result attribute when present (local engine).
+  res <- x$result %||% NULL
+  if (inherits(res, "parade_packed_result")) {
+    n <- attr(res, "n_errors", exact = TRUE)
+    if (!is.null(n)) return(as.integer(n))
+  }
+
+  # Then fall back to the per-chunk summary.rds written by the worker.
+  log_dir <- x$.__chunk_log_dir__ %||% NULL
+  if (is.null(log_dir) && inherits(res, "parade_packed_result")) {
+    log_dir <- attr(res, "log_dir", exact = TRUE)
+  }
+  if (!is.null(log_dir)) {
+    summary_path <- file.path(log_dir, "summary.rds")
+    if (file.exists(summary_path)) {
+      summary <- tryCatch(readRDS(summary_path), error = function(e) NULL)
+      if (is.list(summary) && !is.null(summary$n_errors)) {
+        return(as.integer(summary$n_errors))
+      }
+    }
+  }
+
+  # Last resort: if a result_path was set, read the packed result and check
+  # its attributes. This is only as expensive as one readRDS for chunks that
+  # already finished.
+  if (!is.null(x$result_path) && file.exists(x$result_path)) {
+    res2 <- tryCatch(readRDS(x$result_path), error = function(e) NULL)
+    if (inherits(res2, "parade_packed_result")) {
+      n <- attr(res2, "n_errors", exact = TRUE)
+      if (!is.null(n)) return(as.integer(n))
+    }
+  }
+
+  NA_integer_
 }
 
 #' Collect results from a job
