@@ -132,6 +132,61 @@ test_that("slurm_call handles packages parameter", {
   expect_true(any(grepl("require", captured_script)))
 })
 
+test_that("slurm_call writes a parseable runner.R for long .packages lists", {
+  # Regression: deparse(packages) wraps to multiple lines when the deparsed
+  # form exceeds width.cutoff (60), and the previous template called
+  # sprintf("for (pkg in %s) ...", deparse(packages)), which then vectorised
+  # over the wrapped lines and produced two syntactically broken statements
+  # ("for (pkg in c(...)" missing the closing ) on line 1, and "for (pkg in ))"
+  # on line 2). The fix builds the c(...) literal directly.
+  skip_if_not_installed("batchtools")
+
+  test_dir <- withr::local_tempdir()
+
+  stub(slurm_call, "paths_init", function(...) {
+    list(registry = test_dir, artifacts = test_dir)
+  })
+  stub(slurm_call, "getOption", function(x, ...) {
+    if (x == "parade.paths") list(registry = test_dir, artifacts = test_dir) else NULL
+  })
+  stub(slurm_call, "resolve_path", function(x, ...) {
+    file.path(test_dir, sub("registry://", "", x))
+  })
+
+  captured_script <- NULL
+  stub(slurm_call, "submit_slurm", function(script, ...) {
+    captured_script <<- readLines(script)
+    structure(
+      list(kind = "script", script = script, registry_dir = test_dir,
+           job_id = 1L, stage_dir = dirname(script)),
+      class = "parade_script_job"
+    )
+  })
+
+  long_pkgs <- c("neuroim2", "rMVPA", "bidser", "dplyr", "futurehelper", "parade")
+  invisible(slurm_call(function(x) x, x = 1, packages = long_pkgs))
+
+  expect_false(is.null(captured_script))
+
+  # The for-loop must appear exactly once and on a single line.
+  for_lines <- grep("for \\(pkg in", captured_script)
+  expect_length(for_lines, 1L)
+
+  # Every package name must be present in the for-loop's vector literal.
+  pkg_line <- captured_script[for_lines]
+  for (p in long_pkgs) {
+    expect_true(grepl(sprintf('"%s"', p), pkg_line, fixed = TRUE),
+                info = sprintf("package %s missing from runner.R for-loop", p))
+  }
+
+  # The runner script must parse as valid R.
+  parsed <- tryCatch(parse(text = captured_script),
+                     error = function(e) e)
+  expect_false(inherits(parsed, "error"),
+               info = paste("runner.R does not parse:",
+                            if (inherits(parsed, "error")) conditionMessage(parsed) else ""))
+})
+
 test_that("slurm_call handles write_result parameter", {
   skip_if_not_installed("batchtools")
   

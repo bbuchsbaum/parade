@@ -265,11 +265,16 @@ slurm_call <- function(.f, ...,
   # Create runner script
   runner_lines <- character()
   
-  # Add package loading if needed
+  # Add package loading if needed.
+  # NB: build the c("pkg1","pkg2") literal directly rather than calling
+  # deparse(), which wraps to multiple lines when the vector exceeds
+  # width.cutoff (60 chars). A multi-line deparse fed to sprintf() is
+  # vectorised once per line, producing a syntactically broken runner.R.
   if (length(packages) > 0) {
+    pkg_literal <- sprintf("c(%s)", paste0('"', packages, '"', collapse = ", "))
     pkg_expr <- sprintf(
       'for (pkg in %s) { if (!require(pkg, character.only = TRUE)) stop("Missing package: ", pkg) }',
-      deparse(packages)
+      pkg_literal
     )
     runner_lines <- c(runner_lines, pkg_expr)
   }
