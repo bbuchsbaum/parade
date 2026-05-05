@@ -55,6 +55,7 @@ For task mapping, the most ergonomic option is
 [`slurm_map_cluster()`](https://bbuchsbaum.github.io/parade/reference/slurm_map_cluster.md):
 
 ``` r
+
 tasks <- 1:10000
 
 jobs <- slurm_map_cluster(
@@ -79,6 +80,7 @@ them up.”** Instead of manually computing `target_jobs`,
 and parade derives the rest:
 
 ``` r
+
 fl <- fl |>
   distribute(dist_slurm_allocation(
     nodes = 10,
@@ -92,6 +94,7 @@ fl <- fl |>
 This is equivalent to writing:
 
 ``` r
+
 fl <- fl |>
   distribute(dist_slurm(
     within = "multicore",
@@ -113,11 +116,11 @@ reducing tail latency from uneven task durations.
 
 **When to use which helper:**
 
-| You know…                                        | Use                                                                                                 |
-|--------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| Exact per-job resources (CPUs, memory, walltime) | [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md) directly              |
-| “I have N nodes × M cores, fill them”            | [`dist_slurm_allocation()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_allocation.md) |
-| A named site profile (“standard”, “highmem”)     | [`dist_slurm_profile()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_profile.md)       |
+| You know… | Use |
+|----|----|
+| Exact per-job resources (CPUs, memory, walltime) | [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md) directly |
+| “I have N nodes × M cores, fill them” | [`dist_slurm_allocation()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_allocation.md) |
+| A named site profile (“standard”, “highmem”) | [`dist_slurm_profile()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm_profile.md) |
 
 **Important limits:** `dist_slurm_*()` uses *static partitioning*
 (chunks are fixed at submit time). If task durations are highly variable
@@ -168,6 +171,7 @@ building the flow (for example,
 the full grid and illustrates local parallelism.
 
 ``` r
+
 library(parade)
 library(progressr)
 
@@ -203,6 +207,7 @@ fl_local <- fl |>
 The same workflow can be scaled to a SLURM cluster:
 
 ``` r
+
 # Row-wise: one job per parameter combination
 fl_rowwise <- fl |> distribute(dist_slurm(
   by = NULL,                                      # No grouping - each row is independent
@@ -259,6 +264,7 @@ parade provides two levels of parallelization control:
     within each job
 
 &nbsp;
+
 
     > Tip: If you maintain named resource profiles (via `slurm_defaults_set()` or
     > `profile_register()`), you can avoid boilerplate by using the convenience helper
@@ -334,6 +340,7 @@ The `workers_within` parameter acts like `xargs -P`, limiting concurrent
 tasks **within** each SLURM job:
 
 ``` r
+
 # Without throttling: all tasks run simultaneously (may overwhelm resources)
 dist_slurm(by = "subject", workers_within = NULL)
 
@@ -367,6 +374,7 @@ Suppose each subject analysis uses 4 cores internally (via `furrr` with
 filling ~80 of the 196 cores, and cycle through all 81 subjects:
 
 ``` r
+
 fl |> distribute(dist_slurm(
   by = "subject",
   within = "callr",              # Each group = independent R process
@@ -398,18 +406,19 @@ This produces:
 
 **When to use which `within` mode:**
 
-| Mode             | Parallelism unit                 | Best for                                               |
-|------------------|----------------------------------|--------------------------------------------------------|
-| `"sequential"`   | None                             | Script already saturates the node                      |
-| `"multicore"`    | Rows (via furrr forks)           | Many small, single-threaded rows                       |
-| `"multisession"` | Rows (via furrr sessions)        | Same as multicore, works in RStudio                    |
-| `"callr"`        | Groups (independent R processes) | Scripts with internal parallelism; packing a full node |
+| Mode | Parallelism unit | Best for |
+|----|----|----|
+| `"sequential"` | None | Script already saturates the node |
+| `"multicore"` | Rows (via furrr forks) | Many small, single-threaded rows |
+| `"multisession"` | Rows (via furrr sessions) | Same as multicore, works in RStudio |
+| `"callr"` | Groups (independent R processes) | Scripts with internal parallelism; packing a full node |
 
 The callr mode also works with
 [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md)
 for development:
 
 ``` r
+
 # Test locally: 3 groups, 2 concurrent R processes
 fl |> distribute(dist_local(
   by = "subject",
@@ -426,6 +435,7 @@ The `chunks_per_job` parameter controls how groups are split across
 SLURM jobs:
 
 ``` r
+
 # Large groups: split for better parallelization
 grid <- param_grid(
   subject = "subject01",  # One subject
@@ -478,6 +488,7 @@ fl |> distribute(dist_slurm(
 ### Multi-dimensional grouping
 
 ``` r
+
 # Complex parameter space
 grid <- param_grid(
   subject = c("s01", "s02", "s03"),
@@ -531,6 +542,7 @@ fl |> distribute(dist_slurm(
 ### Deferred execution workflow
 
 ``` r
+
 # 1. Validate workflow locally (recommended)
 preflight(fl_subject)
 
@@ -542,6 +554,7 @@ The workflow is now running on the cluster. Use these commands to
 monitor progress:
 
 ``` r
+
 # Check job status
 deferred_status(d, show_progress = TRUE)
 
@@ -555,6 +568,7 @@ results <- deferred_collect(d, how = "index")
 ### Resource specification examples
 
 ``` r
+
 # CPU-intensive tasks
 resources <- batch_resources(
   partition = "standard",
@@ -599,6 +613,7 @@ resources <- batch_resources(
 ### Pattern 1: Development → Production scaling
 
 ``` r
+
 # Define the analysis workflow once
 analyze_workflow <- function(grid) {
   flow(grid) |>
@@ -648,6 +663,7 @@ fl_prod <- analyze_workflow(grid_prod) |>
 ### Pattern 2: Adaptive chunking based on data size
 
 ``` r
+
 # Small datasets: group more aggressively
 small_fl |> distribute(dist_slurm(
   by = "subject", 
@@ -670,6 +686,7 @@ large_fl |> distribute(dist_slurm(
 **Solution**: Increase memory allocation or reduce `workers_within`:
 
 ``` r
+
 # Before: likely to exceed memory
 dist_slurm(workers_within = 16, resources = batch_resources(mem = "8GB"))
 
@@ -684,6 +701,7 @@ dist_slurm(workers_within = 4, resources = batch_resources(mem = "8GB"))
 jobs:
 
 ``` r
+
 # Before: 1000 small jobs
 dist_slurm(by = NULL, chunks_per_job = 1)  # One job per parameter row
 
@@ -696,6 +714,7 @@ dist_slurm(by = NULL, chunks_per_job = 10)  # 10 parameter rows per job
 **Solution**: Use row-wise distribution or smaller chunks:
 
 ``` r
+
 # Before: uneven subject sizes cause load imbalance
 dist_slurm(by = "subject", chunks_per_job = 1)
 
@@ -708,6 +727,7 @@ dist_slurm(by = NULL, chunks_per_job = 5)  # 5 rows per job regardless of subjec
 **Solution**: Reduce concurrent tasks and consider I/O patterns:
 
 ``` r
+
 # Before: high I/O contention  
 dist_slurm(workers_within = 32)
 

@@ -22,6 +22,7 @@ The simplest way to use mirai is as a replacement for the standard
 multisession backend:
 
 ``` r
+
 library(parade)
 
 # Initialize mirai with auto-detected cores
@@ -39,12 +40,12 @@ with better performance than traditional backends for many small tasks.
 
 ### Comparison with other backends
 
-| Scenario         | Traditional                                                                   | Mirai                                                                                   | Benefits                          |
-|------------------|-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|-----------------------------------|
-| Many small tasks | [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md) | [`use_mirai_local()`](https://bbuchsbaum.github.io/parade/reference/use_mirai_local.md) | Lower overhead, faster            |
-| \>125 workers    | Not possible                                                                  | `dist_mirai(n = 200)`                                                                   | No connection limits              |
-| Remote execution | Complex setup                                                                 | [`use_mirai_ssh()`](https://bbuchsbaum.github.io/parade/reference/use_mirai_ssh.md)     | Built-in SSH tunneling            |
-| HPC clusters     | [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md) | [`use_mirai_slurm()`](https://bbuchsbaum.github.io/parade/reference/use_mirai_slurm.md) | Lower latency, persistent workers |
+| Scenario | Traditional | Mirai | Benefits |
+|----|----|----|----|
+| Many small tasks | [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md) | [`use_mirai_local()`](https://bbuchsbaum.github.io/parade/reference/use_mirai_local.md) | Lower overhead, faster |
+| \>125 workers | Not possible | `dist_mirai(n = 200)` | No connection limits |
+| Remote execution | Complex setup | [`use_mirai_ssh()`](https://bbuchsbaum.github.io/parade/reference/use_mirai_ssh.md) | Built-in SSH tunneling |
+| HPC clusters | [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md) | [`use_mirai_slurm()`](https://bbuchsbaum.github.io/parade/reference/use_mirai_slurm.md) | Lower latency, persistent workers |
 
 ## Distribution Patterns
 
@@ -53,6 +54,7 @@ with better performance than traditional backends for many small tasks.
 For development and single-machine workflows:
 
 ``` r
+
 # Basic local setup
 dist <- dist_mirai(n = 8)
 
@@ -74,6 +76,7 @@ Launch mirai daemons through SLURM for HPC-compliant distributed
 execution:
 
 ``` r
+
 # Configure SLURM-launched daemons
 dist <- use_mirai_slurm(
   n = 16,                    # Number of daemon jobs
@@ -104,6 +107,7 @@ Connect to remote nodes through SSH, even when direct connections are
 blocked:
 
 ``` r
+
 # SSH with tunneling (for firewalled nodes)
 dist <- use_mirai_ssh(
   remotes = c("ssh://node1", "ssh://node2", "ssh://node3"),
@@ -130,6 +134,7 @@ environments.
 For full control over the mirai configuration:
 
 ``` r
+
 library(mirai)
 library(future)
 
@@ -160,6 +165,7 @@ fl |> collect()
 Adjust daemon count based on workload:
 
 ``` r
+
 # Start with a few daemons
 mirai_init(n = 4)
 
@@ -180,6 +186,7 @@ mirai_dispatcher_status()
 Optimize task distribution with mirai’s dispatcher:
 
 ``` r
+
 # Fine-grained parallelism (many small tasks)
 dist_mirai(
   n = 16,
@@ -200,6 +207,7 @@ dist_mirai(
 ### Example 1: Large-scale simulation on local machine
 
 ``` r
+
 library(parade)
 
 # Parameter grid with 10,000 combinations
@@ -228,6 +236,7 @@ results <- collect(fl)
 ### Example 2: Remote execution on HPC cluster
 
 ``` r
+
 # Development: test locally
 fl_dev <- fl |> 
   distribute(use_mirai_local(n = 4))
@@ -259,6 +268,7 @@ final_results <- deferred_collect(handle)
 ### Example 3: Cross-platform workflow
 
 ``` r
+
 # Detect environment and choose appropriate backend
 get_distribution <- function() {
   if (Sys.getenv("SLURM_JOB_ID") != "") {
@@ -284,14 +294,14 @@ fl |>
 
 ### When to use mirai vs traditional backends
 
-| Use Case             | Best Choice                                                                                                                                                    | Reasoning                           |
-|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------|
-| Few large tasks      | [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md) or [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md) | Traditional backends work well      |
-| Many small tasks     | [`dist_mirai()`](https://bbuchsbaum.github.io/parade/reference/dist_mirai.md)                                                                                  | Lower per-task overhead             |
-| \>125 parallel tasks | [`dist_mirai()`](https://bbuchsbaum.github.io/parade/reference/dist_mirai.md)                                                                                  | Only option beyond connection limit |
-| Need load balancing  | `dist_mirai(dispatcher = TRUE)`                                                                                                                                | Automatic work distribution         |
-| Firewalled cluster   | `use_mirai_ssh(tunnel = TRUE)`                                                                                                                                 | SSH tunneling support               |
-| Require TLS security | `dist_mirai(tls = TRUE)`                                                                                                                                       | Built-in encryption                 |
+| Use Case | Best Choice | Reasoning |
+|----|----|----|
+| Few large tasks | [`dist_local()`](https://bbuchsbaum.github.io/parade/reference/dist_local.md) or [`dist_slurm()`](https://bbuchsbaum.github.io/parade/reference/dist_slurm.md) | Traditional backends work well |
+| Many small tasks | [`dist_mirai()`](https://bbuchsbaum.github.io/parade/reference/dist_mirai.md) | Lower per-task overhead |
+| \>125 parallel tasks | [`dist_mirai()`](https://bbuchsbaum.github.io/parade/reference/dist_mirai.md) | Only option beyond connection limit |
+| Need load balancing | `dist_mirai(dispatcher = TRUE)` | Automatic work distribution |
+| Firewalled cluster | `use_mirai_ssh(tunnel = TRUE)` | SSH tunneling support |
+| Require TLS security | `dist_mirai(tls = TRUE)` | Built-in encryption |
 
 ### Optimizing dispatcher performance
 
@@ -299,6 +309,7 @@ The dispatcher provides automatic load balancing but adds slight
 overhead:
 
 ``` r
+
 # For homogeneous tasks (similar runtime)
 dist_mirai(n = 16, dispatcher = FALSE)
 
@@ -320,6 +331,7 @@ dist_mirai(
 **Issue**: “Cannot connect to daemons”
 
 ``` r
+
 # Check daemon status
 mirai_status()
 
@@ -331,6 +343,7 @@ mirai_init()
 **Issue**: “Tasks not distributing evenly”
 
 ``` r
+
 # Ensure dispatcher is enabled
 dist_mirai(n = 16, dispatcher = TRUE)
 
@@ -341,6 +354,7 @@ mirai_dispatcher_status()
 **Issue**: “SSH connection fails”
 
 ``` r
+
 # Test SSH manually first
 system("ssh node1 echo 'connected'")
 
@@ -351,6 +365,7 @@ Sys.setenv(MIRAI_DEBUG = "TRUE")
 **Issue**: “SLURM daemons not starting”
 
 ``` r
+
 # Check SLURM submission manually
 mirai::daemons(
   n = 1,
@@ -380,12 +395,14 @@ system("squeue -u $USER")
 3.  **Use TLS for production**: Enable encryption for sensitive data
 
     ``` r
+
     dist_mirai(n = 16, tls = TRUE, port = 5555)
     ```
 
 4.  **Monitor resource usage**: Track daemon performance
 
     ``` r
+
     # During execution
     mirai_dispatcher_status()
 
@@ -396,6 +413,7 @@ system("squeue -u $USER")
 5.  **Test locally before scaling**: Verify workflow correctness
 
     ``` r
+
     # Development
     fl |> distribute(use_mirai_local(n = 2)) |> collect(limit = 10)
 

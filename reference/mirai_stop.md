@@ -18,6 +18,6 @@ Invisibly returns NULL
 # \donttest{
 # Stop all daemons
 mirai_stop()
-#> All mirai daemons stopped
+#> mirai package not installed
 # }
 ```

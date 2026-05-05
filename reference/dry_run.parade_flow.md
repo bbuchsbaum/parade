@@ -49,7 +49,7 @@ dry_run(fl)
 #> #   time_source <chr>, sink <chr>, prefix <chr>, hoist <chr>
 #> 
 #> Grid rows: 3
-#> Flow fingerprint: 5585e4bc9a13cded444238e8745df49962664c4a
+#> Flow fingerprint: f3c39aedfce4504a45ea43e6cecbfe35a2cbb337
 #> 
 #> Distribution Plan
 #> -----------------

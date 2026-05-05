@@ -34,43 +34,5 @@ if (requireNamespace("mirai", quietly = TRUE)) {
   # Use specific number of daemons
   use_mirai_local(n = 4)
 }
-#> $backend
-#> [1] "mirai"
-#> 
-#> $by
-#> character(0)
-#> 
-#> $n
-#> [1] 4
-#> 
-#> $url
-#> NULL
-#> 
-#> $remote
-#> NULL
-#> 
-#> $dispatcher
-#> [1] TRUE
-#> 
-#> $tls
-#> [1] FALSE
-#> 
-#> $port
-#> NULL
-#> 
-#> $stop_on_exit
-#> [1] TRUE
-#> 
-#> $within
-#> [1] "mirai"
-#> 
-#> $workers_within
-#> NULL
-#> 
-#> $chunks_per_job
-#> [1] 1
-#> 
-#> attr(,"class")
-#> [1] "parade_dist"
 # }
 ```

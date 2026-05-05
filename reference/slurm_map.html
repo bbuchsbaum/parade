@@ -61,7 +61,8 @@ or list. Automatically dispatches to <code>slurm_call</code> for functions or
 <span>  .workers_per_node <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  .chunk_size <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  .target_jobs <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  .parallel_backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"callr"</span>, <span class="st">"multicore"</span>, <span class="st">"multisession"</span><span class="op">)</span></span>
+<span>  .parallel_backend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"callr"</span>, <span class="st">"multicore"</span>, <span class="st">"multisession"</span><span class="op">)</span>,</span>
+<span>  .capture_child_io <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -141,6 +142,13 @@ packed jobs (useful for "treat N nodes like one machine" workflows).</p></dd>
 <dd><p>Backend for within-node parallelism when <code>.packed = TRUE</code>.
 One of: "callr", "multicore", "multisession", or "auto". Ignored when
 <code>.packed = FALSE</code>. Defaults to "callr" for strong isolation.</p></dd>
+
+
+<dt id="arg--capture-child-io">.capture_child_io<a class="anchor" aria-label="anchor" href="#arg--capture-child-io"></a></dt>
+<dd><p>Logical; when <code>.packed = TRUE</code> and the parallel
+backend is "callr", redirect each child worker's stdout/stderr to durable
+per-element files under the registry. Defaults to <code>TRUE</code>. Set to <code>FALSE</code>
+to skip the extra files (e.g. for very large element counts).</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -15,6 +15,7 @@ artifacts, diagnostics, and HPC-friendly distribution capabilities.
 ### Build and Install Package
 
 ``` r
+
 # Build and install from source
 devtools::install()
 
@@ -31,6 +32,7 @@ devtools::test()
 ### Testing Single Functions
 
 ``` r
+
 # Load development version
 devtools::load_all()
 

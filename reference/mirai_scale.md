@@ -27,6 +27,5 @@ if (requireNamespace("mirai", quietly = TRUE)) {
   # Scale to 8 daemons
   mirai_scale(8)
 }
-#> Scaled from 0 to 8 daemons
 # }
 ```

@@ -10,6 +10,7 @@ Imagine you’re developing a neuroimaging analysis on your laptop. Your
 code might look like this:
 
 ``` r
+
 # Works on your laptop
 model <- readRDS("/Users/alice/projects/brain_study/models/brain_model.rds")
 results <- analyze_brain(model)
@@ -32,6 +33,7 @@ breaks immediately:
 to any environment:
 
 ``` r
+
 library(parade)
 
 # Same code works everywhere
@@ -71,6 +73,7 @@ export PARADE_SCRATCH="/scratch/$USER"   # or your site's shared scratch
 ```
 
 ``` r
+
 library(parade)
 
 # Auto-detects HPC on compute nodes (scheduler vars), and on many login nodes
@@ -83,6 +86,7 @@ Or use the one-command helper (creates paths, scaffolds a SLURM
 template, and can persist to `parade.json`):
 
 ``` r
+
 parade_init_hpc(persist = TRUE)
 ```
 
@@ -90,12 +94,14 @@ To make the configuration easy to reuse in SLURM scripts, you can also
 generate shell exports:
 
 ``` r
+
 cat(paste(paths_export(), collapse = "\n"))
 ```
 
 If you prefer not to create directories automatically, use:
 
 ``` r
+
 paths_init(profile = "hpc")
 paths_validate(create = FALSE)
 ```
@@ -107,6 +113,7 @@ Let’s make a simple analysis portable in three steps:
 ### Step 1: Initialize parade’s path system
 
 ``` r
+
 library(parade)
 
 # Auto-detect your environment and set up paths
@@ -126,6 +133,7 @@ paths_get()
 ### Step 2: Use aliases instead of hardcoded paths
 
 ``` r
+
 # Before (breaks on different systems):
 data <- read.csv("/home/alice/myproject/data/experiment.csv")
 saveRDS(model, "/home/alice/myproject/outputs/model.rds")
@@ -138,6 +146,7 @@ saveRDS(model, resolve_path("artifacts://model.rds"))
 ### Step 3: Run the same code anywhere
 
 ``` r
+
 # On your laptop
 paths_init()
 saveRDS(big_model, resolve_path("artifacts://models/final.rds"))
@@ -161,6 +170,7 @@ in your workflow:
 **`data://`** - Input datasets (read-only)
 
 ``` r
+
 # Your raw data, reference files, shared datasets
 brain_atlas <- readRDS(resolve_path("data://references/MNI_atlas.rds"))
 subjects <- read.csv(resolve_path("data://participants.csv"))
@@ -169,6 +179,7 @@ subjects <- read.csv(resolve_path("data://participants.csv"))
 **`artifacts://`** - Analysis outputs (large files)
 
 ``` r
+
 # Models, results, processed data - goes to fast scratch storage
 saveRDS(fitted_model, resolve_path("artifacts://models/model_v2.rds"))
 write.csv(results, resolve_path("artifacts://results/final_results.csv"))
@@ -177,6 +188,7 @@ write.csv(results, resolve_path("artifacts://results/final_results.csv"))
 **`project://`** - Your code and scripts
 
 ``` r
+
 # Source files, small configuration files
 source("project://R/analysis_functions.R")
 params <- yaml::read_yaml("project://config/params.yaml")
@@ -187,6 +199,7 @@ params <- yaml::read_yaml("project://config/params.yaml")
 **`scratch://`** - Temporary files (deleted after jobs)
 
 ``` r
+
 # Intermediate files, working data
 temp_file <- "scratch://temp_processing.rds"
 ```
@@ -194,6 +207,7 @@ temp_file <- "scratch://temp_processing.rds"
 **`registry://`** - Job management files
 
 ``` r
+
 # SLURM templates, job scripts (managed by parade)
 template <- "registry://templates/my_slurm.tmpl"
 ```
@@ -201,6 +215,7 @@ template <- "registry://templates/my_slurm.tmpl"
 **`config://`** - parade configuration
 
 ``` r
+
 # Settings, profiles (usually automatic)
 "config://profiles/production.json"
 ```
@@ -208,6 +223,7 @@ template <- "registry://templates/my_slurm.tmpl"
 **`cache://`** - Downloaded/cached data
 
 ``` r
+
 # Reusable downloads, package data
 "cache://downloaded/large_dataset.tar.gz"
 ```
@@ -220,6 +236,7 @@ You’re developing on your laptop with small test data, then running full
 analysis on a cluster:
 
 ``` r
+
 # During development (laptop)
 paths_init()
 paths_set(
@@ -250,6 +267,7 @@ run_analysis()
 Alice and Bob are collaborating but have different setups:
 
 ``` r
+
 # Alice's setup (Mac laptop)
 paths_init()
 #> artifacts: /var/folders/abc/temp/parade-artifacts
@@ -273,6 +291,7 @@ analyze_subjects <- function(subjects) {
 Different stages of your pipeline need different storage strategies:
 
 ``` r
+
 library(parade)
 
 # Configure storage for each data type
@@ -310,6 +329,7 @@ flow(subjects) |>
 parade automatically detects common HPC environments:
 
 ``` r
+
 # Auto-detects SLURM
 paths_init()
 # Automatically uses $SLURM_TMPDIR for scratch
@@ -328,6 +348,7 @@ paths_init()
 For custom HPC setups, explicitly set your paths:
 
 ``` r
+
 # Configure once for your HPC system
 paths_set(
   scratch = "/fast/local/$USER",           # Fast local SSD
@@ -356,6 +377,7 @@ export PARADE_DATA="/projects/shared/data"
 ### Pattern 1: Dynamic Environment Switching
 
 ``` r
+
 # Detect and configure based on environment
 setup_paths <- function() {
   if (interactive()) {
@@ -382,6 +404,7 @@ setup_paths <- function() {
 ### Pattern 2: Project-Specific Organization
 
 ``` r
+
 # Organize outputs by analysis phase
 paths_set(
   artifacts = "/scratch/$USER/project_X"
@@ -407,6 +430,7 @@ save_results("validation", "cv_results", cv)
 ### Pattern 3: Integration with Sinks
 
 ``` r
+
 # Sinks automatically use path aliases
 sink_spec(
   fields = c("model", "predictions"),
@@ -433,6 +457,7 @@ config_sink <- sink_spec(
 ### `resolve_path()` - Convert aliases to absolute paths
 
 ``` r
+
 # Resolve any path with an alias
 resolve_path("artifacts://model.rds")
 #> "/scratch/alice/parade-artifacts/model.rds"
@@ -448,6 +473,7 @@ resolve_path("relative/path.txt")    # Made absolute
 ### `path_here()` - Build paths from components
 
 ``` r
+
 # Construct paths programmatically
 model_dir <- path_here("artifacts", "models", "v2")
 #> "/scratch/alice/parade-artifacts/models/v2"
@@ -464,6 +490,7 @@ temp_path <- path_here("scratch", "temp", create = FALSE)
 ### Issue: “Cannot find path alias”
 
 ``` r
+
 # Check your current configuration
 paths_get()
 
@@ -474,6 +501,7 @@ paths_init()
 ### Issue: “Permission denied” when writing
 
 ``` r
+
 # Check that your aliases point to writable locations
 paths_get()
 
@@ -484,6 +512,7 @@ paths_set(artifacts = "/tmp/my_outputs")
 ### Issue: Different paths on different nodes
 
 ``` r
+
 # Use node-local storage for better performance
 paths_set(
   scratch = ifelse(
@@ -499,6 +528,7 @@ paths_set(
 1.  **Initialize paths at the start of every script**
 
     ``` r
+
     library(parade)
     paths_init()
     ```
@@ -512,6 +542,7 @@ paths_set(
 3.  **Never hardcode absolute paths**
 
     ``` r
+
     # Bad
     saveRDS(model, "/home/alice/outputs/model.rds")
 
@@ -522,6 +553,7 @@ paths_set(
 4.  **Document your path configuration**
 
     ``` r
+
     # Show configuration in logs
     message("Parade paths configured:")
     print(paths_get())
@@ -543,17 +575,17 @@ Now that you understand portable paths, learn about:
 
 ## Quick Reference
 
-| Function                                                                          | Purpose                   | Example                                                                       |
-|-----------------------------------------------------------------------------------|---------------------------|-------------------------------------------------------------------------------|
-| [`paths_init()`](https://bbuchsbaum.github.io/parade/reference/paths_init.md)     | Auto-configure paths      | [`paths_init()`](https://bbuchsbaum.github.io/parade/reference/paths_init.md) |
-| [`paths_get()`](https://bbuchsbaum.github.io/parade/reference/paths_get.md)       | Show current paths        | [`paths_get()`](https://bbuchsbaum.github.io/parade/reference/paths_get.md)   |
-| [`paths_set()`](https://bbuchsbaum.github.io/parade/reference/paths_set.md)       | Set custom paths          | `paths_set(artifacts = "/scratch")`                                           |
-| [`resolve_path()`](https://bbuchsbaum.github.io/parade/reference/resolve_path.md) | Convert alias to absolute | `resolve_path("data://file.csv")`                                             |
-| [`path_here()`](https://bbuchsbaum.github.io/parade/reference/path_here.md)       | Build path from parts     | `path_here("artifacts", "models")`                                            |
+| Function | Purpose | Example |
+|----|----|----|
+| [`paths_init()`](https://bbuchsbaum.github.io/parade/reference/paths_init.md) | Auto-configure paths | [`paths_init()`](https://bbuchsbaum.github.io/parade/reference/paths_init.md) |
+| [`paths_get()`](https://bbuchsbaum.github.io/parade/reference/paths_get.md) | Show current paths | [`paths_get()`](https://bbuchsbaum.github.io/parade/reference/paths_get.md) |
+| [`paths_set()`](https://bbuchsbaum.github.io/parade/reference/paths_set.md) | Set custom paths | `paths_set(artifacts = "/scratch")` |
+| [`resolve_path()`](https://bbuchsbaum.github.io/parade/reference/resolve_path.md) | Convert alias to absolute | `resolve_path("data://file.csv")` |
+| [`path_here()`](https://bbuchsbaum.github.io/parade/reference/path_here.md) | Build path from parts | `path_here("artifacts", "models")` |
 
-| Alias          | Use For     | Example                                             |
-|----------------|-------------|-----------------------------------------------------|
-| `data://`      | Input data  | `read.csv(resolve_path("data://input.csv"))`        |
-| `artifacts://` | Outputs     | `saveRDS(m, resolve_path("artifacts://model.rds"))` |
-| `scratch://`   | Temp files  | `"scratch://temp.rds"`                              |
-| `project://`   | Code/config | `source("project://R/utils.R")`                     |
+| Alias | Use For | Example |
+|----|----|----|
+| `data://` | Input data | `read.csv(resolve_path("data://input.csv"))` |
+| `artifacts://` | Outputs | `saveRDS(m, resolve_path("artifacts://model.rds"))` |
+| `scratch://` | Temp files | `"scratch://temp.rds"` |
+| `project://` | Code/config | `source("project://R/utils.R")` |

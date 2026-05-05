@@ -38,6 +38,7 @@ The most common scenario: you submitted a pipeline, some chunks failed,
 and you want to know why.
 
 ``` r
+
 library(parade)
 
 # Your pipeline ran and some chunks failed
@@ -100,16 +101,16 @@ actionable suggestions, and locates the relevant logs.
 
 Every failure is classified into one of eight categories:
 
-| Class         | Label                 | Signal                                                    | Example                                              |
-|---------------|-----------------------|-----------------------------------------------------------|------------------------------------------------------|
-| `oom`         | OOM                   | SLURM signal 9, `OUT_OF_MEMORY` state, MaxRSS near ReqMem | Job killed because it used 15.8G against a 16G limit |
-| `timeout`     | TIMEOUT               | SLURM `TIMEOUT` state                                     | Walltime exceeded                                    |
-| `r_error`     | ERROR                 | `.diag` contains `error_message` and `error_class`        | `singular matrix`, `file not found`                  |
-| `r_crash`     | CRASH                 | SLURM says COMPLETED/FAILED but no index file written     | R died (segfault) before `saveRDS`                   |
-| `slurm_infra` | CANCELLED / NODE_FAIL | Admin cancellation, node failure                          | `scontrol cancel` by admin                           |
-| `dependency`  | DEP                   | `.diag` status is `"cancelled"`                           | Upstream stage failed, downstream skipped            |
-| `validation`  | VALIDATION            | `error_class` starts with `parade_`                       | Schema or contract violation                         |
-| `unknown`     | UNKNOWN               | None of the above matched                                 | Manual investigation needed                          |
+| Class | Label | Signal | Example |
+|----|----|----|----|
+| `oom` | OOM | SLURM signal 9, `OUT_OF_MEMORY` state, MaxRSS near ReqMem | Job killed because it used 15.8G against a 16G limit |
+| `timeout` | TIMEOUT | SLURM `TIMEOUT` state | Walltime exceeded |
+| `r_error` | ERROR | `.diag` contains `error_message` and `error_class` | `singular matrix`, `file not found` |
+| `r_crash` | CRASH | SLURM says COMPLETED/FAILED but no index file written | R died (segfault) before `saveRDS` |
+| `slurm_infra` | CANCELLED / NODE_FAIL | Admin cancellation, node failure | `scontrol cancel` by admin |
+| `dependency` | DEP | `.diag` status is `"cancelled"` | Upstream stage failed, downstream skipped |
+| `validation` | VALIDATION | `error_class` starts with `parade_` | Schema or contract violation |
+| `unknown` | UNKNOWN | None of the above matched | Manual investigation needed |
 
 Classification happens automatically inside
 [`wtf()`](https://bbuchsbaum.github.io/parade/reference/wtf.md),
@@ -120,6 +121,7 @@ and
 You can also call the internal classifier directly if needed:
 
 ``` r
+
 # Classify from SLURM sacct data
 sacct <- parade:::.slurm_sacct_info("12345678")
 cl <- parade:::.classify_failure(diag = NULL, slurm_meta = sacct, source = "missing")
@@ -142,6 +144,7 @@ If you’ve already called
 and have a results data.frame:
 
 ``` r
+
 results <- deferred_collect(d)
 wtf(results)
 ```
@@ -155,6 +158,7 @@ For standalone SLURM scripts submitted with
 [`submit_slurm()`](https://bbuchsbaum.github.io/parade/reference/submit_slurm.md):
 
 ``` r
+
 job <- submit_slurm("analysis.R", resources = list(mem = "32G"))
 script_await(job)
 
@@ -167,6 +171,7 @@ wtf(job)
 For multiple script jobs tracked together:
 
 ``` r
+
 jobs <- as_jobset(job1, job2, job3)
 wtf(jobs)
 ```
@@ -176,6 +181,7 @@ wtf(jobs)
 The `verbose` parameter controls output level:
 
 ``` r
+
 wtf(d, verbose = 0L)  # Summary counts only (how many OOM, timeout, etc.)
 wtf(d, verbose = 1L)  # + individual error listing
 wtf(d, verbose = 2L)  # + suggestions + log locations (default)
@@ -186,6 +192,7 @@ wtf(d, verbose = 2L)  # + suggestions + log locations (default)
 The returned `parade_failure_report` is a list you can inspect:
 
 ``` r
+
 report <- wtf(d, verbose = 0L)  # suppress printing if you just want the data
 
 report$n_failed       # 5
@@ -204,6 +211,7 @@ report$log_info       # tibble of log file paths and metadata
 locates all log files for a pipeline run:
 
 ``` r
+
 logs <- find_logs(d)
 logs
 #> # A tibble: 5 x 6
@@ -220,6 +228,7 @@ By default, only logs from failed chunks are returned. Set
 `failed_only = FALSE` to include all:
 
 ``` r
+
 all_logs <- find_logs(d, failed_only = FALSE)
 ```
 
@@ -229,6 +238,7 @@ all_logs <- find_logs(d, failed_only = FALSE)
 greps across all pipeline logs for a pattern, with context lines:
 
 ``` r
+
 # Find all error messages
 hits <- search_logs(d, "Error|fatal|segfault")
 hits
@@ -257,6 +267,7 @@ data from three sources: the event store (JSONL), `.diag` timestamps
 from index files, and SLURM `sacct` timing data.
 
 ``` r
+
 tl <- failure_timeline(d)
 tl
 #> +0:12:34  [FAIL] chunk 7, stage 'model': singular matrix  (sub-03)
@@ -276,6 +287,7 @@ memory.
 The returned tibble has columns for programmatic use:
 
 ``` r
+
 tl$offset     # numeric seconds
 tl$event      # human-readable event description
 tl$chunk_id   # which chunk
@@ -287,6 +299,7 @@ tl$class      # classification: "oom", "timeout", "r_error", etc.
 also works on collected results data.frames:
 
 ``` r
+
 results <- deferred_collect(d)
 failure_timeline(results)
 ```
@@ -313,12 +326,14 @@ blocks or fails the pipeline. Monitoring is purely advisory.
 The event store is enabled by default. To disable it:
 
 ``` r
+
 options(parade.event_store = FALSE)
 ```
 
 Or for a single run:
 
 ``` r
+
 with_parade_options(event_store = FALSE, {
   d <- submit(fl)
 })
@@ -334,6 +349,7 @@ and
 You can also read them directly:
 
 ``` r
+
 # Read all events for a run
 events <- parade:::.event_read("a1b2c3d4")
 
@@ -378,6 +394,7 @@ call registers the run automatically.
 ### Listing runs
 
 ``` r
+
 # Recent runs
 run_ls()
 #> # A tibble: 5 x 6
@@ -398,6 +415,7 @@ run_ls(n = 50)
 ### Run details
 
 ``` r
+
 info <- run_info("a1b2c3d4")
 info$status             # "failed"
 info$n_chunks           # 48
@@ -416,6 +434,7 @@ with the event feed and classified error summaries.
 ### Live monitoring during execution
 
 ``` r
+
 d <- submit(fl)
 pipeline_top(d = d)
 ```
@@ -452,6 +471,7 @@ The display refreshes every 3 seconds (configurable) and shows:
 You can also view a completed run’s events without a deferred handle:
 
 ``` r
+
 pipeline_top(run_id = "a1b2c3d4")
 ```
 
@@ -460,6 +480,7 @@ This reads from the event store and displays a static summary.
 ### Tuning the display
 
 ``` r
+
 pipeline_top(d = d,
   refresh = 1,         # update every second
   max_events = 20,     # show more events
@@ -475,6 +496,7 @@ The existing
 monitor now shows classification tags next to failed chunks:
 
 ``` r
+
 deferred_top(d)
 ```
 
@@ -493,6 +515,7 @@ new, and which were resolved.
 compares error fingerprints across multiple runs.
 
 ``` r
+
 # Compare errors across three successive runs
 patterns <- failure_patterns(d_run1, d_run2, d_run3)
 patterns
@@ -507,12 +530,12 @@ patterns
 
 The `pattern` column tells you:
 
-| Pattern      | Meaning                                                                         |
-|--------------|---------------------------------------------------------------------------------|
-| `persistent` | Error appeared in every run – this is a real bug                                |
-| `new`        | Error appeared only in the latest run – possibly a regression                   |
-| `resolved`   | Error appeared in earlier runs but not the latest – your fix worked             |
-| `flaky`      | Error appears intermittently – could be a race condition or resource contention |
+| Pattern | Meaning |
+|----|----|
+| `persistent` | Error appeared in every run – this is a real bug |
+| `new` | Error appeared only in the latest run – possibly a regression |
+| `resolved` | Error appeared in earlier runs but not the latest – your fix worked |
+| `flaky` | Error appears intermittently – could be a race condition or resource contention |
 
 Error fingerprinting uses normalized messages: line numbers, file paths,
 memory addresses, and timestamps are stripped before hashing, so the
@@ -524,6 +547,7 @@ change.
 Here’s a typical workflow when a pipeline fails on SLURM:
 
 ``` r
+
 library(parade)
 
 # 1. Check what ran recently

@@ -24,7 +24,8 @@ slurm_map(
   .workers_per_node = NULL,
   .chunk_size = NULL,
   .target_jobs = NULL,
-  .parallel_backend = c("auto", "callr", "multicore", "multisession")
+  .parallel_backend = c("auto", "callr", "multicore", "multisession"),
+  .capture_child_io = TRUE
 )
 ```
 
@@ -104,6 +105,13 @@ slurm_map(
   Backend for within-node parallelism when `.packed = TRUE`. One of:
   "callr", "multicore", "multisession", or "auto". Ignored when
   `.packed = FALSE`. Defaults to "callr" for strong isolation.
+
+- .capture_child_io:
+
+  Logical; when `.packed = TRUE` and the parallel backend is "callr",
+  redirect each child worker's stdout/stderr to durable per-element
+  files under the registry. Defaults to `TRUE`. Set to `FALSE` to skip
+  the extra files (e.g. for very large element counts).
 
 ## Value
 

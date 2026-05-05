@@ -22,6 +22,7 @@ slurm_map_packed(
   .chunk_size = NULL,
   .target_jobs = NULL,
   .parallel_backend = c("auto", "callr", "multicore", "multisession"),
+  .capture_child_io = TRUE,
   is_script = FALSE
 )
 ```

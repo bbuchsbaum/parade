@@ -75,14 +75,14 @@ expand_path_macros_enhanced(
   "results/{name}_{date}.rds",
   name = "analysis"
 )
-#> [1] "results/analysis_20260413.rds"
+#> [1] "results/analysis_20260505.rds"
 
 # With multiple macros
 expand_path_macros_enhanced(
   "{user}/runs/{date}/{time}/output_{index}.csv",
   index = 1
 )
-#> [1] "runner/runs/20260413/234145/output_1.csv"
+#> [1] "runner/runs/20260505/142607/output_1.csv"
 
 # Custom values
 expand_path_macros_enhanced(

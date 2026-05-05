@@ -10,6 +10,7 @@ on **shared scratch** (not `SLURM_TMPDIR`, which is usually node-local).
 Two common ways to get set up:
 
 ``` r
+
 library(parade)
 
 # One-command helper (recommended on clusters)
@@ -21,6 +22,7 @@ you have a flow `fl` you can set up distribution with a single helper
 and keep the DAG code unchanged:
 
 ``` r
+
 fl <- fl |>
   distribute(dist_slurm_allocation(
     nodes = 10,
@@ -34,6 +36,7 @@ fl <- fl |>
 Or a minimal non-persistent setup:
 
 ``` r
+
 paths_init(profile = "hpc", create = TRUE)
 parade_doctor()
 
@@ -44,6 +47,7 @@ cat(paste(paths_export(), collapse = "\n"))
 ## 1) Install and load
 
 ``` r
+
 # install.packages("parade")  # CRAN or dev version if needed
 library(parade)
 ```
@@ -51,6 +55,7 @@ library(parade)
 ## 2) Define a grid and a stage
 
 ``` r
+
 grid <- data.frame(x = 1:6, group = rep(LETTERS[1:3], each = 2))
 
 fl <- flow(grid) |>
@@ -64,6 +69,7 @@ fl <- flow(grid) |>
 ## 3) Choose distribution
 
 ``` r
+
 # Local parallelism by logical group (A/B/C)
 fl <- fl |> distribute(dist_local(by = "group"))
 ```
@@ -71,6 +77,7 @@ fl <- fl |> distribute(dist_local(by = "group"))
 ## 4) Submit, await, and collect
 
 ``` r
+
 d <- submit(fl)
 deferred_await(d, timeout = 30)  # finite timeout for safety
 out <- deferred_collect(d)
@@ -83,6 +90,7 @@ column.
 ## 5) Add a sink (optional)
 
 ``` r
+
 # Write results to a temp sink; switch to artifacts:// in real projects
 fl2 <- flow(grid) |>
   stage(

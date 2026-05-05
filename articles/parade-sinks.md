@@ -36,13 +36,13 @@ lightweight **file references** instead.
 
 ### Sinks vs. regular return values
 
-| **Regular returns**                     | **Sink artifacts**                         |
-|-----------------------------------------|--------------------------------------------|
-| Objects stay in memory                  | Objects written to disk                    |
-| Passed directly between stages          | File references passed instead             |
-| Lost when R session ends                | Persist across sessions                    |
-| Can cause memory issues with large data | Memory-efficient regardless of size        |
-| No automatic metadata                   | Rich metadata (size, checksum, timestamps) |
+| **Regular returns** | **Sink artifacts** |
+|----|----|
+| Objects stay in memory | Objects written to disk |
+| Passed directly between stages | File references passed instead |
+| Lost when R session ends | Persist across sessions |
+| Can cause memory issues with large data | Memory-efficient regardless of size |
+| No automatic metadata | Rich metadata (size, checksum, timestamps) |
 
 ## Quick start: sink_quick() for rapid prototyping
 
@@ -51,6 +51,7 @@ New in parade 0.12.0,
 provides the fastest way to create sinks:
 
 ``` r
+
 # One-liner sink using registered format
 sink <- sink_quick("result", write = "rds")
 
@@ -85,6 +86,7 @@ extension (e.g., “data/output”)
 Example:
 
 ``` r
+
 # Custom write function using formula variables
 sink_quick("output",
   write = ~ {
@@ -108,18 +110,19 @@ system. Choose the optimal format for your use case:
 
 ### Built-in formats
 
-| Format      | Speed     | Size     | Type Support  | Package Required | Use Case                  |
-|-------------|-----------|----------|---------------|------------------|---------------------------|
-| **rds**     | Fast      | Medium   | All R objects | None             | Default, R-only workflows |
-| **qs2**     | Fastest   | Smallest | All R objects | qs2              | High-performance R        |
-| **parquet** | Fast      | Small    | Data frames   | arrow            | Cross-language, columnar  |
-| **feather** | Very fast | Medium   | Data frames   | arrow            | Fast interchange          |
-| **csv**     | Slow      | Large    | Data frames   | None             | Universal compatibility   |
-| **json**    | Medium    | Large    | Lists/vectors | jsonlite         | Config, web APIs          |
+| Format | Speed | Size | Type Support | Package Required | Use Case |
+|----|----|----|----|----|----|
+| **rds** | Fast | Medium | All R objects | None | Default, R-only workflows |
+| **qs2** | Fastest | Smallest | All R objects | qs2 | High-performance R |
+| **parquet** | Fast | Small | Data frames | arrow | Cross-language, columnar |
+| **feather** | Very fast | Medium | Data frames | arrow | Fast interchange |
+| **csv** | Slow | Large | Data frames | None | Universal compatibility |
+| **json** | Medium | Large | Lists/vectors | jsonlite | Config, web APIs |
 
 ### Check available formats
 
 ``` r
+
 # List all registered formats
 list_sink_formats()
 # [1] "csv" "feather" "json" "parquet" "qs2" "rds" "readr_csv" "tsv"
@@ -139,6 +142,7 @@ The traditional
 function now supports multiple formats:
 
 ``` r
+
 # Single format for all fields
 sink <- sink_spec(
   fields   = c("model", "metrics"),      # Which fields to persist
@@ -184,6 +188,7 @@ multi_sink <- sink_spec(
 Extend parade with your own formats using the registry system:
 
 ``` r
+
 # Register a custom format globally
 register_sink_format("nifti",
   writer = function(x, path, ...) {
@@ -216,6 +221,7 @@ custom_sink <- sink_quick("special",
 ### Example: HDF5 format for scientific data
 
 ``` r
+
 # Register HDF5 support
 if (requireNamespace("hdf5r", quietly = TRUE)) {
   register_sink_format("hdf5",
@@ -255,6 +261,7 @@ Use
 for ephemeral storage during development and testing:
 
 ``` r
+
 # Creates sink in tempdir() with timestamp
 dev_sink <- sink_temp("test_output", write = "json")
 
@@ -283,6 +290,7 @@ explicit cleanup.
 Attach sinks to stages and declare outputs as artifacts:
 
 ``` r
+
 # Create parameter grid
 grid <- param_grid(
   subject = c("s01", "s02", "s03"),
@@ -337,6 +345,7 @@ results <- collect(fl)
 With `autoload = TRUE` (default), artifacts load automatically:
 
 ``` r
+
 fl <- fl |>
   stage("analyze",
     f = function(raw_data, summary, metadata) {
@@ -355,6 +364,7 @@ fl <- fl |>
 Access artifacts directly using file references:
 
 ``` r
+
 results <- collect(fl)
 
 # Each artifact field contains file metadata
@@ -372,6 +382,7 @@ data <- jsonlite::read_json(results$metadata[[1]]$path)  # For JSON
 Query and explore all artifacts:
 
 ``` r
+
 # Find all Parquet files
 manifest("artifacts://") |>
   filter(grepl("\\.parquet$", path)) |>
@@ -422,6 +433,7 @@ web integration
 ### Mixed-format machine learning pipeline
 
 ``` r
+
 ml_sink <- sink_spec(
   fields = c("train_data", "test_data", "model", "predictions", "metrics"),
   dir = "artifacts://ml_pipeline",
@@ -439,6 +451,7 @@ ml_sink <- sink_spec(
 ### Scientific computing with custom formats
 
 ``` r
+
 # Register specialized formats
 register_sink_format("matlab",
   writer = ~ R.matlab::writeMat(.x, .path),
@@ -465,6 +478,7 @@ scientific_sink <- sink_quick(
 ### Quick iteration during development
 
 ``` r
+
 # Start with temp sink for experimentation
 dev_flow <- flow(test_data) |>
   stage("experiment",
@@ -510,16 +524,17 @@ includes:
 Choose based on size and access patterns:
 
 | Use [`lst()`](https://bbuchsbaum.github.io/parade/reference/lst.md) (in-memory) | Use [`artifact()`](https://bbuchsbaum.github.io/parade/reference/artifact.md) (on-disk) |
-|---------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| Small objects (\<10MB)                                                          | Large objects (\>10MB)                                                                  |
-| Frequently accessed                                                             | Accessed occasionally                                                                   |
-| Complex metadata                                                                | Primary data arrays                                                                     |
-| Model summaries                                                                 | Full model objects                                                                      |
-| Headers/parameters                                                              | Raw data matrices                                                                       |
+|----|----|
+| Small objects (\<10MB) | Large objects (\>10MB) |
+| Frequently accessed | Accessed occasionally |
+| Complex metadata | Primary data arrays |
+| Model summaries | Full model objects |
+| Headers/parameters | Raw data matrices |
 
 ### Example: Neuroimaging data with lst()
 
 ``` r
+
 # Complex neuroimaging object stays in memory
 fl <- flow(subjects) |>
   stage("load_brain",
@@ -549,6 +564,7 @@ class(first_brain)  # "brain_volume" or similar S4 class
 ### Example: Mixed approach for large data
 
 ``` r
+
 # Large data as artifact, metadata in memory
 fl <- flow(subjects) |>
   stage("process_brain",
@@ -604,6 +620,7 @@ Instead of creating prototype objects, use
 validate by class name:
 
 ``` r
+
 # Traditional approach (requires prototype object)
 schema(model = structure(list(), class = "lm"))  # Awkward!
 
@@ -623,6 +640,7 @@ schema(
 Allow fields to be NULL or match a specific type:
 
 ``` r
+
 fl <- flow(grid) |>
   stage("fit",
     f = function(data) {
@@ -644,6 +662,7 @@ fl <- flow(grid) |>
 Accept multiple possible types:
 
 ``` r
+
 schema(
   result = one_of(
     isa("lm"),      # Linear model
@@ -659,6 +678,7 @@ schema(
 Custom validation logic with performance hints:
 
 ``` r
+
 # Light validation (always runs)
 schema(
   data = pred(~ nrow(.) > 0, cost = "light")
@@ -679,6 +699,7 @@ results_validated <- collect(fl, validate = "full")  # Run all checks
 Parade includes neuroimaging-specific validators:
 
 ``` r
+
 # Any neuroimaging volume
 schema(brain = neurovol())
 
@@ -696,12 +717,13 @@ schema(mask = maybe_neurovol())
 
 Validation runs in two modes to balance safety and speed:
 
-| Mode                | When to use        | What runs                                   |
-|---------------------|--------------------|---------------------------------------------|
-| `"light"` (default) | Normal execution   | Class checks, type checks, light predicates |
-| `"full"`            | Testing, debugging | All checks including expensive predicates   |
+| Mode | When to use | What runs |
+|----|----|----|
+| `"light"` (default) | Normal execution | Class checks, type checks, light predicates |
+| `"full"` | Testing, debugging | All checks including expensive predicates |
 
 ``` r
+
 # Normal execution - fast
 results <- collect(flow)  # Default: validate = "light"
 
@@ -714,6 +736,7 @@ results <- collect(flow, validate = "full")
 Flexible types work seamlessly with parade’s standard types:
 
 ``` r
+
 schema(
   # Standard types
   id = chr(),
@@ -742,6 +765,7 @@ Perfect for preprocessing pipelines that generate dozens of intermediate
 files.
 
 ``` r
+
 # Sentinel pattern - track one file that signals success
 sentinel_sink <- sink_quick(
   fields = "run",
@@ -829,6 +853,7 @@ Track a directory itself as the artifact when downstream stages need to
 explore the contents.
 
 ``` r
+
 bundle_sink <- sink_quick(
   fields = "bundle",
   dir = "artifacts://analysis",
@@ -865,6 +890,7 @@ bundle_sink <- sink_quick(
 Track only the main output file when there’s a clear primary result.
 
 ``` r
+
 primary_sink <- sink_quick(
   fields = "main_result",
   dir = "artifacts://results",
@@ -891,18 +917,19 @@ primary_sink <- sink_quick(
 
 ### Choosing the Right Pattern
 
-| Use Case                                | Best Pattern    | Why                                  |
-|-----------------------------------------|-----------------|--------------------------------------|
+| Use Case | Best Pattern | Why |
+|----|----|----|
 | Need to know success/failure + location | **A: Sentinel** | Minimal metadata, easy resume, clean |
-| Downstream needs to explore outputs     | **B: Bundle**   | Directory handle for flexible access |
-| Clear primary output file               | **C: Primary**  | Track only what matters              |
-| Hundreds of small files                 | **A: Sentinel** | Avoid manifest bloat                 |
-| QC and validation needed                | **A: Sentinel** | Embed metrics in done file           |
-| Archive/backup scenario                 | **B: Bundle**   | Preserve directory structure         |
+| Downstream needs to explore outputs | **B: Bundle** | Directory handle for flexible access |
+| Clear primary output file | **C: Primary** | Track only what matters |
+| Hundreds of small files | **A: Sentinel** | Avoid manifest bloat |
+| QC and validation needed | **A: Sentinel** | Embed metrics in done file |
+| Archive/backup scenario | **B: Bundle** | Preserve directory structure |
 
 ### Real-World Example: fMRI Preprocessing
 
 ``` r
+
 # Complete fMRI preprocessing with sentinel pattern
 library(parade)
 paths_init()

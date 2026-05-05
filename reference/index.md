@@ -146,6 +146,9 @@
 - [`dry_run(`*`<parade_flow>`*`)`](https://bbuchsbaum.github.io/parade/reference/dry_run.parade_flow.md)
   : Dry-run a flow: show plan and counts without executing
 
+- [`element_log()`](https://bbuchsbaum.github.io/parade/reference/element_log.md)
+  : Read the captured stdio of a packed element
+
 - [`expand_path_macros_enhanced()`](https://bbuchsbaum.github.io/parade/reference/expand_path_macros_enhanced.md)
   : Expand path macros with enhanced patterns
 
@@ -341,6 +344,9 @@
 - [`pack()`](https://bbuchsbaum.github.io/parade/reference/pack.md) :
   Pack a schema into a structured type
 
+- [`packed_errors()`](https://bbuchsbaum.github.io/parade/reference/packed_errors.md)
+  : Summarise per-element errors across a packed jobset
+
 - [`parade_config_path()`](https://bbuchsbaum.github.io/parade/reference/parade_config_path.md)
   : Locate the parade configuration file
 
@@ -368,8 +374,14 @@
 - [`parade_options()`](https://bbuchsbaum.github.io/parade/reference/parade_options.md)
   : Global parade options (get/set)
 
+- [`parade_plan()`](https://bbuchsbaum.github.io/parade/reference/parade_plan.md)
+  : Visualize a parade execution plan
+
 - [`parade_stage()`](https://bbuchsbaum.github.io/parade/reference/parade_stage.md)
   : Emit a stage lifecycle update from a submitted script
+
+- [`parade_status()`](https://bbuchsbaum.github.io/parade/reference/parade_status.md)
+  : Show run status from the persisted status snapshot
 
 - [`parade_watch()`](https://bbuchsbaum.github.io/parade/reference/parade_watch.md)
   : Watch a deferred pipeline and log errors incrementally

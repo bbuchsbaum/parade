@@ -19,5 +19,4 @@ Logical indicating whether mirai is available
 if (mirai_available()) {
   message("Mirai is available")
 }
-#> Mirai is available
 ```

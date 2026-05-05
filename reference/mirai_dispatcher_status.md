@@ -19,14 +19,9 @@ A list with dispatcher status, or NULL if no dispatcher is running
 # \donttest{
 # Check dispatcher status
 disp_status <- mirai_dispatcher_status()
+#> mirai package not installed
 if (!is.null(disp_status)) {
   print(disp_status)
 }
-#> $connections
-#> [1] 0
-#> 
-#> $daemons
-#> [1] 0
-#> 
 # }
 ```

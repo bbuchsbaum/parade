@@ -16,6 +16,7 @@ See also:
 ## Quick start: function first
 
 ``` r
+
 library(parade)
 
 # Local dev:
@@ -39,6 +40,7 @@ cat("Result:", job$result, "\n")
 ## Map over inputs (function or script)
 
 ``` r
+
 files <- c("data1.csv", "data2.csv", "data3.csv")
 
 # Function path
@@ -57,6 +59,7 @@ When you have many tasks, HPC admins often prefer *fewer jobs that fully
 use a node*. Use packed mode:
 
 ``` r
+
 jobs <- slurm_map(
   1:10000,
   ~ .x^2,
@@ -72,6 +75,7 @@ cores), use
 [`slurm_map_cluster()`](https://bbuchsbaum.github.io/parade/reference/slurm_map_cluster.md):
 
 ``` r
+
 jobs <- slurm_map_cluster(
   1:10000,
   ~ .x^2,
@@ -91,6 +95,7 @@ you can express “10 nodes × 196 cores” as a distribution spec and keep
 the DAG itself unchanged:
 
 ``` r
+
 fl <- fl |>
   distribute(dist_slurm_allocation(
     nodes = 10,
@@ -109,6 +114,7 @@ dynamic load balancing.
 ## Elegant naming and paths
 
 ``` r
+
 # Naming helpers: stem/index/digest/glue_name
 jobs <- slurm_map(files, ~ tools::file_path_sans_ext(.x),
                   .name_by = stem("sample_(\\d+)"), .engine = "local")
@@ -131,6 +137,7 @@ If you submit a single function with
 add `.as_jobset = TRUE` to opt into the same surface:
 
 ``` r
+
 # Wrap a single job as a one‑element jobset
 jobs <- slurm_call(
   function(file) { Sys.sleep(1); read.csv(file)[1:5, ] },
@@ -148,6 +155,7 @@ open_logs(jobs, selection = "all")
 ## Parallel arguments with pmap
 
 ``` r
+
 df <- data.frame(x = 1:4, y = 5:8, method = c("add","multiply","add","multiply"))
 jobs <- slurm_pmap(df, function(x, y, method) if (method == "add") x + y else x * y,
                    .name_by = glue_name("{method}-{x}-{y}"), .engine = "local")
@@ -157,6 +165,7 @@ collect(jobs)
 ## Argument helpers
 
 ``` r
+
 # CLI arguments (scripts)
 args_cli(input = "data.csv", output = "results.rds", verbose = TRUE, threads = 4)
 

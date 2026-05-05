@@ -25,6 +25,7 @@ and collect results — with optional artifact sinks and typed schemas.
 ## Core concepts at a glance
 
 ``` r
+
 library(parade)
 
 # Grid of inputs

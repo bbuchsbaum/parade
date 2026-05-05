@@ -28,6 +28,7 @@ management.
 ## Quick start example
 
 ``` r
+
 library(parade)
 
 # Recommended (HPC): one-command setup
@@ -80,6 +81,7 @@ returns a single job object, but you can request a jobset (a one-element
 collection) to use the same workflow verbs that work with multiple jobs:
 
 ``` r
+
 # Submit a single function job, returned as a one-element jobset
 jobs <- slurm_call(
   function(file) {
@@ -109,6 +111,7 @@ And for multiple inputs the pattern is identical with
 [`slurm_map()`](https://bbuchsbaum.github.io/parade/reference/slurm_map.md):
 
 ``` r
+
 files <- glob("data/*.csv")
 jobs <- slurm_map(
   files,
@@ -131,6 +134,7 @@ function provides a real-time, interactive dashboard for monitoring a
 single SLURM job:
 
 ``` r
+
 job <- submit_slurm("analysis.R")
 script_top(job, refresh = 2, nlog = 30, clear = TRUE)
 ```
@@ -155,6 +159,7 @@ Monitor multiple jobs simultaneously with a tabular overview plus
 detailed logs from running jobs:
 
 ``` r
+
 # Submit multiple jobs
 job1 <- submit_slurm("preprocess.R", args = c("--dataset", "A"))
 job2 <- submit_slurm("preprocess.R", args = c("--dataset", "B"))
@@ -172,6 +177,7 @@ job ID, state, CPU%, allocated CPUs, max memory, elapsed time, node -
 **Flexible input formats:**
 
 ``` r
+
 # List of job objects
 jobs_top(list(job1, job2, job3))
 
@@ -190,6 +196,7 @@ jobs_top(c("registry://script-abc123", "registry://script-def456"))
 Get current job state without launching a full monitor:
 
 ``` r
+
 status <- script_status(job)
 print(status)
 # # A tibble: 1 × 5
@@ -206,6 +213,7 @@ detailed <- script_status(job, detail = TRUE)
 Display recent log output from a job:
 
 ``` r
+
 # Show last 50 lines
 script_tail(job, n = 50)
 
@@ -218,6 +226,7 @@ script_tail(job)  # Default: 200 lines
 Get detailed resource usage statistics:
 
 ``` r
+
 metrics <- script_metrics(job)
 print(metrics)
 # $job_id
@@ -238,6 +247,7 @@ print(metrics)
 Check if a job has finished (successfully or with errors):
 
 ``` r
+
 if (script_done(job)) {
   cat("Job completed!\n")
   # Process results...
@@ -253,6 +263,7 @@ if (script_done(job)) {
 Block execution until job completes:
 
 ``` r
+
 # Wait indefinitely
 script_await(job)
 
@@ -268,6 +279,7 @@ script_await(job, timeout = 600, poll = 30)  # Check every 30 seconds
 Stop running jobs:
 
 ``` r
+
 script_cancel(job)
 ```
 
@@ -276,6 +288,7 @@ script_cancel(job)
 Locate recently submitted jobs when you don’t have the job object:
 
 ``` r
+
 # Find 5 most recent jobs
 recent <- script_find_latest(n = 5)
 print(recent)
@@ -295,6 +308,7 @@ sweeps, and functional programming workflows.
 ### Basic function submission
 
 ``` r
+
 # Submit a simple function
 job <- slurm_call(
   function(x, y) {
@@ -317,6 +331,7 @@ Parade 0.12.0 introduces resource profiles for easier resource
 management:
 
 ``` r
+
 # Use built-in profiles
 job <- slurm_call(my_function, x = 1, resources = "gpu")
 job <- slurm_call(my_function, x = 1, resources = "highmem")
@@ -348,6 +363,7 @@ job <- slurm_call(train_model, data = data, resources = "ml_training")
 Specify packages to load on the compute node:
 
 ``` r
+
 job <- slurm_call(
   function(n, mu, sigma) {
     # Packages are loaded before function execution
@@ -368,6 +384,7 @@ job <- slurm_call(
 Use `write_result` to persist function output:
 
 ``` r
+
 # Results are automatically saved to the specified path
 job <- slurm_call(
   function(size) {
@@ -402,6 +419,7 @@ if (status$done == 1 && status$error == 0) {
 Combine with lapply for parallel parameter exploration:
 
 ``` r
+
 # Submit multiple function calls with different parameters
 parameters <- expand.grid(
   alpha = c(0.01, 0.1, 1.0),
@@ -432,6 +450,7 @@ jobs_top(jobs)
 serializes the function’s environment, so closures work naturally:
 
 ``` r
+
 # Configuration captured in closure
 config <- list(
   iterations = 1000,
@@ -462,6 +481,7 @@ job <- slurm_call(
     directory. Use parade’s path system for data access:
 
     ``` r
+
     slurm_call(
       function() {
         data <- readRDS(resolve_path("data://input.rds"))
@@ -486,6 +506,7 @@ job <- slurm_call(
 ### Scenario 1: Long-running training job
 
 ``` r
+
 # Submit training job with generous time limit
 job <- submit_slurm("train_model.R", 
                     resources = list(time = "24:00:00", mem = "32G"))
@@ -505,6 +526,7 @@ if (script_status(job)$running > 0) {
 ### Scenario 2: Batch processing pipeline
 
 ``` r
+
 # Submit preprocessing jobs for multiple datasets
 datasets <- c("dataset_A", "dataset_B", "dataset_C")
 prep_jobs <- lapply(datasets, function(d) {
@@ -525,6 +547,7 @@ script_top(analysis_job)
 ### Scenario 3: Troubleshooting failed jobs
 
 ``` r
+
 job <- submit_slurm("problematic_script.R")
 
 # Check if job completed
@@ -598,6 +621,7 @@ directly to see raw data
 **Lost job objects:**
 
 ``` r
+
 # Find recent jobs
 recent <- script_find_latest(pattern = "train")
 job <- script_load(recent$registry[1])
@@ -606,6 +630,7 @@ job <- script_load(recent$registry[1])
 **Monitor jobs from different R sessions:**
 
 ``` r
+
 # Jobs persist across R sessions via registry
 job_path <- "registry://script-abc123"
 job <- script_load(job_path)

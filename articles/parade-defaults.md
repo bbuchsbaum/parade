@@ -26,6 +26,7 @@ R through simple functions.
 ## Quick start
 
 ``` r
+
 library(parade)
 paths_init()
 
@@ -63,6 +64,7 @@ fields before constructing the `#SBATCH` directives for your SLURM job.
 > e.g.:
 >
 > ``` r
+>
 > flow(grid) |>
 >   stage("analyze", analyze_fn) |>
 >   distribute(dist_slurm(resources = slurm_resources(profile = "standard")))
@@ -102,6 +104,7 @@ omit that parameter entirely from the SLURM submission.
 ### Inspecting current defaults
 
 ``` r
+
 # View all current defaults
 slurm_defaults_get()
 
@@ -118,6 +121,7 @@ The
 function combines defaults with job-specific overrides:
 
 ``` r
+
 # Use defaults but override time and explicitly omit memory
 resources <- slurm_resources(list(time = "90min", mem = omit()))
 
@@ -128,6 +132,7 @@ job <- submit_slurm("analysis.R", resources = resources)
 ### Updating defaults during your session
 
 ``` r
+
 # Change defaults temporarily (session only)
 slurm_defaults_set(mem = NA)           # omit --mem flag
 slurm_defaults_set(cpus_per_task = 8)  # reduce CPU count
@@ -151,6 +156,7 @@ argument to
 [`submit_slurm()`](https://bbuchsbaum.github.io/parade/reference/submit_slurm.md):
 
 ``` r
+
 # Use defaults for most parameters, but need more time and memory for this job
 big_job <- submit_slurm("big_analysis.R", 
                         resources = list(time = "12h", mem = "32G"))
@@ -171,6 +177,7 @@ gpu_job <- submit_slurm("model_training.R",
 For a cluster that rejects memory specifications:
 
 ``` r
+
 slurm_defaults_set(
   partition = "compute",
   time = "2h",
@@ -183,6 +190,7 @@ slurm_defaults_set(
 For a GPU cluster:
 
 ``` r
+
 slurm_defaults_set(
   partition = "gpu",
   time = "4h", 
@@ -196,6 +204,7 @@ slurm_defaults_set(
 For high-memory jobs:
 
 ``` r
+
 slurm_defaults_set(
   partition = "highmem",
   time = "8h",

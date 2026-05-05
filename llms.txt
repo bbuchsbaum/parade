@@ -19,6 +19,7 @@ R.
 ## Install
 
 ``` r
+
 # development version
 # install.packages("remotes")
 remotes::install_github("bbuchsbaum/parade")
@@ -30,6 +31,7 @@ parades”). This project is currently GitHub-only.
 ## 60-second tour
 
 ``` r
+
 library(parade)
 library(progressr)
 handlers(global = TRUE)   # progress bars everywhere
@@ -77,6 +79,7 @@ res$rmse         # numeric in-memory
 ## Submit & monitor SLURM jobs from R
 
 ``` r
+
 # One-command HPC setup (recommended for clusters)
 parade_init_hpc(persist = TRUE)
 
@@ -120,6 +123,7 @@ central dispatcher — giving you low-latency fan-out, automatic load
 balancing, and optional SSH/TLS transport.
 
 ``` r
+
 # Local: spin up 8 daemon workers on this machine.
 # The dispatcher feeds tasks to whichever worker is free next.
 fl |>
@@ -145,6 +149,7 @@ Parade solves this with **protocol-style aliases** that resolve to the
 right directory on each machine:
 
 ``` r
+
 sink_spec(fields = "model", dir = "artifacts://fits")
 #  on laptop → /tmp/parade-artifacts/fits
 #  on HPC    → $SCRATCH/parade-artifacts/fits
@@ -165,6 +170,7 @@ Management](https://bbuchsbaum.github.io/parade/articles/parade-paths.html).
 ## Artifact catalog (discoverability)
 
 ``` r
+
 # List artifacts under your artifacts root (uses sink sidecars when present)
 artifact_catalog()
 
@@ -372,6 +378,9 @@ on CRAN and GitHub Pages. The palette family is provided via
 - [`dry_run(`*`<parade_flow>`*`)`](https://bbuchsbaum.github.io/parade/reference/dry_run.parade_flow.md)
   : Dry-run a flow: show plan and counts without executing
 
+- [`element_log()`](https://bbuchsbaum.github.io/parade/reference/element_log.md)
+  : Read the captured stdio of a packed element
+
 - [`expand_path_macros_enhanced()`](https://bbuchsbaum.github.io/parade/reference/expand_path_macros_enhanced.md)
   : Expand path macros with enhanced patterns
 
@@ -567,6 +576,9 @@ on CRAN and GitHub Pages. The palette family is provided via
 - [`pack()`](https://bbuchsbaum.github.io/parade/reference/pack.md) :
   Pack a schema into a structured type
 
+- [`packed_errors()`](https://bbuchsbaum.github.io/parade/reference/packed_errors.md)
+  : Summarise per-element errors across a packed jobset
+
 - [`parade_config_path()`](https://bbuchsbaum.github.io/parade/reference/parade_config_path.md)
   : Locate the parade configuration file
 
@@ -594,8 +606,14 @@ on CRAN and GitHub Pages. The palette family is provided via
 - [`parade_options()`](https://bbuchsbaum.github.io/parade/reference/parade_options.md)
   : Global parade options (get/set)
 
+- [`parade_plan()`](https://bbuchsbaum.github.io/parade/reference/parade_plan.md)
+  : Visualize a parade execution plan
+
 - [`parade_stage()`](https://bbuchsbaum.github.io/parade/reference/parade_stage.md)
   : Emit a stage lifecycle update from a submitted script
+
+- [`parade_status()`](https://bbuchsbaum.github.io/parade/reference/parade_status.md)
+  : Show run status from the persisted status snapshot
 
 - [`parade_watch()`](https://bbuchsbaum.github.io/parade/reference/parade_watch.md)
   : Watch a deferred pipeline and log errors incrementally

@@ -101,6 +101,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-manifest_record.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-normalize_error_message.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parade_check_type.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parade_packed_n_errors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parse_sacct_output.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parse_slurm_exit_code.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-parse_squeue_output.html</loc></url>
@@ -108,6 +109,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-pipeline_is_done.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-pipeline_log_errors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-pipeline_log_header.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/dot-pipeline_log_submission_failure.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-pipeline_log_summary.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-register_builtin_formats.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dot-run_registry_append.html</loc></url>
@@ -128,6 +130,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dry_run.default.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dry_run.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/dry_run.parade_flow.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/element_log.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/expand_path_macros.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/expand_path_macros_enhanced.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/explain.default.html</loc></url>
@@ -199,6 +202,7 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/open_logs.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/open_logs.parade_jobset.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/pack.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/packed_errors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/packed_worker_function.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade-package.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_config_path.html</loc></url>
@@ -210,11 +214,13 @@
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_init_hpc.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_log.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_options.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade_plan.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_chunk_bt.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_chunk_local.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_row.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_run_script_bt.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_stage.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/parade/reference/parade_status.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/parade_watch.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/param_grid.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/parade/reference/partition.html</loc></url>

@@ -32,11 +32,11 @@ parade_doctor()
 #> parade doctor
 #> ------------
 #> [OK] project    /home/runner/work/parade/parade/docs/reference
-#> [OK] scratch    /tmp/RtmpJzDkY3
+#> [OK] scratch    /tmp/RtmpfPLhwl
 #> [WARN] data       /home/runner/work/parade/parade/docs/reference/data
 #>        Directory does not exist.
-#> [OK] artifacts  /tmp/RtmpJzDkY3/parade-artifacts
-#> [OK] registry   /tmp/RtmpJzDkY3/parade-registry
+#> [OK] artifacts  /tmp/RtmpfPLhwl/parade-artifacts
+#> [OK] registry   /tmp/RtmpfPLhwl/parade-registry
 #> [WARN] config     /home/runner/work/parade/parade/docs/reference/.parade
 #>        Directory does not exist.
 #> [WARN] cache      /home/runner/.cache/R/parade

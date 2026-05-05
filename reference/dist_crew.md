@@ -84,41 +84,5 @@ if (requireNamespace("crew", quietly = TRUE)) {
   #   by = "group"
   # )
 }
-#> $backend
-#> [1] "crew"
-#> 
-#> $by
-#> [1] "group"
-#> 
-#> $within
-#> [1] "sequential"
-#> 
-#> $workers_within
-#> NULL
-#> 
-#> $chunks_per_job
-#> [1] 1
-#> 
-#> $target_jobs
-#> NULL
-#> 
-#> $slurm
-#> NULL
-#> 
-#> $crew
-#> $crew$controller
-#> function () 
-#> crew::crew_controller_local(workers = 4)
-#> <environment: 0x55e15e07e1f8>
-#> 
-#> $crew$persist
-#> [1] FALSE
-#> 
-#> $crew$stop_on_exit
-#> [1] TRUE
-#> 
-#> 
-#> attr(,"class")
-#> [1] "parade_dist"
 # }
 ```

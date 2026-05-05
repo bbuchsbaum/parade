@@ -18,6 +18,7 @@ Your research workflow likely involves many different types of computing
 tasks:
 
 ``` r
+
 # Quick test with 5 samples - needs 30 minutes, 4 CPUs
 test_job <- submit_slurm("test.R", 
   resources = list(partition = "debug", time = "30m", cpus_per_task = 4, mem = "8G"))
@@ -41,6 +42,7 @@ job to the debug partition or request wrong resources.
 by name:
 
 ``` r
+
 library(parade)
 
 # Define your resource templates once
@@ -68,6 +70,7 @@ one place.
 ### Step 1: Initialize parade
 
 ``` r
+
 library(parade)
 paths_init()  # Initialize parade's path system for artifact and registry management
 ```
@@ -75,6 +78,7 @@ paths_init()  # Initialize parade's path system for artifact and registry manage
 ### Step 2: Define profiles for your common job types
 
 ``` r
+
 # Quick testing profile - for debugging and development
 slurm_defaults_set(
   partition = "debug",
@@ -109,6 +113,7 @@ slurm_defaults_set(
 ### Step 3: Use profiles in your workflows
 
 ``` r
+
 # Quick test run
 test_results <- flow(small_grid) |>
   stage("analyze", analyze_function) |>
@@ -134,6 +139,7 @@ In reality, “defaults” and “profiles” use the same underlying
 mechanism - defaults are just the profile named “default”.
 
 ``` r
+
 # These are equivalent - both set the "default" profile
 slurm_defaults_set(partition = "compute", time = "2h")
 slurm_defaults_set(partition = "compute", time = "2h", profile = "default")
@@ -156,6 +162,7 @@ You’re developing an analysis that will eventually run on thousands of
 samples:
 
 ``` r
+
 # Development: Work with 5 samples locally
 slurm_defaults_set(
   partition = "debug",
@@ -205,6 +212,7 @@ prod_results <- run_analysis(samples, "prod")           # Full run
 Your project involves different types of computations:
 
 ``` r
+
 # CPU-intensive statistical analysis
 slurm_defaults_set(
   partition = "compute",
@@ -260,6 +268,7 @@ ml_job <- submit_slurm("train_model.R",
 You work on multiple HPC systems with different configurations:
 
 ``` r
+
 # University cluster - uses partition names
 slurm_defaults_set(
   partition = "general",
@@ -312,6 +321,7 @@ job <- run_on_cluster("uni_cluster")     # or "supercomputer" or "cloud_hpc"
 Start with a profile but override specific settings:
 
 ``` r
+
 # Base profile has 8 hour time limit
 slurm_defaults_set(time = "8h", cpus_per_task = 32, profile = "standard", persist = TRUE)
 
@@ -336,6 +346,7 @@ custom_resources <- slurm_resources(
 Choose profiles based on runtime conditions:
 
 ``` r
+
 select_profile <- function(n_samples, needs_gpu = FALSE) {
   if (needs_gpu) {
     return("gpu_training")
@@ -367,6 +378,7 @@ analyze_dataset <- function(data) {
 Check what profiles you have configured:
 
 ``` r
+
 # Get specific profile settings
 dev_settings <- slurm_defaults_get(profile = "dev")
 print(dev_settings)
@@ -442,6 +454,7 @@ Location: `<project>/.parade/parade.json` (created automatically)
 ### 1. Use Descriptive Profile Names
 
 ``` r
+
 # Good: Clear purpose
 slurm_defaults_set(..., profile = "quick_test")
 slurm_defaults_set(..., profile = "full_analysis")
@@ -455,6 +468,7 @@ slurm_defaults_set(..., profile = "new")
 ### 2. Document Your Profiles
 
 ``` r
+
 # Document profile purpose when creating
 slurm_defaults_set(
   partition = "debug",
@@ -477,6 +491,7 @@ Memory-intensive tasks
 ### 4. Handle Missing Profiles Gracefully
 
 ``` r
+
 safe_submit <- function(script, profile_name) {
   tryCatch({
     resources <- slurm_resources(profile = profile_name)
@@ -538,6 +553,7 @@ versa.
 ### Issue: “Profile not found”
 
 ``` r
+
 # Check available profiles
 slurm_defaults_get(profile = "default")  # Should always work
 
@@ -548,6 +564,7 @@ slurm_defaults_set(..., profile = "myprofile", persist = TRUE)  # Note: persist 
 ### Issue: Profile settings not applying
 
 ``` r
+
 # Explicitly pass profile to resources
 resources <- slurm_resources(profile = "production")  # Correct
 
@@ -558,6 +575,7 @@ resources <- slurm_resources()  # Uses "default" profile
 ### Issue: Different clusters need different profiles
 
 ``` r
+
 # Detect cluster and choose profile
 get_cluster_profile <- function() {
   hostname <- Sys.info()["nodename"]
@@ -590,11 +608,11 @@ Now that you understand profiles, learn about:
 
 ## Quick Reference
 
-| Function                                       | Purpose                   | Example                                                    |
-|------------------------------------------------|---------------------------|------------------------------------------------------------|
-| `slurm_defaults_set(..., profile = "name")`    | Create/update profile     | `slurm_defaults_set(time = "4h", profile = "standard")`    |
-| `slurm_defaults_get(profile = "name")`         | Get profile settings      | `slurm_defaults_get(profile = "production")`               |
-| `slurm_resources(profile = "name")`            | Use profile for resources | `slurm_resources(profile = "gpu")`                         |
+| Function | Purpose | Example |
+|----|----|----|
+| `slurm_defaults_set(..., profile = "name")` | Create/update profile | `slurm_defaults_set(time = "4h", profile = "standard")` |
+| `slurm_defaults_get(profile = "name")` | Get profile settings | `slurm_defaults_get(profile = "production")` |
+| `slurm_resources(profile = "name")` | Use profile for resources | `slurm_resources(profile = "gpu")` |
 | `slurm_resources(list(...), profile = "name")` | Override profile settings | `slurm_resources(list(time = "2h"), profile = "standard")` |
 
 ## Summary

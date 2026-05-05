@@ -38,8 +38,5 @@ if (requireNamespace("mirai", quietly = TRUE) &&
   # Clean up
   mirai_stop()
 }
-#> Initialized mirai with 4 daemons
-#> Initialized mirai with 4 daemons
-#> All mirai daemons stopped
 # }
 ```

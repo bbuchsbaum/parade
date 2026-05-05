@@ -16,6 +16,5 @@ Character vector of format names
 
 ``` r
 list_sink_formats()
-#> [1] "csv"       "feather"   "json"      "parquet"   "qs2"       "rds"      
-#> [7] "readr_csv" "readr_tsv" "tsv"      
+#> [1] "csv"  "json" "rds"  "tsv" 
 ```

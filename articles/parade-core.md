@@ -11,6 +11,7 @@
 Want to see parade in action? Here’s a complete working example:
 
 ``` r
+
 library(parade)
 
 # 1. Define what varies (3 subjects × 2 conditions = 6 analyses)
@@ -88,6 +89,7 @@ Every parade workflow starts with a **parameter grid** - a table that
 defines all the analyses you want to run:
 
 ``` r
+
 library(parade)
 library(progressr)  # For progress bars
 
@@ -122,6 +124,7 @@ Now we create a **flow** - a series of computational steps that will be
 applied to each row:
 
 ``` r
+
 # Create a flow from our parameter grid
 results_flow <- flow(grid) |>
   
@@ -173,6 +176,7 @@ stage produces
 Let’s add a stage that analyzes the loaded data:
 
 ``` r
+
 results_flow <- results_flow |>
   
   # Second stage: Analyze the data
@@ -215,6 +219,7 @@ output from the previous stage - The naming convention is:
 Now we run the entire workflow:
 
 ``` r
+
 # Execute the workflow
 results <- collect(results_flow)
 
@@ -243,6 +248,7 @@ purposes:
 ### 1. Early error detection
 
 ``` r
+
 # This will fail immediately if your function returns the wrong type
 stage(
   id = "bad_stage",
@@ -266,6 +272,7 @@ code knows exactly what each stage produces.
 ### Available types
 
 ``` r
+
 # Basic types
 dbl()    # Double/numeric values
 int()    # Integers
@@ -285,6 +292,7 @@ artifact()  # File references (for large data saved to disk)
 So far, our workflow runs sequentially. Let’s make it parallel:
 
 ``` r
+
 # Run with parallel workers
 results_parallel <- collect(
   results_flow, 
@@ -310,6 +318,7 @@ handling all the complexity of parallel execution for you.
 Real analyses sometimes fail. Parade provides several strategies:
 
 ``` r
+
 # Option 1: Keep failed rows in results (default)
 flow_robust <- flow(grid, error = "keep")
 
@@ -332,6 +341,7 @@ Stages can depend on multiple previous stages, creating a directed
 acyclic graph (DAG):
 
 ``` r
+
 complex_flow <- flow(grid) |>
   
   stage(id = "load", 
@@ -423,11 +433,11 @@ for short lambdas, but as logic grows past a few lines the pipe becomes
 hard to read. Parade offers three stage styles — pick the one that fits
 your code:
 
-| Style                                                                                                                                                     | Best for                   | How it looks                                     |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|
-| [`stage()`](https://bbuchsbaum.github.io/parade/reference/stage.md)                                                                                       | Short lambdas (1-5 lines)  | `stage("id", function(x) list(y = x^2), ...)`    |
-| [`code_stage()`](https://bbuchsbaum.github.io/parade/reference/code_stage.md)                                                                             | Medium blocks (5-50 lines) | Code block lives inline, no `function()` wrapper |
-| [`stage_def()`](https://bbuchsbaum.github.io/parade/reference/stage_def.md) + [`add_stage()`](https://bbuchsbaum.github.io/parade/reference/add_stage.md) | Reusable / long stages     | Define once, add to any flow                     |
+| Style | Best for | How it looks |
+|----|----|----|
+| [`stage()`](https://bbuchsbaum.github.io/parade/reference/stage.md) | Short lambdas (1-5 lines) | `stage("id", function(x) list(y = x^2), ...)` |
+| [`code_stage()`](https://bbuchsbaum.github.io/parade/reference/code_stage.md) | Medium blocks (5-50 lines) | Code block lives inline, no `function()` wrapper |
+| [`stage_def()`](https://bbuchsbaum.github.io/parade/reference/stage_def.md) + [`add_stage()`](https://bbuchsbaum.github.io/parade/reference/add_stage.md) | Reusable / long stages | Define once, add to any flow |
 
 ### `stage()` — inline lambdas
 
@@ -435,6 +445,7 @@ You already know this one. It reads beautifully when the function is
 short:
 
 ``` r
+
 fl <- flow(grid) |>
   stage("calc", function(x) x^2, schema = returns(result = dbl()))
 ```
@@ -448,6 +459,7 @@ captures a bare code block instead. Grid columns and upstream outputs
 are available as plain variables — no function signature to maintain:
 
 ``` r
+
 grid <- param_grid(
   subject = c("s01", "s02", "s03"),
   condition = c("A", "B")
@@ -488,6 +500,7 @@ captures the block via
 from the surrounding scope (closures) are available inside:
 
 ``` r
+
 n_iter <- 500   # defined outside the pipeline
 
 fl <- flow(grid) |>
@@ -507,6 +520,7 @@ and plug them in with
 [`add_stage()`](https://bbuchsbaum.github.io/parade/reference/add_stage.md):
 
 ``` r
+
 # Define once — carries its own id, schema, and dependencies
 fit_stage <- stage_def("fit",
   f = function(load.data) {
@@ -541,6 +555,7 @@ call.
 The three styles compose freely. Use whichever fits each stage:
 
 ``` r
+
 # A reusable loading stage
 loader <- stage_def("load",
   f = function(subject) {
@@ -578,6 +593,7 @@ results <- flow(grid) |>
 Start small and build up:
 
 ``` r
+
 # 1. Test with just 2 rows first
 test_results <- collect(results_flow, limit = 2)
 
@@ -630,6 +646,7 @@ if (!test_results$.ok[1]) {
 Skip stages based on conditions:
 
 ``` r
+
 flow_with_skip <- flow(grid) |>
   stage(id = "load", ...) |>
   stage(
@@ -651,6 +668,7 @@ flow_with_skip <- flow(grid) |>
 Use a seed column for reproducible random operations:
 
 ``` r
+
 # Create grid with unique seeds for each analysis
 grid_with_seeds <- param_grid(
   participant = c("p01", "p02"),
@@ -689,6 +707,7 @@ For complex objects (models, custom classes, neuroimaging data), use
 [`lst()`](https://bbuchsbaum.github.io/parade/reference/lst.md):
 
 ``` r
+
 model_flow <- flow(grid) |>
   stage(
     id = "fit_model",
@@ -727,6 +746,7 @@ model_flow <- flow(grid) |>
 ### Schema mismatches
 
 ``` r
+
 # Error: Expected <dbl>, got <int>
 # Solution: Use the correct type or convert in your function
 schema = returns(value = dbl())  # Not int()
@@ -736,6 +756,7 @@ schema = returns(value = dbl())  # Not int()
 ### Can’t find stage output
 
 ``` r
+
 # Error: Can't find prep.df
 # Check:
 # 1. Stage name: needs = "prep"  (must match stage id)
@@ -746,6 +767,7 @@ schema = returns(value = dbl())  # Not int()
 ### Memory issues with parallel execution
 
 ``` r
+
 # If you run out of memory with many workers
 results <- collect(flow, workers = 2)  # Reduce worker count
 
@@ -757,6 +779,7 @@ batch2 <- collect(flow[101:200, ]) # Next 100 rows
 ### Debugging failed rows
 
 ``` r
+
 # Get detailed information about failures
 results <- collect(flow, error = "keep")
 

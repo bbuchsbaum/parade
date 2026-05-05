@@ -35,11 +35,9 @@ dist_mirai(
 
 - remote:
 
-  Remote configuration for
-  [`mirai::daemons()`](https://mirai.r-lib.org/reference/daemons.html).
-  May be a config object returned by
-  [`mirai::ssh_config()`](https://mirai.r-lib.org/reference/ssh_config.html)/[`mirai::cluster_config()`](https://mirai.r-lib.org/reference/cluster_config.html),
-  or a zero-argument function returning that config.
+  Remote configuration for `mirai::daemons()`. May be a config object
+  returned by `mirai::ssh_config()`/`mirai::cluster_config()`, or a
+  zero-argument function returning that config.
 
 - dispatcher:
 
@@ -88,44 +86,6 @@ if (requireNamespace("mirai", quietly = TRUE)) {
   # With TLS encryption
   dist_mirai(n = 8, tls = TRUE, port = 5555)
 }
-#> $backend
-#> [1] "mirai"
-#> 
-#> $by
-#> character(0)
-#> 
-#> $n
-#> [1] 8
-#> 
-#> $url
-#> NULL
-#> 
-#> $remote
-#> NULL
-#> 
-#> $dispatcher
-#> [1] TRUE
-#> 
-#> $tls
-#> [1] TRUE
-#> 
-#> $port
-#> [1] 5555
-#> 
-#> $stop_on_exit
-#> [1] TRUE
-#> 
-#> $within
-#> [1] "mirai"
-#> 
-#> $workers_within
-#> NULL
-#> 
-#> $chunks_per_job
-#> [1] 1
-#> 
-#> attr(,"class")
-#> [1] "parade_dist"
 # }
 
 # SSH remotes (requires configuration)
@@ -136,45 +96,5 @@ if (requireNamespace("mirai", quietly = TRUE)) {
     dispatcher = TRUE
   )
 }
-#> $backend
-#> [1] "mirai"
-#> 
-#> $by
-#> character(0)
-#> 
-#> $n
-#> NULL
-#> 
-#> $url
-#> NULL
-#> 
-#> $remote
-#> function () 
-#> mirai::ssh_config(c("ssh://node1", "ssh://node2"))
-#> <environment: 0x55e15d712de8>
-#> 
-#> $dispatcher
-#> [1] TRUE
-#> 
-#> $tls
-#> [1] FALSE
-#> 
-#> $port
-#> NULL
-#> 
-#> $stop_on_exit
-#> [1] TRUE
-#> 
-#> $within
-#> [1] "mirai"
-#> 
-#> $workers_within
-#> NULL
-#> 
-#> $chunks_per_job
-#> [1] 1
-#> 
-#> attr(,"class")
-#> [1] "parade_dist"
 # }
 ```

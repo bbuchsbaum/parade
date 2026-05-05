@@ -19,6 +19,7 @@ R.
 ## Install
 
 ``` r
+
 # development version
 # install.packages("remotes")
 remotes::install_github("bbuchsbaum/parade")
@@ -30,6 +31,7 @@ parades”). This project is currently GitHub-only.
 ## 60-second tour
 
 ``` r
+
 library(parade)
 library(progressr)
 handlers(global = TRUE)   # progress bars everywhere
@@ -77,6 +79,7 @@ res$rmse         # numeric in-memory
 ## Submit & monitor SLURM jobs from R
 
 ``` r
+
 # One-command HPC setup (recommended for clusters)
 parade_init_hpc(persist = TRUE)
 
@@ -120,6 +123,7 @@ central dispatcher — giving you low-latency fan-out, automatic load
 balancing, and optional SSH/TLS transport.
 
 ``` r
+
 # Local: spin up 8 daemon workers on this machine.
 # The dispatcher feeds tasks to whichever worker is free next.
 fl |>
@@ -145,6 +149,7 @@ Parade solves this with **protocol-style aliases** that resolve to the
 right directory on each machine:
 
 ``` r
+
 sink_spec(fields = "model", dir = "artifacts://fits")
 #  on laptop → /tmp/parade-artifacts/fits
 #  on HPC    → $SCRATCH/parade-artifacts/fits
@@ -165,6 +170,7 @@ Management](https://bbuchsbaum.github.io/parade/articles/parade-paths.html).
 ## Artifact catalog (discoverability)
 
 ``` r
+
 # List artifacts under your artifacts root (uses sink sidecars when present)
 artifact_catalog()
 

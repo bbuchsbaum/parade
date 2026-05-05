@@ -17,6 +17,7 @@ Basic flow and stage structure
 When your analysis produces large outputs, several problems arise:
 
 ``` r
+
 # Typical neuroimaging analysis - each model is ~500MB
 results <- lapply(subjects, function(subj) {
   brain_data <- load_brain(subj)
@@ -35,6 +36,7 @@ results <- lapply(subjects, function(subj) {
 Even worse on HPC clusters:
 
 ``` r
+
 # This WILL get your account suspended on most clusters:
 saveRDS(huge_results, "~/my_home_dir/results.rds")  # NO! Home has quota!
 ```
@@ -45,6 +47,7 @@ saveRDS(huge_results, "~/my_home_dir/results.rds")  # NO! Home has quota!
 processing, returning just file references:
 
 ``` r
+
 library(parade)
 
 # Local dev:
@@ -91,6 +94,7 @@ a seed (e.g., `set.seed(42)`) so printed outputs are deterministic.
 ### Step 1: Initialize parade’s path system
 
 ``` r
+
 library(parade)
 paths_init()  # Sets up smart paths for your environment
 ```
@@ -98,6 +102,7 @@ paths_init()  # Sets up smart paths for your environment
 ### Step 2: Create an analysis with artifacts
 
 ``` r
+
 # Small example with built-in data
 data <- data.frame(
   sample = paste0("sample_", 1:10),
@@ -143,6 +148,7 @@ print(results)
 ### Step 3: Work with artifacts efficiently
 
 ``` r
+
 # Get just the metrics without loading models
 high_r2 <- results[results$metrics > 0.05, ]
 
@@ -160,13 +166,14 @@ cat("Model for sample_5 is at:", results$model[[5]]$path)
 The `artifacts://` prefix is a smart alias that adapts to your
 environment:
 
-| Environment      | Artifacts Path                                                                  | Why                         |
-|------------------|---------------------------------------------------------------------------------|-----------------------------|
-| **Your laptop**  | `/tmp/parade-artifacts/`                                                        | Uses system temp            |
-| **HPC cluster**  | `$PARADE_SCRATCH/parade-artifacts/` (preferred) or `$SCRATCH/parade-artifacts/` | Uses shared scratch storage |
-| **Custom setup** | Whatever you configure                                                          | Full control                |
+| Environment | Artifacts Path | Why |
+|----|----|----|
+| **Your laptop** | `/tmp/parade-artifacts/` | Uses system temp |
+| **HPC cluster** | `$PARADE_SCRATCH/parade-artifacts/` (preferred) or `$SCRATCH/parade-artifacts/` | Uses shared scratch storage |
+| **Custom setup** | Whatever you configure | Full control |
 
 ``` r
+
 # Check where artifacts will go
 paths_get()$artifacts
 #> "$PARADE_SCRATCH/parade-artifacts"  # on HPC
@@ -182,6 +189,7 @@ Artifacts are just files, but Parade can help you **discover** them by
 scanning the sink sidecars (`*.json`) for provenance metadata.
 
 ``` r
+
 # List artifacts under your artifacts root
 artifact_catalog()
 
@@ -194,6 +202,7 @@ artifact_catalog_search(query = "fit_model")
 Artifacts are organized hierarchically based on your sink specification:
 
 ``` r
+
 sink_spec(
   fields = "model",
   dir = "artifacts://project_x/models",
@@ -220,6 +229,7 @@ Different stages produce different sized outputs - keep small stuff in
 memory, large stuff on disk:
 
 ``` r
+
 neuro_pipeline <- flow(subjects) |>
   
   # Stage 1: Preprocessing (large outputs)
@@ -311,6 +321,7 @@ once and reference it by name in
 [`sink_spec()`](https://bbuchsbaum.github.io/parade/reference/sink_spec.md):
 
 ``` r
+
 # Requires the RNifti package
 if (requireNamespace("RNifti", quietly = TRUE)) {
   register_sink_format(
@@ -337,6 +348,7 @@ sink_spec(
 Save models at each epoch for resume capability:
 
 ``` r
+
 ml_training <- flow(param_grid(
   epoch = 1:100,
   fold = 1:5
@@ -427,6 +439,7 @@ ggplot(results, aes(x = epoch, y = loss, color = factor(fold))) +
 Different team members work on different parts:
 
 ``` r
+
 # Setup: Create subject list
 all_subjects <- data.frame(
   subject_id = sprintf("sub_%03d", 1:100),
@@ -515,6 +528,7 @@ visualization <- flow(bob_results) |>
 Different data types need different formats and locations:
 
 ``` r
+
 # Configure different sinks for different data types
 model_sink <- sink_spec(
   fields = "model",
@@ -542,6 +556,7 @@ summary_sink <- sink_spec(
 Save artifacts only when they meet criteria:
 
 ``` r
+
 stage("process",
   f = function(data) {
     model <- fit_model(data)
@@ -570,6 +585,7 @@ stage("process",
 Track different versions of analyses:
 
 ``` r
+
 version <- format(Sys.Date(), "%Y%m%d")
 
 sink_spec(
@@ -588,6 +604,7 @@ sink_spec(
 ### Issue: “No space left on device”
 
 ``` r
+
 # Check where artifacts are going
 paths_get()$artifacts
 
@@ -598,6 +615,7 @@ paths_set(artifacts = "/large/storage/partition")
 ### Issue: “Permission denied”
 
 ``` r
+
 # Ensure write permissions
 dir <- resolve_path("artifacts://test")
 dir.create(dir, recursive = TRUE, mode = "0755")
@@ -606,6 +624,7 @@ dir.create(dir, recursive = TRUE, mode = "0755")
 ### Issue: Can’t find artifact files
 
 ``` r
+
 # Check if paths match between systems
 artifact_path <- results$model[[1]]$path
 file.exists(artifact_path)
@@ -619,6 +638,7 @@ relative_path <- sub(paths_get()$artifacts, "artifacts://", artifact_path)
 1.  **Use artifacts for outputs \> 10MB**
 
     ``` r
+
     # Good: Large objects as artifacts
     schema = returns(big_model = artifact(), summary = dbl())
 
@@ -629,6 +649,7 @@ relative_path <- sub(paths_get()$artifacts, "artifacts://", artifact_path)
 2.  **Organize artifacts hierarchically**
 
     ``` r
+
     # Good: Clear organization
     "artifacts://preprocessing/cleaned/"
     "artifacts://models/fitted/"
@@ -641,6 +662,7 @@ relative_path <- sub(paths_get()$artifacts, "artifacts://", artifact_path)
 3.  **Include metadata with artifacts**
 
     ``` r
+
     sink_spec(
       fields = "model",
       dir = "artifacts://models",
@@ -651,6 +673,7 @@ relative_path <- sub(paths_get()$artifacts, "artifacts://", artifact_path)
 4.  **Clean up old artifacts periodically**
 
     ``` r
+
     # Remove artifacts older than 30 days
     old_files <- list.files(
       resolve_path("artifacts://temp"),
@@ -676,20 +699,20 @@ Now that you understand artifacts, learn about:
 
 ## Quick Reference
 
-| Function                                                                          | Purpose                    | Example                                             |
-|-----------------------------------------------------------------------------------|----------------------------|-----------------------------------------------------|
-| [`artifact()`](https://bbuchsbaum.github.io/parade/reference/artifact.md)         | Declare field as artifact  | `returns(model = artifact())`                       |
-| [`sink_spec()`](https://bbuchsbaum.github.io/parade/reference/sink_spec.md)       | Configure artifact storage | `sink_spec(fields = "model", dir = "artifacts://")` |
-| [`resolve_path()`](https://bbuchsbaum.github.io/parade/reference/resolve_path.md) | Get absolute path          | `resolve_path("artifacts://models")`                |
-| [`readRDS()`](https://rdrr.io/r/base/readRDS.html)                                | Load artifact              | `readRDS(results$model[[1]]$path)`                  |
+| Function | Purpose | Example |
+|----|----|----|
+| [`artifact()`](https://bbuchsbaum.github.io/parade/reference/artifact.md) | Declare field as artifact | `returns(model = artifact())` |
+| [`sink_spec()`](https://bbuchsbaum.github.io/parade/reference/sink_spec.md) | Configure artifact storage | `sink_spec(fields = "model", dir = "artifacts://")` |
+| [`resolve_path()`](https://bbuchsbaum.github.io/parade/reference/resolve_path.md) | Get absolute path | `resolve_path("artifacts://models")` |
+| [`readRDS()`](https://rdrr.io/r/base/readRDS.html) | Load artifact | `readRDS(results$model[[1]]$path)` |
 
-| Sink Option | Purpose         | Example                                                          |
-|-------------|-----------------|------------------------------------------------------------------|
-| `fields`    | What to save    | `fields = c("model", "data")`                                    |
-| `dir`       | Where to save   | `dir = "artifacts://outputs"`                                    |
-| `format`    | File format     | `format = "rds"` or `format = list(model = "rds", plot = "pdf")` |
-| `template`  | Naming pattern  | `template = "{subject}/{session}.rds"`                           |
-| `overwrite` | Resume behavior | `overwrite = "skip"`                                             |
+| Sink Option | Purpose | Example |
+|----|----|----|
+| `fields` | What to save | `fields = c("model", "data")` |
+| `dir` | Where to save | `dir = "artifacts://outputs"` |
+| `format` | File format | `format = "rds"` or `format = list(model = "rds", plot = "pdf")` |
+| `template` | Naming pattern | `template = "{subject}/{session}.rds"` |
+| `overwrite` | Resume behavior | `overwrite = "skip"` |
 
 ## Summary
 

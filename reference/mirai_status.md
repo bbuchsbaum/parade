@@ -19,18 +19,9 @@ A list with daemon status information, or NULL if mirai is not installed
 # \donttest{
 # Check daemon status
 status <- mirai_status()
+#> mirai package not installed
 if (!is.null(status)) {
   print(status)
 }
-#> $connections
-#> [1] 8
-#> 
-#> $daemons
-#> [1] "abstract://a29e132682e2cc7fab984ddd"
-#> 
-#> $mirai
-#>  awaiting executing completed 
-#>         0         0         0 
-#> 
 # }
 ```

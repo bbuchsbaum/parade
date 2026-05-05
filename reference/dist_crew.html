@@ -109,7 +109,7 @@ while keeping parade's chunk execution semantics intact.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span>  <span class="co"># Local controller (explicit)</span></span></span>
 <span class="r-in"><span>  <span class="fu">dist_crew</span><span class="op">(</span></span></span>
-<span class="r-in"><span>    controller <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">crew</span><span class="fu">::</span><span class="fu"><a href="https://wlandau.github.io/crew/reference/crew_controller_local.html" class="external-link">crew_controller_local</a></span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    controller <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">crew</span><span class="fu">::</span><span class="fu">crew_controller_local</span><span class="op">(</span>workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    by <span class="op">=</span> <span class="st">"group"</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
@@ -119,42 +119,6 @@ while keeping parade's chunk execution semantics intact.</p>
 <span class="r-in"><span>  <span class="co">#   by = "group"</span></span></span>
 <span class="r-in"><span>  <span class="co"># )</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $backend</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "crew"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $by</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $within</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "sequential"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $workers_within</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $chunks_per_job</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $target_jobs</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $slurm</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $crew</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $crew$controller</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> function () </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> crew::crew_controller_local(workers = 4)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55e15e07e1f8&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $crew$persist</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $crew$stop_on_exit</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "parade_dist"</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
