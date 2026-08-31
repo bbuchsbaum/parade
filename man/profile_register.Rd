@@ -4,14 +4,18 @@
 \alias{profile_register}
 \title{Register a named resource profile}
 \usage{
-profile_register(name, profile, overwrite = FALSE)
+profile_register(name, profile, overwrite = FALSE, persist = FALSE)
 }
 \arguments{
 \item{name}{Name for the profile}
 
 \item{profile}{Resource profile object or list}
 
-\item{overwrite}{Whether to overwrite existing profile}
+\item{overwrite}{Whether to overwrite an existing in-session profile}
+
+\item{persist}{Whether to save the profile in the user-managed parade config
+so it is available in future R sessions. Lists may include package-side
+safety metadata \code{whole_node} and \code{cores_per_node}.}
 }
 \value{
 Invisible NULL
@@ -19,7 +23,8 @@ Invisible NULL
 \description{
 Store a resource profile in the registry for reuse across jobs.
 Profiles can be retrieved by name and used as base profiles or
-referenced by string shorthand.
+referenced by string shorthand. Site-specific profiles are supplied by users
+and projects; parade does not embed site names or site resource values.
 }
 \examples{
 \donttest{

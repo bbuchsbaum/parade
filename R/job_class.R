@@ -86,7 +86,7 @@ is_done.parade_local_job <- function(x) {
 #' @export
 is_done.parade_script_job <- function(x) {
   status <- script_status(x)
-  status$done > 0 || status$error > 0
+  isTRUE(status$done > 0) || isTRUE(status$error > 0)
 }
 
 #' @export
@@ -147,10 +147,10 @@ job_status.parade_local_job <- function(x) {
 #' @export
 job_status.parade_script_job <- function(x) {
   status <- script_status(x)
-  state <- if (status$pending > 0) "PENDING"
-           else if (status$running > 0) "RUNNING"
-           else if (status$error > 0) "FAILED"
-           else if (status$done > 0) "COMPLETED"
+  state <- if (isTRUE(status$pending > 0)) "PENDING"
+           else if (isTRUE(status$running > 0)) "RUNNING"
+           else if (isTRUE(status$error > 0)) "FAILED"
+           else if (isTRUE(status$done > 0)) "COMPLETED"
            else "UNKNOWN"
 
   # If this is a packed chunk and the subprocess succeeded, the per-element

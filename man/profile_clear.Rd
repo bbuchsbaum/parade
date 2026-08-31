@@ -2,7 +2,7 @@
 % Please edit documentation in R/resource_profiles.R
 \name{profile_clear}
 \alias{profile_clear}
-\title{Clear all registered profiles}
+\title{Clear all in-session registered profiles}
 \usage{
 profile_clear()
 }
@@ -10,7 +10,8 @@ profile_clear()
 Invisible NULL
 }
 \description{
-Clear all registered profiles
+Persisted profiles are left untouched and remain available through the config.
+Use \code{profile_remove(name, persist = TRUE)} to remove one from config.
 }
 \examples{
 \dontrun{

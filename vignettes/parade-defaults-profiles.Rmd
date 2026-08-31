@@ -163,6 +163,45 @@ slurm_resources(profile = "default") # Explicitly uses "default" profile (same a
 slurm_resources(profile = "testing") # Uses "testing" profile
 ```
 
+## User-managed site profiles
+
+Cluster policy and hardware change independently of parade releases, so parade
+does not hard-code profiles for named sites. Keep those values in your user or
+project config instead. You can define one with `slurm_defaults_set()`, or
+register a list or fluent profile and ask parade to persist it:
+
+```r
+profile_register(
+  "my_cluster_whole_node",
+  list(
+    partition = "compute",
+    time = "4h",
+    cpus_per_task = 64,
+    mem = NA,
+    whole_node = TRUE,
+    cores_per_node = 64
+  ),
+  overwrite = TRUE,
+  persist = TRUE
+)
+
+# A string profile works directly in mapping APIs.
+jobs <- slurm_map(
+  inputs,
+  analyze_one,
+  .resources = "my_cluster_whole_node",
+  .packed = TRUE,
+  .workers_per_node = 64
+)
+```
+
+`whole_node` and `cores_per_node` are local safety metadata, not scheduler
+directives. They let `slurm_map()` warn if standard mode would fan a multi-item
+map out into separate whole-node jobs. The warning is conservative and does not
+change submission behavior; choose `.packed = TRUE` when packing is appropriate.
+Use `profile_remove("my_cluster_whole_node", persist = TRUE)` to remove a
+persisted profile.
+
 ## Real-World Scenarios
 
 ### Scenario 1: Development → Testing → Production Pipeline
@@ -510,7 +549,9 @@ safe_submit <- function(script, profile_name) {
 
 When you call `slurm_defaults_set(...)` parade updates two places:
 
-1. The current R session via the `parade.slurm.defaults` option so subsequent `slurm_resources()` calls in the same session see the changes immediately.
+1. The current R session (`parade.slurm.defaults` for the default profile and
+   `parade.slurm.profiles` for named profiles) so subsequent
+   `slurm_resources()` calls see changes immediately.
 2. (Optionally) The on-disk config stored at `file.path(paths_get()$config, "parade.json")` when `persist = TRUE`. This makes the profile available to future sessions and collaborators who share the project.
 
 Internally the JSON looks like:
@@ -586,6 +627,8 @@ Now that you understand profiles, learn about:
 |----------|---------|---------|
 | `slurm_defaults_set(..., profile = "name")` | Create/update profile | `slurm_defaults_set(time = "4h", profile = "standard")` |
 | `slurm_defaults_get(profile = "name")` | Get profile settings | `slurm_defaults_get(profile = "production")` |
+| `profile_register("name", list(...), persist = TRUE)` | Persist a user/site profile | `profile_register("lab", list(time = "2h"), persist = TRUE)` |
+| `profile_remove("name", persist = TRUE)` | Remove a persisted profile | `profile_remove("lab", persist = TRUE)` |
 | `slurm_resources(profile = "name")` | Use profile for resources | `slurm_resources(profile = "gpu")` |
 | `slurm_resources(list(...), profile = "name")` | Override profile settings | `slurm_resources(list(time = "2h"), profile = "standard")` |
 

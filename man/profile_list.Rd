@@ -7,7 +7,8 @@
 profile_list(details = FALSE)
 }
 \arguments{
-\item{details}{If TRUE, show profile details}
+\item{details}{If TRUE, show profile details. The result includes both
+in-session registrations and profiles in user or project configuration.}
 }
 \value{
 Character vector of profile names, or data frame if details = TRUE

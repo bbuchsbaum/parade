@@ -421,6 +421,88 @@ print.parade_script_job <- function(x, ...) {
   cat("  Job ID:   ", x$job_id, "\n", sep = "")
   invisible(x)
 }
+.script_status_counts <- function(pending, started, running, done, error) {
+  tibble::tibble(
+    pending = as.integer(pending),
+    started = as.integer(started),
+    running = as.integer(running),
+    done = as.integer(done),
+    error = as.integer(error)
+  )
+}
+
+.script_status_unknown <- function() {
+  .script_status_counts(NA_integer_, NA_integer_, NA_integer_, NA_integer_, NA_integer_)
+}
+
+.script_status_column <- function(x, primary, fallback = NULL) {
+  if (primary %in% names(x)) return(x[[primary]])
+  if (!is.null(fallback) && fallback %in% names(x)) return(x[[fallback]])
+  rep(NA, NROW(x))
+}
+
+.script_status_error_flag <- function(x) {
+  if (is.logical(x)) return(!is.na(x) & x)
+  !is.na(x) & nzchar(as.character(x))
+}
+
+.script_status_from_job_table <- function(jt) {
+  if (is.null(jt) || inherits(jt, "try-error")) return(NULL)
+  if (!is.data.frame(jt)) return(NULL)
+  if (NROW(jt) == 0L) return(.script_status_counts(0L, 0L, 0L, 0L, 0L))
+
+  started_col <- .script_status_column(jt, "started", "time.started")
+  done_col <- .script_status_column(jt, "done", "time.done")
+  error_col <- .script_status_column(jt, "error")
+
+  started_flag <- !is.na(started_col)
+  done_flag <- !is.na(done_col)
+  error_flag <- .script_status_error_flag(error_col)
+  pending_flag <- !started_flag & !done_flag & !error_flag
+  running_flag <- started_flag & !done_flag & !error_flag
+
+  .script_status_counts(
+    sum(pending_flag),
+    sum(started_flag),
+    sum(running_flag),
+    sum(done_flag),
+    sum(error_flag)
+  )
+}
+
+.script_status_from_batchtools <- function(st) {
+  if (is.null(st) || inherits(st, "try-error")) return(NULL)
+  required <- c("pending", "started", "running", "done", "error")
+  if (!all(required %in% names(st))) return(NULL)
+  .script_status_counts(st$pending, st$started, st$running, st$done, st$error)
+}
+
+.script_status_from_slurm_state <- function(state) {
+  if (is.null(state) || length(state) != 1L || is.na(state) || !nzchar(state)) {
+    return(NULL)
+  }
+  state <- toupper(trimws(state))
+  state <- sub("[+ ].*$", "", state)
+
+  pending <- c(
+    "CONFIGURING", "PENDING", "REQUEUED", "REQUEUE_FED", "REQUEUE_HOLD",
+    "RESIZING"
+  )
+  running <- c("COMPLETING", "RUNNING", "SIGNALING", "STAGE_OUT", "SUSPENDED")
+  failed <- c(
+    "BOOT_FAIL", "CANCELLED", "DEADLINE", "FAILED", "NODE_FAIL", "OUT_OF_MEMORY",
+    "PREEMPTED", "REVOKED", "SPECIAL_EXIT", "TIMEOUT"
+  )
+
+  if (state %in% pending) return(.script_status_counts(1L, 0L, 0L, 0L, 0L))
+  if (state %in% running) return(.script_status_counts(0L, 1L, 1L, 0L, 0L))
+  if (identical(state, "COMPLETED")) {
+    return(.script_status_counts(0L, 1L, 0L, 1L, 0L))
+  }
+  if (state %in% failed) return(.script_status_counts(0L, 1L, 0L, 0L, 1L))
+  NULL
+}
+
 #' Get status of a SLURM script job
 #'
 #' @param job A `parade_script_job` object
@@ -437,96 +519,56 @@ print.parade_script_job <- function(x, ...) {
 script_status <- function(job, detail = FALSE) {
   stopifnot(inherits(job, "parade_script_job"))
 
-  # Try batchtools approach first
-  bt_status <- tryCatch({
-    if (!requireNamespace("batchtools", quietly = TRUE)) {
-      return(NULL)
-    }
-
-    # Try to load with write access for syncing; fall back to read-only if that fails
-    reg <- tryCatch(
-      batchtools::loadRegistry(job$registry_dir, writeable = TRUE),
-      error = function(e) batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
-    )
-
-    # Sync registry with actual SLURM job status (requires write access)
-    if (reg$writeable) {
-      tryCatch(
-        batchtools::syncRegistry(reg = reg),
-        error = function(e) invisible(NULL)
+  # Prefer batchtools because it owns the registry lifecycle. A missing or
+  # unreadable job table is not fatal: getStatus() and direct SLURM queries are
+  # independent fallbacks.
+  bt_status <- NULL
+  if (requireNamespace("batchtools", quietly = TRUE)) {
+    bt_status <- tryCatch({
+      reg <- tryCatch(
+        batchtools::loadRegistry(job$registry_dir, writeable = TRUE),
+        error = function(e) batchtools::loadRegistry(job$registry_dir, writeable = FALSE)
       )
-    }
 
-    if (isTRUE(detail)) {
-      return(tibble::as_tibble(batchtools::getJobTable(reg)))
-    }
+      if (isTRUE(reg$writeable)) {
+        tryCatch(
+          batchtools::syncRegistry(reg = reg),
+          error = function(e) invisible(NULL)
+        )
+      }
 
-    # Try job table approach
-    jt <- try(batchtools::getJobTable(reg), silent = TRUE)
-    if (!inherits(jt, "try-error") && nrow(jt) > 0) {
-      na_false <- function(x) ifelse(is.na(x), FALSE, x)
-      pending <- sum(is.na(jt$submitted), na.rm = TRUE)
-      running <- sum(na_false(!is.na(jt$started)) & na_false(is.na(jt$done)) & na_false(is.na(jt$error) | jt$error == ""), na.rm = TRUE)
-      started <- sum(!is.na(jt$started), na.rm = TRUE)
-      done <- sum(!is.na(jt$done), na.rm = TRUE)
-      error <- sum(na_false(!is.na(jt$error) & jt$error != ""), na.rm = TRUE)
-      return(tibble::tibble(pending = pending, started = started, running = running, done = done, error = error))
-    }
-
-    # Try getStatus fallback
-    st <- try(batchtools::getStatus(reg), silent = TRUE)
-    if (!inherits(st, "try-error")) {
-      return(tibble::tibble(pending = st$pending, started = st$started, running = st$running, done = st$done, error = st$error))
-    }
-
-    NULL
-  }, error = function(e) NULL)
+      jt <- tryCatch(batchtools::getJobTable(reg), error = function(e) NULL)
+      if (isTRUE(detail)) {
+        if (is.null(jt)) tibble::tibble() else tibble::as_tibble(jt)
+      } else {
+        from_table <- .script_status_from_job_table(jt)
+        if (!is.null(from_table)) {
+          from_table
+        } else {
+          st <- tryCatch(batchtools::getStatus(reg), error = function(e) NULL)
+          .script_status_from_batchtools(st)
+        }
+      }
+    }, error = function(e) NULL)
+  }
 
   if (!is.null(bt_status)) return(bt_status)
 
-  # Fallback: Use SLURM commands directly
   jid <- resolve_slurm_job_id(job)
-  if (is.na(jid) || !nzchar(jid)) {
-    return(tibble::tibble(pending = NA_integer_, started = NA_integer_, running = NA_integer_, done = NA_integer_, error = NA_integer_))
+  if (length(jid) != 1L || is.na(jid) || !nzchar(as.character(jid))) {
+    return(.script_status_unknown())
   }
+  jid <- as.character(jid)
 
-  # Query SLURM for status
-  sq_info <- .slurm_squeue_info(jid)
-  sa_info <- .slurm_sacct_info(jid)
+  sq_info <- tryCatch(.slurm_squeue_info(jid), error = function(e) NULL)
+  sq_status <- .script_status_from_slurm_state(sq_info$state %||% NULL)
+  if (!is.null(sq_status)) return(sq_status)
 
-  # Determine status from SLURM data
-  if (sq_info$state != "UNKNOWN") {
-    # Job is in queue
-    state <- sq_info$state
-    if (state %in% c("PENDING", "CONFIGURING", "RESIZING")) {
-      return(tibble::tibble(pending = 1L, started = 0L, running = 0L, done = 0L, error = 0L))
-    } else if (state %in% c("RUNNING", "COMPLETING")) {
-      return(tibble::tibble(pending = 0L, started = 1L, running = 1L, done = 0L, error = 0L))
-    }
-  }
+  sa_info <- tryCatch(.slurm_sacct_info(jid), error = function(e) NULL)
+  sa_status <- .script_status_from_slurm_state(sa_info$State %||% NULL)
+  if (!is.null(sa_status)) return(sa_status)
 
-  col_or <- function(df, primary, fallback) {
-    if (primary %in% names(df)) return(df[[primary]])
-    if (fallback %in% names(df)) return(df[[fallback]])
-    rep(NA, nrow(df))
-  }
-
-  # Handle case where job table might be empty or have no rows
-  if (nrow(jt) == 0) {
-    return(tibble::tibble(pending = 0L, started = 0L, running = 0L, done = 0L, error = 0L))
-  }
-
-  submitted <- col_or(jt, "submitted", "time.submitted")
-  started_col <- col_or(jt, "started", "time.started")
-  done_col <- col_or(jt, "done", "time.done")
-  err_col <- col_or(jt, "error", "error")
-
-  pending <- sum(is.na(submitted), na.rm = TRUE)
-  running <- sum(na_false(!is.na(started_col)) & na_false(is.na(done_col)) & na_false(is.na(err_col) | err_col == ""), na.rm = TRUE)
-  started <- sum(!is.na(started_col), na.rm = TRUE)
-  done <- sum(!is.na(done_col), na.rm = TRUE)
-  error <- sum(na_false(!is.na(err_col) & err_col != ""), na.rm = TRUE)
-  tibble::tibble(pending = pending, started = started, running = running, done = done, error = error)
+  .script_status_unknown()
 }
 #' Wait for a SLURM script job to complete
 #'

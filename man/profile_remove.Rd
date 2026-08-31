@@ -4,10 +4,13 @@
 \alias{profile_remove}
 \title{Remove a registered resource profile}
 \usage{
-profile_remove(name)
+profile_remove(name, persist = FALSE)
 }
 \arguments{
 \item{name}{Name of the profile to remove}
+
+\item{persist}{Whether to remove the profile from the user-managed config as
+well as the current session.}
 }
 \value{
 Invisible TRUE if removed, FALSE if not found

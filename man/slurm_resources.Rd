@@ -7,16 +7,24 @@
 slurm_resources(resources = NULL, profile = "default")
 }
 \arguments{
-\item{resources}{Named list of resource specifications to merge}
+\item{resources}{Named list of resource specifications to merge, a
+\code{parade_profile}, or a registered profile name.}
 
-\item{profile}{Configuration profile to use for defaults}
+\item{profile}{User-managed configuration profile to use for defaults.}
 }
 \value{
-Normalized resource specification list
+Normalized resource specification list. User-only safety metadata is
+retained as attributes and is not passed to the SLURM template.
 }
 \description{
 Merges user-specified resources with configured defaults and
-applies normalization through batch_resources().
+applies normalization through \code{batch_resources()}. A registered or persisted
+profile name may also be supplied directly as \code{resources}.
+}
+\details{
+Profiles may include \code{whole_node = TRUE} or a positive
+\code{cores_per_node} value. These fields describe site allocation policy for
+parade's fan-out checks; they are not rendered as \verb{#SBATCH} directives.
 }
 \examples{
 slurm_resources(list(time = "2h"), profile = "default")

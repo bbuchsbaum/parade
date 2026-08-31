@@ -12,9 +12,23 @@
 #' @keywords internal
 bt_make_registry <- function(reg_dir, cf) {
   stopifnot(requireNamespace("batchtools", quietly = TRUE))
+  make_registry <- function(...) {
+    withCallingHandlers(
+      batchtools::makeRegistry(...),
+      message = function(cnd) {
+        if (grepl(
+          "No readable configuration file found",
+          conditionMessage(cnd),
+          fixed = TRUE
+        )) {
+          invokeRestart("muffleMessage")
+        }
+      }
+    )
+  }
   # Try the modern API first
   tryCatch({
-    batchtools::makeRegistry(
+    make_registry(
       file.dir = reg_dir,
       make.default = FALSE,
       conf.file = NA,
@@ -24,7 +38,7 @@ bt_make_registry <- function(reg_dir, cf) {
     msg <- conditionMessage(e)
     if (grepl("unused argument", msg, fixed = TRUE) && grepl("cluster.functions", msg, fixed = TRUE)) {
       # Fallback for older batchtools: create then assign CF
-      reg <- batchtools::makeRegistry(
+      reg <- make_registry(
         file.dir = reg_dir,
         make.default = FALSE,
         conf.file = NA

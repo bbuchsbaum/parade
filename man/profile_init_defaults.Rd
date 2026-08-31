@@ -13,9 +13,10 @@ profile_init_defaults(overwrite = FALSE)
 Invisible NULL
 }
 \description{
-Set up commonly used resource profiles. This function is called
+Set up generic, portable resource examples. This function is called
 automatically when the package is loaded but can be called manually
-to reset profiles.
+to reset profiles. Cluster- and site-specific profiles are intentionally not
+built in; register them in user or project configuration instead.
 }
 \examples{
 \donttest{

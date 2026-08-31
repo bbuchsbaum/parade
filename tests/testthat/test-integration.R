@@ -506,7 +506,7 @@ test_that("Error Propagation across modules is handled gracefully", {
     "Unknown alias"
   )
   
-  # Test 5: Registry loading errors
+  # Test 5: Registry loading errors degrade to an inspectable unknown status
   fake_job <- structure(
     list(
       kind = "script",
@@ -520,10 +520,9 @@ test_that("Error Propagation across modules is handled gracefully", {
     stop("Registry not found")
   })
   
-  expect_error(
-    script_status(fake_job),
-    "Registry"
-  )
+  unknown_status <- script_status(fake_job)
+  expect_s3_class(unknown_status, "tbl_df")
+  expect_true(all(is.na(unlist(unknown_status))))
   
   # Test 6: Config file corruption handling
   bad_config <- file.path(dirs$config, "bad.json")

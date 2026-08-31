@@ -36,6 +36,11 @@ status.parade_jobset <- function(x, ...) {
   do.call(rbind, statuses)
 }
 
+#' @export
+status.parade_job <- function(x, ...) {
+  job_status(x)
+}
+
 #' Collect results from all jobs in a jobset
 #'
 #' @param x A `parade_jobset` object
@@ -313,4 +318,3 @@ as_tibble.parade_jobset <- function(x, ...) {
 
   status(x)
 }
-

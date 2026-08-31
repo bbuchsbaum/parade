@@ -2,8 +2,8 @@
 
 #' Make cluster functions for SLURM with robust job ID parsing
 #'
-#' Creates batchtools cluster functions that properly handle Trillium SLURM's
-#' output format, including warnings that can interfere with job ID parsing.
+#' Creates batchtools cluster functions that robustly handle SLURM output,
+#' including site warnings that can interfere with job ID parsing.
 #'
 #' Unlike the default batchtools implementation which assumes the job ID is
 #' on the first line of sbatch output, this implementation searches all output
@@ -57,7 +57,7 @@ make_parade_slurm_cf <- function(template) {
 
     # batch.id is invalid (e.g., "tasks") - we need to extract it ourselves
     # Re-run sbatch command to get the output and parse job ID robustly
-    # This is a bit hacky but necessary for Trillium compatibility
+    # Some sites print warnings around sbatch's normal job ID line.
 
     # The result object doesn't contain the sbatch output, so we can't fix it retroactively
     # We'll have to accept that the batch.id might be invalid and rely on our

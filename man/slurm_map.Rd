@@ -36,7 +36,8 @@ slurm_map(
 
 \item{.name_by}{Naming strategy: "auto", "index", "stem", "digest", or a function}
 
-\item{.resources}{Resource specification (profile name, profile object, list, or NULL)}
+\item{.resources}{Resource specification (user profile name, profile object,
+list, or NULL)}
 
 \item{.packages}{Character vector of packages to load (for functions)}
 
@@ -114,6 +115,12 @@ Packed mode automatically:
 \item Works with flow control via \code{.options} (e.g., \code{max_in_flight()})
 \item Preserves element-level naming and result writing with \code{{stem}}, \code{{run}} macros
 }
+
+In standard mode, a user profile declaring \code{whole_node = TRUE} (or requesting
+at least its declared \code{cores_per_node}) triggers a warning when more than one
+job will be submitted. This is advisory: parade preserves the existing
+one-element-per-job behavior. Supplying \code{.workers_per_node} without packed
+mode also warns because that argument would otherwise have no effect.
 }
 \examples{
 # Local execution example (no SLURM required)

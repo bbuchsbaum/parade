@@ -1,5 +1,50 @@
 # Map functions for SLURM submission -------------------------------------
 
+.slurm_map_resolved_resources <- function(resources) {
+  if (!is.null(attr(resources, "parade.profile_metadata", exact = TRUE))) {
+    return(resources)
+  }
+  tryCatch(
+    slurm_resources(resources = resources, profile = "default"),
+    error = function(e) NULL
+  )
+}
+
+.slurm_map_warn_unpacked <- function(.x, .resources, .engine, .packed,
+                                     .workers_per_node) {
+  if (!identical(.engine, "slurm") || isTRUE(.packed)) return(invisible(NULL))
+
+  if (!is.null(.workers_per_node)) {
+    rlang::warn(
+      "`.workers_per_node` is ignored unless `.packed = TRUE`.",
+      class = "parade_ignored_workers_per_node_warning"
+    )
+  }
+
+  if (length(.x) < 2L) return(invisible(NULL))
+  resources <- .slurm_map_resolved_resources(.resources)
+  if (is.null(resources)) return(invisible(NULL))
+
+  metadata <- attr(resources, "parade.profile_metadata", exact = TRUE) %||% list()
+  whole_node <- isTRUE(metadata$whole_node)
+  if (!whole_node && !is.null(metadata$cores_per_node) &&
+      !is.null(resources$cpus_per_task)) {
+    whole_node <- resources$cpus_per_task >= metadata$cores_per_node
+  }
+  if (!whole_node) return(invisible(NULL))
+
+  profile_name <- attr(resources, "parade.profile", exact = TRUE) %||% "default"
+  rlang::warn(
+    paste0(
+      "slurm_map() will submit ", length(.x), " separate jobs using whole-node profile '",
+      profile_name, "'. If each element does not intentionally consume a full node, use ",
+      "`.packed = TRUE` or `slurm_map_cluster()` to avoid allocating one node per element."
+    ),
+    class = "parade_whole_node_fanout_warning"
+  )
+  invisible(NULL)
+}
+
 #' Map a function or script over elements via SLURM
 #' 
 #' Submits multiple SLURM jobs by mapping a function or script over a vector
@@ -11,7 +56,8 @@
 #' @param ... Additional arguments passed to the function or script
 #' @param .args Named list of additional arguments (alternative to ...)
 #' @param .name_by Naming strategy: "auto", "index", "stem", "digest", or a function
-#' @param .resources Resource specification (profile name, profile object, list, or NULL)
+#' @param .resources Resource specification (user profile name, profile object,
+#'   list, or NULL)
 #' @param .packages Character vector of packages to load (for functions)
 #' @param .write_result Path template for saving results (supports macros)
 #' @param .engine Execution engine: "slurm" (default) or "local"
@@ -68,6 +114,12 @@
 #'   "callr" (default, most isolated), "multicore" (HPC Linux), or "multisession"
 #' - Works with flow control via `.options` (e.g., `max_in_flight()`)
 #' - Preserves element-level naming and result writing with `{stem}`, `{run}` macros
+#'
+#' In standard mode, a user profile declaring `whole_node = TRUE` (or requesting
+#' at least its declared `cores_per_node`) triggers a warning when more than one
+#' job will be submitted. This is advisory: parade preserves the existing
+#' one-element-per-job behavior. Supplying `.workers_per_node` without packed
+#' mode also warns because that argument would otherwise have no effect.
 #'
 #' @examples
 #' # Local execution example (no SLURM required)
@@ -132,6 +184,14 @@ slurm_map <- function(.x, .f, ...,
                       .capture_child_io = TRUE) {
 
   .engine <- match.arg(.engine)
+
+  .slurm_map_warn_unpacked(
+    .x = .x,
+    .resources = .resources,
+    .engine = .engine,
+    .packed = .packed,
+    .workers_per_node = .workers_per_node
+  )
 
   # Convert formula to function
   if (inherits(.f, "formula")) {

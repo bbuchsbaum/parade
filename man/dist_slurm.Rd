@@ -132,7 +132,9 @@ dist_slurm(
 )
 
 # -- Full-node jobs with within-node parallelism --
-# Each SLURM job gets one full node (192 cores). Rows inside each
+# Keep site-specific capacity in user/project configuration.
+site_cores <- 64L # replace with the core count for your site
+# Each SLURM job gets one full node. Rows inside each
 # job run in parallel across those cores via forking.
 dist_slurm(
   by = c("shift", "ridge_x", "ridge_b"),
@@ -140,21 +142,21 @@ dist_slurm(
   resources = list(
     account       = "rrg-mylab",
     time          = "8:00:00",
-    mem           = "0",               # 0 = all node memory
-    cpus_per_task = 192L,
+    mem           = NA,                 # omit when the site rejects --mem
+    cpus_per_task = site_cores,
     nodes         = 1L
   )
 )
 
 # -- Sequential within (script is already multi-threaded) --
-# Each job processes one group; the script itself uses all 192 cores.
+# Each job processes one group; the script itself uses the requested cores.
 dist_slurm(
   by = c("shift", "ridge_x", "ridge_b"),
   within = "sequential",
   resources = list(
     account       = "rrg-mylab",
     time          = "8:00:00",
-    cpus_per_task = 192L,
+    cpus_per_task = site_cores,
     nodes         = 1L
   )
 )

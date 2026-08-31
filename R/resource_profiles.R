@@ -321,11 +321,15 @@ print.parade_profile <- function(x, ...) {
 #' @description
 #' Store a resource profile in the registry for reuse across jobs.
 #' Profiles can be retrieved by name and used as base profiles or
-#' referenced by string shorthand.
+#' referenced by string shorthand. Site-specific profiles are supplied by users
+#' and projects; parade does not embed site names or site resource values.
 #' 
 #' @param name Name for the profile
 #' @param profile Resource profile object or list
-#' @param overwrite Whether to overwrite existing profile
+#' @param overwrite Whether to overwrite an existing in-session profile
+#' @param persist Whether to save the profile in the user-managed parade config
+#'   so it is available in future R sessions. Lists may include package-side
+#'   safety metadata `whole_node` and `cores_per_node`.
 #' @return Invisible NULL
 #' 
 #' @examples
@@ -353,7 +357,10 @@ print.parade_profile <- function(x, ...) {
 #' }
 #' 
 #' @export
-profile_register <- function(name, profile, overwrite = FALSE) {
+profile_register <- function(name, profile, overwrite = FALSE, persist = FALSE) {
+  if (!is.character(name) || length(name) != 1L || is.na(name) || !nzchar(name)) {
+    stop("`name` must be a non-empty string.", call. = FALSE)
+  }
   if (!overwrite && exists(name, envir = .profile_registry)) {
     stop("Profile '", name, "' already exists. Use overwrite = TRUE to replace.")
   }
@@ -364,14 +371,24 @@ profile_register <- function(name, profile, overwrite = FALSE) {
     p$resources <- profile
     profile <- p
   }
-  
+
+  builtin <- isTRUE(attr(profile, "parade_builtin"))
+  profile$name <- name
+  attr(profile, "parade_builtin") <- builtin
   .profile_registry[[name]] <- profile
+  if (!isTRUE(builtin)) {
+    .slurm_session_profile_set(name, profile$resources, replace = TRUE)
+    if (isTRUE(persist)) {
+      .slurm_config_profile_write(name, profile$resources, replace = TRUE)
+    }
+  }
   invisible(NULL)
 }
 
 #' List all registered resource profiles
 #' 
-#' @param details If TRUE, show profile details
+#' @param details If TRUE, show profile details. The result includes both
+#'   in-session registrations and profiles in user or project configuration.
 #' @return Character vector of profile names, or data frame if details = TRUE
 #' 
 #' @examples
@@ -385,7 +402,7 @@ profile_register <- function(name, profile, overwrite = FALSE) {
 #' 
 #' @export
 profile_list <- function(details = FALSE) {
-  names <- ls(envir = .profile_registry)
+  names <- union(ls(envir = .profile_registry), .slurm_user_profile_names())
   
   if (!details) {
     return(names)
@@ -404,7 +421,7 @@ profile_list <- function(details = FALSE) {
   
   # Build details data frame
   details_list <- lapply(names, function(n) {
-    p <- .profile_registry[[n]]
+    p <- profile_get(n)
     data.frame(
       name = n,
       time = p$resources$time %||% NA_character_,
@@ -421,7 +438,8 @@ profile_list <- function(details = FALSE) {
 #' Get a registered resource profile
 #' 
 #' @param name Name of the profile
-#' @return Resource profile object, or NULL if not found
+#' @return Resource profile object, or NULL if not found. User-configured
+#'   profiles take precedence over parade's generic built-in profiles.
 #' 
 #' @examples
 #' \donttest{
@@ -435,16 +453,27 @@ profile_list <- function(details = FALSE) {
 #' 
 #' @export
 profile_get <- function(name) {
-  if (exists(name, envir = .profile_registry)) {
+  registered <- if (exists(name, envir = .profile_registry)) {
     .profile_registry[[name]]
-  } else {
-    NULL
+  } else NULL
+  configured <- .slurm_named_profile(name)
+
+  if (!is.null(registered) && !isTRUE(attr(registered, "parade_builtin"))) {
+    return(registered)
   }
+  if (!is.null(configured)) {
+    out <- profile(name)
+    out$resources <- configured
+    return(out)
+  }
+  registered
 }
 
 #' Remove a registered resource profile
 #'
 #' @param name Name of the profile to remove
+#' @param persist Whether to remove the profile from the user-managed config as
+#'   well as the current session.
 #' @return Invisible TRUE if removed, FALSE if not found
 #'
 #' @examples
@@ -452,16 +481,38 @@ profile_get <- function(name) {
 #' profile_remove("old-profile")
 #' }
 #' @export
-profile_remove <- function(name) {
+profile_remove <- function(name, persist = FALSE) {
+  removed <- FALSE
   if (exists(name, envir = .profile_registry)) {
     rm(list = name, envir = .profile_registry)
-    invisible(TRUE)
-  } else {
-    invisible(FALSE)
+    removed <- TRUE
   }
+
+  session <- .slurm_session_profiles()
+  if (name %in% names(session)) {
+    session[[name]] <- NULL
+    options("parade.slurm.profiles" = session)
+    removed <- TRUE
+  }
+
+  if (isTRUE(persist)) {
+    cfg <- parade_config_read()
+    profiles <- .slurm_config_profiles(cfg)
+    if (name %in% names(profiles)) {
+      profiles[[name]] <- NULL
+      if (is.null(cfg$slurm)) cfg$slurm <- list()
+      cfg$slurm$defaults <- profiles
+      parade_config_write(cfg)
+      removed <- TRUE
+    }
+  }
+  invisible(removed)
 }
 
-#' Clear all registered profiles
+#' Clear all in-session registered profiles
+#'
+#' Persisted profiles are left untouched and remain available through the config.
+#' Use `profile_remove(name, persist = TRUE)` to remove one from config.
 #'
 #' @return Invisible NULL
 #'
@@ -472,15 +523,17 @@ profile_remove <- function(name) {
 #' @export
 profile_clear <- function() {
   rm(list = ls(envir = .profile_registry), envir = .profile_registry)
+  options("parade.slurm.profiles" = list())
   invisible(NULL)
 }
 
 #' Initialize default resource profiles
 #' 
 #' @description
-#' Set up commonly used resource profiles. This function is called
+#' Set up generic, portable resource examples. This function is called
 #' automatically when the package is loaded but can be called manually
-#' to reset profiles.
+#' to reset profiles. Cluster- and site-specific profiles are intentionally not
+#' built in; register them in user or project configuration instead.
 #' 
 #' @param overwrite Whether to overwrite existing profiles
 #' @return Invisible NULL
@@ -498,6 +551,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   p_test <- res_time(p_test, "0:30:00")
   p_test <- mem(p_test, "4G")
   p_test <- cpus(p_test, 2)
+  attr(p_test, "parade_builtin") <- TRUE
   profile_register("test", p_test, overwrite = overwrite)
   
   # Standard compute profile
@@ -505,6 +559,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   p_standard <- res_time(p_standard, "4:00:00")
   p_standard <- mem(p_standard, "8G")
   p_standard <- cpus(p_standard, 4)
+  attr(p_standard, "parade_builtin") <- TRUE
   profile_register("standard", p_standard, overwrite = overwrite)
   
   # High memory profile
@@ -512,6 +567,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   p_highmem <- res_time(p_highmem, "8:00:00")
   p_highmem <- mem(p_highmem, "64G")
   p_highmem <- cpus(p_highmem, 8)
+  attr(p_highmem, "parade_builtin") <- TRUE
   profile_register("highmem", p_highmem, overwrite = overwrite)
   
   # GPU profile
@@ -520,6 +576,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   p_gpu <- mem(p_gpu, "32G")
   p_gpu <- cpus(p_gpu, 8)
   p_gpu <- gpus(p_gpu, 1)
+  attr(p_gpu, "parade_builtin") <- TRUE
   profile_register("gpu", p_gpu, overwrite = overwrite)
   
   # Long running profile
@@ -527,6 +584,7 @@ profile_init_defaults <- function(overwrite = FALSE) {
   p_long <- res_time(p_long, "2-00:00:00")
   p_long <- mem(p_long, "16G")
   p_long <- cpus(p_long, 4)
+  attr(p_long, "parade_builtin") <- TRUE
   profile_register("long", p_long, overwrite = overwrite)
   
   invisible(NULL)

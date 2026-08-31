@@ -11,12 +11,14 @@ slurm_defaults_set(..., .list = NULL, profile = "default", persist = FALSE)
 
 \item{.list}{optional named list}
 
-\item{profile}{profile name; defaults to 'default'}
+\item{profile}{Profile name; defaults to \code{"default"}. Site-specific profiles
+belong in user or project configuration rather than package code.}
 
-\item{persist}{write to config file if TRUE}
+\item{persist}{Write to the parade config file if \code{TRUE}; otherwise update
+only the current R session.}
 }
 \value{
-The previous defaults (invisibly).
+The updated defaults for \code{profile} (invisibly).
 }
 \description{
 Set defaults for SLURM (R session and optionally persist to config)

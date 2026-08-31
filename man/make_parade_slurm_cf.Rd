@@ -13,8 +13,8 @@ make_parade_slurm_cf(template)
 ClusterFunctions object for batchtools
 }
 \description{
-Creates batchtools cluster functions that properly handle Trillium SLURM's
-output format, including warnings that can interfere with job ID parsing.
+Creates batchtools cluster functions that robustly handle SLURM output,
+including site warnings that can interfere with job ID parsing.
 }
 \details{
 Unlike the default batchtools implementation which assumes the job ID is

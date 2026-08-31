@@ -7,7 +7,9 @@
 slurm_defaults_get(profile = "default")
 }
 \arguments{
-\item{profile}{character name; 'default' by default}
+\item{profile}{Character profile name; \code{"default"} by default. Named profiles
+are user-managed and may be registered for the session or persisted in the
+parade config file.}
 }
 \value{
 A named list of SLURM default settings for the requested profile.

@@ -102,6 +102,7 @@ test_that("profile_register prevents overwrite by default", {
 })
 
 test_that("profile_list with details returns data frame", {
+  withr::local_options(list(parade.config = list()))
   profile_clear()
   
   profile_register("p1",
