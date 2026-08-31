@@ -20,15 +20,17 @@ slurm_defaults_set(..., .list = NULL, profile = "default", persist = FALSE)
 
 - profile:
 
-  profile name; defaults to 'default'
+  Profile name; defaults to `"default"`. Site-specific profiles belong
+  in user or project configuration rather than package code.
 
 - persist:
 
-  write to config file if TRUE
+  Write to the parade config file if `TRUE`; otherwise update only the
+  current R session.
 
 ## Value
 
-The previous defaults (invisibly).
+The updated defaults for `profile` (invisibly).
 
 ## Examples
 

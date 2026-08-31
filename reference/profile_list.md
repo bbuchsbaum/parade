@@ -12,7 +12,8 @@ profile_list(details = FALSE)
 
 - details:
 
-  If TRUE, show profile details
+  If TRUE, show profile details. The result includes both in-session
+  registrations and profiles in user or project configuration.
 
 ## Value
 

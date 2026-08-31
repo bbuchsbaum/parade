@@ -12,7 +12,9 @@ slurm_defaults_get(profile = "default")
 
 - profile:
 
-  character name; 'default' by default
+  Character profile name; `"default"` by default. Named profiles are
+  user-managed and may be registered for the session or persisted in the
+  parade config file.
 
 ## Value
 

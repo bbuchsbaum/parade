@@ -16,7 +16,8 @@ profile_get(name)
 
 ## Value
 
-Resource profile object, or NULL if not found
+Resource profile object, or NULL if not found. User-configured profiles
+take precedence over parade's generic built-in profiles.
 
 ## Examples
 

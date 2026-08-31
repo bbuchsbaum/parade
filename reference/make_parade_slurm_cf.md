@@ -1,8 +1,7 @@
 # Make cluster functions for SLURM with robust job ID parsing
 
-Creates batchtools cluster functions that properly handle Trillium
-SLURM's output format, including warnings that can interfere with job ID
-parsing.
+Creates batchtools cluster functions that robustly handle SLURM output,
+including site warnings that can interfere with job ID parsing.
 
 ## Usage
 

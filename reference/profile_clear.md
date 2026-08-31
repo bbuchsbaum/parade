@@ -1,6 +1,8 @@
-# Clear all registered profiles
+# Clear all in-session registered profiles
 
-Clear all registered profiles
+Persisted profiles are left untouched and remain available through the
+config. Use `profile_remove(name, persist = TRUE)` to remove one from
+config.
 
 ## Usage
 

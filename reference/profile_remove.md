@@ -5,7 +5,7 @@ Remove a registered resource profile
 ## Usage
 
 ``` r
-profile_remove(name)
+profile_remove(name, persist = FALSE)
 ```
 
 ## Arguments
@@ -13,6 +13,11 @@ profile_remove(name)
 - name:
 
   Name of the profile to remove
+
+- persist:
+
+  Whether to remove the profile from the user-managed config as well as
+  the current session.
 
 ## Value
 

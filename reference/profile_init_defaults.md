@@ -1,8 +1,9 @@
 # Initialize default resource profiles
 
-Set up commonly used resource profiles. This function is called
+Set up generic, portable resource examples. This function is called
 automatically when the package is loaded but can be called manually to
-reset profiles.
+reset profiles. Cluster- and site-specific profiles are intentionally
+not built in; register them in user or project configuration instead.
 
 ## Usage
 

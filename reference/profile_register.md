@@ -2,12 +2,13 @@
 
 Store a resource profile in the registry for reuse across jobs. Profiles
 can be retrieved by name and used as base profiles or referenced by
-string shorthand.
+string shorthand. Site-specific profiles are supplied by users and
+projects; parade does not embed site names or site resource values.
 
 ## Usage
 
 ``` r
-profile_register(name, profile, overwrite = FALSE)
+profile_register(name, profile, overwrite = FALSE, persist = FALSE)
 ```
 
 ## Arguments
@@ -22,7 +23,13 @@ profile_register(name, profile, overwrite = FALSE)
 
 - overwrite:
 
-  Whether to overwrite existing profile
+  Whether to overwrite an existing in-session profile
+
+- persist:
+
+  Whether to save the profile in the user-managed parade config so it is
+  available in future R sessions. Lists may include package-side safety
+  metadata `whole_node` and `cores_per_node`.
 
 ## Value
 

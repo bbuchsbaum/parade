@@ -468,7 +468,7 @@
   : Create a resource profile for SLURM jobs
 
 - [`profile_clear()`](https://bbuchsbaum.github.io/parade/reference/profile_clear.md)
-  : Clear all registered profiles
+  : Clear all in-session registered profiles
 
 - [`profile_get()`](https://bbuchsbaum.github.io/parade/reference/profile_get.md)
   : Get a registered resource profile
