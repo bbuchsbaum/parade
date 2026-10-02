@@ -16,3 +16,4 @@ tests/testthat/.parade/
 .claude/
 parade.log
 .omc/
+.albersdown.bak/

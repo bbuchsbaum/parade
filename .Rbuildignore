@@ -23,3 +23,4 @@ examples
 ^PRD_INCREMENTAL_APPEAL_POWER\.md$
 ^manual_cards\.jsonl$
 ^parade\.log$
+^\.albersdown\.bak$
